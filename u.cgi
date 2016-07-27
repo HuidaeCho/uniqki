@@ -3818,15 +3818,15 @@ if($REQUEST_METHOD eq "GET"){
 make_html($PAGE) if($rebuild);
 
 if($READ_ACCESS ne "open"){
-	if($QUERY_STRING ne ""){
-		exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
-	}elsif(-f "$PAGE.html"){
-		local *FH;
-		start_html();
-		open FH, "$PAGE.html";
-		print <FH>;
-		close FH;
-	}
-}else{
-	exit_redirect("$DOC_BASE/$PAGE.html");
+	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE") if($QUERY_STRING ne "");
+	exit_message(get_msg("page_not_found", $PAGE)) unless(-f "$PAGE.html");
+
+	local *FH;
+	start_html();
+	open FH, "$PAGE.html";
+	print <FH>;
+	close FH;
+	exit;
 }
+
+exit_redirect("$DOC_BASE/$PAGE.html");
