@@ -55,7 +55,7 @@ my $adminpw = $tmp_adminpw;
 ################################################################################
 use strict;
 use vars qw(
-	$U_CGI $HTTP_BASE $DOC_BASE
+	$CGI $HTTP_BASE $DOC_BASE
 
 	$HOSTING
 
@@ -103,9 +103,9 @@ $CONTENT_LENGTH = $ENV{CONTENT_LENGTH};
 
 ################################################################################
 # Useful variables
-$U_CGI = $SCRIPT_NAME;
+$CGI = $SCRIPT_NAME;
 $HTTP_BASE = "http://$HTTP_HOST";
-$DOC_BASE = "$HTTP_BASE$U_CGI"; $DOC_BASE =~ s#/[^/]*$##;
+$DOC_BASE = "$HTTP_BASE$CGI"; $DOC_BASE =~ s#/[^/]*$##;
 $PAGE = substr $PATH_INFO, 1; $PAGE =~ s#/.*$##;
 $PAGE =~ s#\.(?:html|txt|txt\.v)$##;
 $FILE = $PATH_INFO; $FILE =~ s#^/[^/]+##; $FILE =~ s#^/##;
@@ -120,9 +120,9 @@ if(-d "/home/www/$SERVER_NAME"){
 	chdir $_;
 }
 if($doc_root eq ""){
-	$U_CGI =~ s#^.*/##;
+	$CGI =~ s#^.*/##;
 }else{
-	($_ = $U_CGI) =~ s#/[^/]+$##;
+	($_ = $CGI) =~ s#/[^/]+$##;
 	s#^/~[^/]+##;
 	if($_ eq ""){
 		chdir $doc_root;
@@ -130,7 +130,7 @@ if($doc_root eq ""){
 		s#^/##; s#[^/]+#..#g;
 		chdir "$_/$doc_root";
 	}
-	$DOC_BASE = $HTTP_BASE.($U_CGI =~ m#(^/~[^/]+)# ? $1:"")."/$doc_root";
+	$DOC_BASE = $HTTP_BASE.($CGI =~ m#(^/~[^/]+)# ? $1:"")."/$doc_root";
 }
 
 ################################################################################
@@ -144,7 +144,7 @@ if($TIME_ZONE ne ""){
 	$ENV{TIME_ZONE} = $TIME_ZONE;
 	eval "use POSIX; POSIX::tzset();";
 }
-$CSS = -f "$TPL/uniqki.css" ? "$TPL/uniqki.css" : "$U_CGI?css";
+$CSS = -f "$TPL/uniqki.css" ? "$TPL/uniqki.css" : "$CGI?css";
 my ($page_name_case, $page_name_spaces) = config_page_name_style();
 my ($nonwiki_read_access, $wiki_read_access, $wiki_write_access) =
 	config_read_write_access();
@@ -901,10 +901,10 @@ $TEXT
 </div>
 <!-- # --><div id="menu">
 <!-- # --><hr />
-<!-- # --><a accesskey="r" href="$U_CGI/$PAGE?refresh">Refresh</a> .
-<!-- # --><a accesskey="e" href="$U_CGI/$PAGE?edit">Edit</a> .
+<!-- # --><a accesskey="r" href="$CGI/$PAGE?refresh">Refresh</a> .
+<!-- # --><a accesskey="e" href="$CGI/$PAGE?edit">Edit</a> .
 <!-- # --><a accesskey="i" href="index.html">Index</a> .
-<!-- # --><a accesskey="l" href="$U_CGI/$PAGE?loginout">Loginout</a><br />
+<!-- # --><a accesskey="l" href="$CGI/$PAGE?loginout">Loginout</a><br />
 <!-- # --><small><i>
 <!-- # -->$TIME .
 <!-- # --><a href="https://validator.w3.org/check?uri=referer">XHTML</a> .
@@ -984,9 +984,9 @@ print <<EOT;
 $TEXT
 </div>
 <!-- # --><div id="wikimenu">
-<!-- # --><a accesskey="e" href="$U_CGI/$PAGE?wikiedit">EditPage</a> .
-<!-- # --><a accesskey="d" href="$U_CGI/$PAGE?diff=-1">Diff</a> .
-<!-- # --><a accesskey="l" href="$U_CGI?search=$PAGE%5C.html&amp;link=1">BackLink</a> .
+<!-- # --><a accesskey="e" href="$CGI/$PAGE?wikiedit">EditPage</a> .
+<!-- # --><a accesskey="d" href="$CGI/$PAGE?diff=-1">Diff</a> .
+<!-- # --><a accesskey="l" href="$CGI?search=$PAGE%5C.html&amp;link=1">BackLink</a> .
 <!-- # --><a accesskey="i" href="index.html">Index</a><br />
 <!-- # --><small><i>
 <!-- # -->$TIME .
@@ -1553,8 +1553,8 @@ sub restore{
 	print $fh $content;
 	my $zip = Archive::Zip->new();
 	$zip->readFromFileHandle($fh);
-	(my $u_cgi = $U_CGI) =~ s#^(?:/~[^/]+)?/##;
-	$zip->removeMember($u_cgi);
+	(my $cgi = $CGI) =~ s#^(?:/~[^/]+)?/##;
+	$zip->removeMember($cgi);
 	$zip->removeMember($PW);
 	foreach($zip->memberNames()){
 		$zip->removeMember($_) if(-f $_ && !-w $_);
@@ -2603,7 +2603,7 @@ sub end_parsing{
 	$text =~ s#(<(?:p|li|dd)>)\n+#$1#g; $text =~ s#\n+(</(?:p|li|dd)>)#$1#g;
 }
 
-if($PAGE eq $U_CGI && $FILE ne ""){
+if($PAGE eq $CGI && $FILE ne ""){
 ################################################################################
 # u.cgi/u.cgi/.../PAGE?ACTION	Called from a secured site
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$FILE?$QUERY_STRING");
