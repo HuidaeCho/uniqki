@@ -3817,7 +3817,7 @@ if($REQUEST_METHOD eq "GET"){
 # Rebuild, if requested, and redirect
 make_html($PAGE) if($rebuild);
 
-if($READ_ACCESS ne "open"){
+if($nonwiki_read_access ne "open" || $wiki_read_access ne "open"){
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE") if($QUERY_STRING ne "");
 	exit_message(get_msg("page_not_found", $PAGE)) unless(-f "$PAGE.html");
 
