@@ -445,6 +445,7 @@ sub write_pw{
 		$file = $PW;
 	}
 	unless(-f $file){
+		local *FH;
 		open FH, ">$file";
 		print FH "$adminpw\n";
 		close FH;
@@ -568,6 +569,7 @@ $WIKI_UPLOAD = q(\.(png|gif|jpg|jpeg|txt|zip)$);
 EOT_UNIQKI
 	if($mode == 1){
 		unless(-f "u.cfg"){
+			local *FH;
 			open FH, ">u.cfg";
 			print FH $cfg;
 			close FH;
@@ -671,6 +673,7 @@ EOT_UNIQKI
 	}
 	if($mode == 1){
 		unless(-f $file){
+			local *FH;
 			open FH, ">$file";
 			print FH $msg;
 			close FH;
@@ -722,6 +725,7 @@ sub process_tpl{
 	# $mode=2: print for CSS only
 	my ($file, $mode, $tpl) = @_;
 	my $path = "$TPL/$file";
+	local *FH;
 
 	start_html() unless(defined $mode);
 	print "Content-Type: text/css\n\n" if($mode == 2);
