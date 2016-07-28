@@ -57,7 +57,7 @@ use strict;
 
 # HTTP server environment variables
 use vars qw(
-	$HTTP_COOKIE $HTTP_HOST $SERVER_NAME $SCRIPT_NAME $PATH_INFO
+	$HTTPS $HTTP_COOKIE $HTTP_HOST $SERVER_NAME $SCRIPT_NAME $PATH_INFO
 	$QUERY_STRING $REQUEST_METHOD $CONTENT_LENGTH
 );
 
@@ -106,6 +106,7 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 
 ################################################################################
 # CGI variables
+$HTTPS = $ENV{HTTPS};
 $HTTP_COOKIE = $ENV{HTTP_COOKIE};
 $HTTP_HOST = $ENV{HTTP_HOST};
 $SERVER_NAME = $ENV{SERVER_NAME};
@@ -118,7 +119,7 @@ $CONTENT_LENGTH = $ENV{CONTENT_LENGTH};
 ################################################################################
 # Useful variables
 $CGI = $SCRIPT_NAME;
-$HTTP_BASE = "http://$HTTP_HOST";
+$HTTP_BASE = ($HTTPS eq "on" ? "https" : "http")."://$HTTP_HOST";
 $DOC_BASE = "$HTTP_BASE$CGI"; $DOC_BASE =~ s#/[^/]*$##;
 $PAGE = substr $PATH_INFO, 1; $PAGE =~ s#/.*$##;
 $PAGE =~ s#\.(?:html|txt|txt\.v)$##;
@@ -719,8 +720,43 @@ sub is_session_id{
 
 #-------------------------------------------------------------------------------
 # Default template
+sub process_tpl_tag{
+	my $tag = shift;
+	local *FH;
+	my $txt = "";
+
+	if($tag eq "HEADER"){
+		open FH, ">", \$txt; my $fh = select FH;
+		print_header();
+		close FH; select $fh;
+	}elsif($tag eq "FOOTER"){
+		open FH, ">", \$txt; my $fh = select FH;
+		print_footer();
+		close FH; select $fh;
+	}elsif($tag eq "EDIT"){
+		open FH, ">", \$txt; my $fh = select FH;
+		print_edit();
+		close FH; select $fh;
+	}elsif($tag eq "WIKIEDIT"){
+		open FH, ">", \$txt; my $fh = select FH;
+		print_wikiedit();
+		close FH; select $fh;
+	}else{
+		my @tags = qw(
+			TITLE CHARSET CSS PAGE VERSION TEXT DOC_BASE PREVIEW TIME CGI MESSAGE
+		);
+		my %hash;
+		@hash{@tags} = undef;
+
+		no strict;
+		$txt = $$tag if(exists $hash{$tag});
+	}
+
+	return $txt;
+}
+
 sub process_tpl{
-	# $mode=undef: eval if file does not exist, do file otherwise
+	# $mode=undef: print
 	# $mode=1: write
 	# $mode=2: print for CSS only
 	my ($file, $mode, $tpl) = @_;
@@ -736,20 +772,21 @@ sub process_tpl{
 			print FH $tpl;
 			close FH;
 		}
+		return;
 	}elsif(-f $path){
-		if($mode == 2){
-			local *FH;
-			open FH, $path;
-			print <FH>;
-			close FH;
-		}else{
-			do $path;
-		}
-	}elsif($mode == 2){
-		print $tpl;
-	}else{
-		eval $tpl;
+		local *FH;
+		open FH, $path; local $/ = undef;
+		$tpl = <FH>;
+		close FH;
 	}
+	if($mode == 2){
+		print $tpl;
+		return;
+	}
+
+	$_ = $tpl;
+	s/\[\[([A-Z_]*)\]\]/@{[process_tpl_tag($1)]}/g;
+	print;
 }
 
 sub print_header{
@@ -758,18 +795,16 @@ sub print_header{
 
 	$header_printed = 1;
 	process_tpl("header.tpl", $mode, <<'EOT_UNIQKI'
-print <<EOT;
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title>$TITLE</title>
-<meta charset="$CHARSET" />
+<title>[[TITLE]]</title>
+<meta charset="[[CHARSET]]" />
 <meta name="viewport" content="width=device-width;" />
-<link rel="stylesheet" type="text/css" href="$CSS" />
+<link rel="stylesheet" type="text/css" href="[[CSS]]" />
 </head>
 <body>
 <div id="uniqki">
-EOT
 EOT_UNIQKI
 	)
 }
@@ -780,22 +815,19 @@ sub print_footer{
 
 	$footer_printed = 1;
 	process_tpl("footer.tpl", $mode, <<'EOT_UNIQKI'
-print <<EOT;
 </div>
 </body>
 </html>
-EOT
 EOT_UNIQKI
 	)
 }
 
 sub print_login{
 	process_tpl("login.tpl", shift, <<'EOT_UNIQKI'
-print_header();
-print <<EOT;
+[[HEADER]]
 <div id="login">
-<h1>$PAGE Login</h1>
-<form action="$PAGE?login" method="post">
+<h1>[[PAGE]] Login</h1>
+<form action="[[PAGE]]?login" method="post">
 <div>
 <input accesskey="i" type="text" id="id" name="id" placeholder="User ID" />
 <input accesskey="p" type="password" id="pw" name="pw" placeholder="Password" />
@@ -806,25 +838,24 @@ print <<EOT;
 </div>
 <div id="menu">
 <hr />
-<a accesskey="v" href="$DOC_BASE/$PAGE.html">View</a> .
-<a accesskey="i" href="$DOC_BASE/index.html">Index</a>
+<a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">View</a> .
+<a accesskey="i" href="[[DOC_BASE]]/index.html">Index</a>
 </div>
-EOT
-print_footer();
+[[FOOTER]]
 EOT_UNIQKI
 	)
 }
 
 sub print_admin{
 	process_tpl("admin.tpl", shift, <<'EOT_UNIQKI'
-print_header();
-print qq(<div id="admin">
-<h1>$PAGE Admin</h1>
+[[HEADER]]
+<div id="admin">
+<h1>[[PAGE]] Admin</h1>
 <h2>Pages</h2>
 <form action="?restore" method="post" enctype="multipart/form-data">
 <div>
-Backup: <a href="?backup">All pages</a>).($PAGE eq "" ? "" : qq(
-. <a href="?backup">$PAGE</a>)).qq(
+Backup: <a href="[[CGI]]?backup">All pages</a> .
+<a href="?backup">[[PAGE]]</a>
 <br />
 Restore: <input accesskey="f" type="file" id="file" name="file" />
 <input accesskey="r" type="submit" value="Restore" />
@@ -862,48 +893,34 @@ Restore: <input accesskey="f" type="file" id="file" name="file" />
 </form>
 </div>
 <div id="menu">
-<hr />).($PAGE eq "" ? "" : qq(
-<a accesskey="v" href="$DOC_BASE/$PAGE.html">view</a> .)).qq(
-<a accesskey="i" href="$DOC_BASE/index.html">index</a>
+<hr />
+<a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">View</a> .
+<a accesskey="i" href="[[DOC_BASE]]/index.html">Index</a> .
 <small><i>
 Powered by <a href="http://uniqki.isnew.info">Uniqki</a>!
 </i></small>
 </div>
-);
-print_footer();
+[[FOOTER]]
 EOT_UNIQKI
 	)
 }
 
 sub print_message{
 	process_tpl("message.tpl", shift, <<'EOT_UNIQKI'
-my $loginout = is_logged_in() ? "Logout" : "Login";
-print_header();
-print <<EOT;
+[[HEADER]]
 <div id="message">
-$MESSAGE
+[[MESSAGE]]
 </div>
 <div id="menu">
 <hr />
-EOT
-if(has_read_access() && page_exists()){
-	print qq(<a accesskey="v" href="$PAGE.html">View</a> .\n);
-}
-if(has_write_access()){
-	my $edit = page_exists() ? "Edit" : "Create";
-	print qq(<a accesskey="e" href="$PAGE?edit">$edit</a> .\n);
-}
-if(has_read_access() && $PAGE ne "index"){
-	print qq(<a accesskey="i" href="index.html">Index</a> .\n);
-}
-print <<EOT;
-<a accesskey="l" href="$PAGE?loginout">$loginout</a><br />
+<a accesskey="i" href="[[DOC_BASE]]/[[PAGE]].html">View</a> .
+<a accesskey="i" href="index.html">Index</a> .
+<a accesskey="l" href="[[PAGE]]?loginout">Loginout</a><br />
 <small><i>
 Powered by <a href="http://uniqki.isnew.info">Uniqki</a>!
 </i></small>
 </div>
-EOT
-print_footer();
+[[FOOTER]]
 EOT_UNIQKI
 	)
 }
@@ -913,81 +930,73 @@ sub print_view{
 	# content-type header
 	$html_started = 1;
 	process_tpl("view.tpl", shift, <<'EOT_UNIQKI'
-print_header();
-print <<EOT;
+[[HEADER]]
 <div id="view">
-$TEXT
+[[TEXT]]
 </div>
 <!-- # --><div id="menu">
 <!-- # --><hr />
-<!-- # --><a accesskey="r" href="$CGI/$PAGE?refresh">Refresh</a> .
-<!-- # --><a accesskey="e" href="$CGI/$PAGE?edit">Edit</a> .
+<!-- # --><a accesskey="r" href="[[CGI]]/[[PAGE]]?refresh">Refresh</a> .
+<!-- # --><a accesskey="e" href="[[CGI]]/[[PAGE]]?edit">Edit</a> .
 <!-- # --><a accesskey="i" href="index.html">Index</a> .
-<!-- # --><a accesskey="l" href="$CGI/$PAGE?loginout">Loginout</a><br />
+<!-- # --><a accesskey="l" href="[[CGI]]/[[PAGE]]?loginout">Loginout</a><br />
 <!-- # --><small><i>
-<!-- # -->$TIME .
+<!-- # -->[[TIME]] .
 <!-- # --><a href="https://validator.w3.org/check?uri=referer">XHTML</a> .
 <!-- # --><a href="https://jigsaw.w3.org/css-validator/check/referer">CSS</a> .
 <!-- # -->Powered by <a href="http://uniqki.isnew.info">Uniqki</a>!
 <!-- # --></i></small>
 <!-- # --></div>
-EOT
-print_footer();
+[[FOOTER]]
 EOT_UNIQKI
 	)
 }
 
 sub print_edit{
 	process_tpl("edit.tpl", shift, <<'EOT_UNIQKI'
-print_header();
-print <<EOT;
+[[HEADER]]
 <div id="edit">
-<h1>$PAGE Edit</h1>
-<form action="$PAGE?edit" method="post" enctype="multipart/form-data">
+<h1>[[PAGE]] Edit</h1>
+<form action="[[PAGE]]?edit" method="post" enctype="multipart/form-data">
 <div>
-<input type="hidden" id="version" name="version" value="$VERSION" />
-<textarea accesskey="e" id="text" name="text" rows="24" cols="80">$TEXT</textarea>
+<input type="hidden" id="version" name="version" value="[[VERSION]]" />
+<textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
 <br />
 <input accesskey="p" type="submit" id="preview" name="preview" value="Preview" />
 <input accesskey="s" type="submit" id="save" name="save" value="Save" /> .
 Upload <input accesskey="u" type="file" id="file" name="file" /> .
-<a accesskey="c" href="$DOC_BASE/$PAGE.html">Cancel</a> .
-<a accesskey="c" href="$DOC_BASE/index.html">Index</a>
+<a accesskey="c" href="[[DOC_BASE]]/[[PAGE]].html">Cancel</a> .
+<a accesskey="c" href="[[DOC_BASE]]/index.html">Index</a>
 </div>
 </form>
 </div>
-EOT
-print_footer();
+[[FOOTER]]
 EOT_UNIQKI
 	)
 }
 
 sub print_preview{
 	process_tpl("preview.tpl", shift, <<'EOT_UNIQKI'
-print_header();
-print <<EOT;
+[[HEADER]]
 <div id="preview">
-$PREVIEW
+[[PREVIEW]]
 </div>
-EOT
-print_edit();
-print_footer();
+[[EDIT]]
+[[FOOTER]]
 EOT_UNIQKI
 	)
 }
 
 sub print_updated{
 	process_tpl("updated.tpl", shift, <<'EOT_UNIQKI'
-print_header();
-print <<EOT;
+[[HEADER]]
 <div id="updated">
-<h1>$PAGE updated!</h1>
-Please save your changes and read <a href="$DOC_BASE/$PAGE.html">the latest version</a>!
+<h1>[[PAGE]] updated!</h1>
+Please save your changes and read <a href="[[DOC_BASE]]/[[PAGE]].html">the latest version</a>!
 <br />
-<textarea accesskey="e" id="text" name="text" rows="24" cols="80">$TEXT</textarea>
+<textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
 </div>
-EOT
-print_footer();
+[[FOOTER]]
 EOT_UNIQKI
 	)
 }
@@ -997,68 +1006,57 @@ sub print_wikiview{
 	# content-type header
 	$html_started = 1;
 	process_tpl("wikiview.tpl", shift, <<'EOT_UNIQKI'
-print_header();
-print <<EOT;
+[[HEADER]]
 <div id="wikiview">
-$TEXT
+[[TEXT]]
 </div>
 <!-- # --><div id="wikimenu">
-<!-- # --><a accesskey="e" href="$CGI/$PAGE?wikiedit">EditPage</a> .
-<!-- # --><a accesskey="d" href="$CGI/$PAGE?diff=-1">Diff</a> .
-<!-- # --><a accesskey="l" href="$CGI?search=$PAGE%5C.html&amp;link=1">BackLink</a> .
+<!-- # --><a accesskey="e" href="[[CGI]]/[[PAGE]]?wikiedit">EditPage</a> .
+<!-- # --><a accesskey="d" href="[[CGI]]/[[PAGE]]?diff=-1">Diff</a> .
+<!-- # --><a accesskey="l" href="[[CGI]]?search=[[PAGE]]%5C.html&amp;link=1">BackLink</a> .
 <!-- # --><a accesskey="i" href="index.html">Index</a><br />
 <!-- # --><small><i>
-<!-- # -->$TIME .
+<!-- # -->[[TIME]] .
 <!-- # --><a href="https://validator.w3.org/check?uri=referer">XHTML</a> .
 <!-- # --><a href="https://jigsaw.w3.org/css-validator/check/referer">CSS</a> .
 <!-- # -->Powered by <a href="http://uniqki.isnew.info">Uniqki</a>!
 <!-- # --></i></small>
 <!-- # --></div>
-EOT
-print_footer();
+[[FOOTER]]
 EOT_UNIQKI
 	)
 }
 
 sub print_wikiedit{
 	process_tpl("wikiedit.tpl", shift, <<'EOT_UNIQKI'
-print_header();
-print <<EOT;
+[[HEADER]]
 <div id="wikiedit">
-<h1>$PAGE?wikiedit</h1>
-<form action="$PAGE?wikiedit" method="post" enctype="multipart/form-data">
+<h1>[[PAGE]] Wiki Edit</h1>
+<form action="[[PAGE]]?wikiedit" method="post" enctype="multipart/form-data">
 <div>
-<input type="hidden" id="version" name="version" value="$VERSION" />
-<textarea accesskey="e" id="text" name="text" rows="24" cols="80">$TEXT</textarea><br />
+<input type="hidden" id="version" name="version" value="[[VERSION]]" />
+<textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea><br />
 <input accesskey="p" type="submit" id="preview" name="preview" value="Preview" />
 <input accesskey="s" type="submit" id="save" name="save" value="Save" /> .
-EOT
-if($WIKI_UPLOAD ne ""){
-	print <<EOT;
 Upload <input accesskey="u" type="file" id="file" name="file" /> .
-EOT
-}
-print <<EOT;
-<a accesskey="c" href="$DOC_BASE/$PAGE.html">Cancel</a>
+<a accesskey="c" href="[[DOC_BASE]]/[[PAGE]].html">Cancel</a> .
+<a accesskey="c" href="[[DOC_BASE]]/index.html">Index</a>
 </div>
 </form>
 </div>
-EOT
-print_footer();
+[[FOOTER]]
 EOT_UNIQKI
 	)
 }
 
 sub print_wikipreview{
 	process_tpl("wikipreview.tpl", shift, <<'EOT_UNIQKI'
-print_header();
-print <<EOT;
+[[HEADER]]
 <div id="wikipreview">
-$PREVIEW
+[[PREVIEW]]
 </div>
-EOT
-print_wikiedit();
-print_footer();
+[[EDIT]]
+[[FOOTER]]
 EOT_UNIQKI
 	)
 }
@@ -1535,7 +1533,7 @@ sub get_var{
 
 sub backup{
 	eval "use Archive::Zip;";
-	exit_message(get_msd("perl_module_not_installed", "Archive::Zip")) if($@);
+	exit_message(get_msg("perl_module_not_installed", "Archive::Zip")) if($@);
 
 	my $page = shift;
 	my $zip = Archive::Zip->new();
@@ -1560,7 +1558,7 @@ EOT
 
 sub restore{
 	eval "use Archive::Zip;";
-	exit_message(get_msd("perl_module_not_installed", "Archive::Zip")) if($@);
+	exit_message(get_msg("perl_module_not_installed", "Archive::Zip")) if($@);
 
 	my $boundary = <STDIN>;
 	my $file = <STDIN>; my $tmp = $file.<STDIN>.<STDIN>;
@@ -1964,7 +1962,7 @@ sub generate_reset_password_hash{
 sub send_email{
 	my ($email_address, $subject, $text) = @_;
 	eval "use MIME::Lite";
-	exit_message(get_msd("perl_module_not_installed", "MIME::Lite")) if($@);
+	exit_message(get_msg("perl_module_not_installed", "MIME::Lite")) if($@);
 
 	MIME::Lite->quiet(1);
 	my $msg = MIME::Lite->new(
