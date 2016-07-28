@@ -3597,21 +3597,25 @@ if($REQUEST_METHOD eq "GET"){
 	exit_message(get_msg("change_admin_password"));
 }elsif($QUERY_STRING eq "install_pw"){
 #-------------------------------------------------------------------------------
+# u.cgi?install_pw		Install the password file, but don't overwrite
 # u.cgi/PAGE?install_pw		Install the password file, but don't overwrite
 	write_pw();
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }elsif($QUERY_STRING eq "install_cfg"){
 #-------------------------------------------------------------------------------
+# u.cgi?install_cfg		Install the config file, but don't overwrite
 # u.cgi/PAGE?install_cfg	Install the config file, but don't overwrite
 	process_cfg(1);
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }elsif($QUERY_STRING eq "install_msg"){
 #-------------------------------------------------------------------------------
+# u.cgi?install_msg		Install the message file, but don't overwrite
 # u.cgi/PAGE?install_msg	Install the message file, but don't overwrite
 	process_msg(1);
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }elsif($QUERY_STRING eq "install_tpl"){
 #-------------------------------------------------------------------------------
+# u.cgi?install_tpl		Install the template files, but don't overwrite
 # u.cgi/PAGE?install_tpl	Install the template files, but don't overwrite
 	if($TPL ne ""){
 		mkdir $TPL, 0755 unless(-d $TPL);
@@ -3672,7 +3676,7 @@ if($REQUEST_METHOD eq "GET"){
 	exit;
 }elsif($PAGE eq ""){
 #-------------------------------------------------------------------------------
-# u.cgi?ACTION			Index page
+# u.cgi?ACTION			Redirect to index
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/index");
 }elsif($QUERY_STRING eq "upload"){
 #-------------------------------------------------------------------------------
