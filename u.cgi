@@ -3448,9 +3448,6 @@ if($REQUEST_METHOD eq "GET"){
 	if(!is_user_id($var{id})){
 		exit_message(get_msg("check_user_id"));
 	}
-	if($var{pw} ne $var{pw2}){
-		exit_message(get_msg("confirm_password"));
-	}
 
 	if($var{mode} eq "add"){
 		if($var{email_address} eq ""){
@@ -3460,7 +3457,7 @@ if($REQUEST_METHOD eq "GET"){
 			exit_message(get_msg("invalid_email_address",
 					$var{email_address}));
 		}
-		if($var{pw} ne ""){
+		if($var{pw} ne "" || $var{pw2} ne ""){
 			exit_message(get_msg("leave_password_blank"));
 		}
 	}elsif($var{mode} eq "block" || $var{mode} eq "unblock" ||
@@ -3468,15 +3465,21 @@ if($REQUEST_METHOD eq "GET"){
 		if($var{email_address} ne ""){
 			exit_message(get_msg("leave_email_address_blank"));
 		}
-		if($var{pw} ne ""){
+		if($var{pw} ne "" || $var{pw2} ne ""){
 			exit_message(get_msg("leave_password_blank"));
 		}
 	}else{
 		my $len = length($var{pw});
-		if($len > 0 && !is_password($var{pw})){
-			exit_message(get_msg("check_password_requirements"));
-		}
-		if($len == 0 && $var{email_address} eq "" && $var{admin} ne "yes" &&
+		if($len > 0){
+			if($var{pw} ne $var{pw2}){
+				exit_message(get_msg("confirm_password"));
+			}
+			if(!is_password($var{pw})){
+				exit_message(get_msg("check_password_requirements"));
+			}
+		}elsif($var{pw} ne $var{pw2}){
+			exit_message(get_msg("confirm_password"));
+		}elsif($var{email_address} eq "" && $var{admin} ne "yes" &&
 			$var{admin} ne "no"){
 			exit_message(get_msg("enter_user_info_to_update"));
 		}
