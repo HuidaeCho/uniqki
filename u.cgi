@@ -2683,7 +2683,12 @@ if($QUERY_STRING eq "loginout"){
 	}
 }
 
-if(!has_read_access()){
+if($QUERY_STRING eq "css"){
+#-------------------------------------------------------------------------------
+# u.cgi?css			Print CSS
+	print_css(2);
+	exit;
+}elsif(!has_read_access()){
 #-------------------------------------------------------------------------------
 # Read-secured
 	exit_message(get_msg("read_secured"));
@@ -3414,9 +3419,6 @@ if($REQUEST_METHOD eq "GET"){
 	save($PAGE, "#!wiki\n$TEXT\n");
 	unlock_file("$PAGE.txt");
 }
-}elsif($QUERY_STRING eq "css"){
-	print_css(2);
-	exit;
 }elsif(!$ADMIN){
 	exit_message(get_msg("no_admin_actions_allowed"));
 ################################################################################
