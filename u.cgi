@@ -73,11 +73,11 @@ use vars qw(
 
 # Config and messages variables
 use vars qw(
-	$RSS_TITLE $RSS_DESCRIPTION
+	$SITE_TITLE $SITE_DESCRIPTION
 	$TIME_ZONE
 	$PW $TPL $MSG $CHARSET
 	$INACTIVE_TIMEOUT $SET_PASSWORD_TIMEOUT $RESET_PASSWORD_TIMEOUT
-	$EMAIL_ADDRESS $PAGE_NAME_STYLE
+	$EMAIL_ADDRESS $SMTP $PAGE_NAME_STYLE
 	$READ_ACCESS $WRITE_ACCESS
 	$HEADER $FOOTER
 	$WIKI_HEADER $WIKI_FOOTER $WIKI_NEW_PAGE $WIKI_UPLOAD
@@ -160,6 +160,18 @@ if($TIME_ZONE ne ""){
 	eval "use POSIX; POSIX::tzset();";
 }
 $CSS = -f "$TPL/uniqki.css" ? "$TPL/uniqki.css" : "$CGI?css";
+
+my $smtp_server = "";
+my $smtp_port;
+my $smtp_username;
+my $smtp_password;
+if($SMTP =~ m/^([a-z0-9.-]+\.[a-z]{2,}):([0-9]*):([^:]*):(.*)$/i){
+	$smtp_server = $1;
+	$smtp_port = $2;
+	$smtp_username = $3;
+	$smtp_password = $4;
+}
+
 my ($page_name_case, $page_name_spaces) = config_page_name_style();
 my ($nonwiki_read_access, $wiki_read_access, $wiki_write_access) =
 	config_read_write_access();
@@ -460,24 +472,24 @@ sub process_cfg{
 	# $mode=1: write
 	my $mode = shift;
 	my $cfg = <<'EOT_UNIQKI';
-# RSS information
-$RSS_TITLE = "Uniqki: A Personal Wiki Builder! http://uniqki.isnew.info";
-$RSS_DESCRIPTION = "This site is powered by Uniqki! http://uniqki.isnew.info";
+# Site information
+$SITE_TITLE = 'Uniqki: A Personal Wiki Builder! http://uniqki.isnew.info';
+$SITE_DESCRIPTION = 'This site is powered by Uniqki! http://uniqki.isnew.info';
 
 # Set time zone if different from the system time
-$TIME_ZONE = "";
+$TIME_ZONE = '';
 
 # Password file: The admin password can be embedded in the script as $adminpw.
-$PW = "u.pw";
+$PW = 'u.pw';
 
 # Template files: The system default ones will be served by u.cgi if missing.
-$TPL = "u.tpl";
+$TPL = 'u.tpl';
 
 # Message file: The system default messages will be printed if missing.
-$MSG = "u.msg";
+$MSG = 'u.msg';
 
 # Character set
-$CHARSET = "utf-8";
+$CHARSET = 'utf-8';
 
 # Login session will be extended by this number of minutes whenever any action
 # is taken by the user.
@@ -489,10 +501,17 @@ $SET_PASSWORD_TIMEOUT = 60;
 # Reset password timeout in minutes
 $RESET_PASSWORD_TIMEOUT = 1;
 
-# Email address for user management
-$EMAIL_ADDRESS = "";
+# Email address from which user notifications are sent: 'Your Name
+# <you@example.com>' is not supported.  Enter your email address only as in
+# 'you@example.com'.  Make sure to use single quotes instead of double quotes.
+$EMAIL_ADDRESS = '';
 
-# Page name style: case[:underscores|:hyphens|:no_spaces]
+# SMTP settings: If this variable is empty, email will be sent using sendmail.
+# The format of this variable is 'server:port:username:password'.  The password
+# may contain colons (:), but the username cannot.
+$SMTP = '';
+
+# Page name style: case[:hyphens|:underscores|:no_spaces]
 # lower_case (default): All lower case (e.g., page in a uniqki site)
 # upper_case: All upper case (e.g., PAGE IN A UNIQKI SITE)
 # mixed_case: No special handling of letter case (e.g., Page in a Uniqki site)
@@ -503,9 +522,9 @@ $EMAIL_ADDRESS = "";
 # Optionally
 # hyphens (default): Replace a series of whitespaces with a hyphen
 # underscores: Replace a series of whitespaces with an underscore
-#	       no_spaces: Remove whitespaces.  The lower_camel_case and
-#	       upper_camel_case styles imply this option.  For example,
-#	       upper_camel_case is the same as start_case:no_spaces.
+# no_spaces: Remove whitespaces.  The lower_camel_case and upper_camel_case
+# 	     styles imply this option.  For example, upper_camel_case is the
+# 	     same as start_case:no_spaces.
 #
 # The following special characters will be removed before a case conversion.
 # Forbidden characters in file names: `~!@#$%^&*+=\|;:'",/?()[]{}<>
@@ -516,7 +535,7 @@ $EMAIL_ADDRESS = "";
 # For example, "'page' in a uniqki site!!!" excluding double quotes in the
 # start_case style will create and link to Page_In_A_Uniqki_Site.html.  The
 # same page name in the upper_camel_case style will use PageInAUniqkiSite.html.
-$PAGE_NAME_STYLE = "lower_case:hyphens";
+$PAGE_NAME_STYLE = 'lower_case:hyphens';
 
 # Read access control
 # open: Opens both non-wiki and wiki pages to the public and anyone will be
@@ -540,7 +559,7 @@ $PAGE_NAME_STYLE = "lower_case:hyphens";
 # RewriteRule ^$ u.cgi [R,L]
 # RewriteRule ^([^/]*)\.html$ u.cgi/$1 [R,L]
 # RewriteRule ^(u\.cgi/.*)\.html$ $1 [R,L]
-$READ_ACCESS = "open";
+$READ_ACCESS = 'open';
 
 # Write access control
 # open: Allows anyone to edit or create wiki pages with or without a login.
@@ -550,15 +569,15 @@ $READ_ACCESS = "open";
 # Creating new wiki pages also depends on $WIKI_NEW_PAGE.  For security
 # reasons, non-wiki pages are writable only by admin users and this variable
 # cannot affect that behavior.
-$WRITE_ACCESS = "open";
+$WRITE_ACCESS = 'open';
 
 # Header and footer files for the parser
-$HEADER = "";
-$FOOTER = "";
+$HEADER = '';
+$FOOTER = '';
 
 # Header and footer files for the wiki parser (#!wiki as the first line)
-$WIKI_HEADER = "";
-$WIKI_FOOTER = "";
+$WIKI_HEADER = '';
+$WIKI_FOOTER = '';
 
 # Regular expression for wiki page names that are allowed to be created by
 # non-admin users
@@ -619,11 +638,11 @@ email_address_already_registered => q(%s: Email address already registered. <a h
 enter_user_info_to_update => q(%s: Please enter user information to update. <a href="?admin">Go back to the admin page</a>),
 user_not_found => q(%s: User not found. <a href="?admin">Go back to the admin page</a>),
 new_user_email_subject => q(%s: Registered),
-new_user_email_text => q(Your user ID %s is registered at %s. Please set your password by visiting %s within %d seconds.),
+new_user_email_text => q(Your user ID %s is registered at %s. Please set your password by visiting %s within %d minutes.),
 unblocked_user_email_subject => q(%s: Unblocked),
-unblocked_user_email_text => q(Your user ID %s is unblocked at %s. Please set your password by visiting %s within %d seconds.),
+unblocked_user_email_text => q(Your user ID %s is unblocked at %s. Please set your password by visiting %s within %d minutes.),
 reset_password_email_subject => q(%s: Reset password),
-reset_password_email_text => q(Please reset your password for user ID %s at %s by visiting %s within %d seconds.),
+reset_password_email_text => q(Please reset your password for user ID %s at %s by visiting %s within %d minutes.),
 email_notification_failed => q(Email notification failed for user %s <%s>. <a href="?admin">Go back to the admin page</a>),
 change_admin_password => q(The admin password cannot be the same as the temporary password. Please use a different password. <a href="?admin">Go to the admin page</a>),
 session_errors => q(Session errors.),
@@ -1960,7 +1979,29 @@ sub send_email{
 	eval "use MIME::Lite;";
 	exit_message(get_msg("perl_module_not_installed", "MIME::Lite")) if($@);
 
+	if($smtp_server ne ""){
+		if($smtp_port ne ""){
+			if($smtp_username ne "" && $smtp_password ne ""){
+				MIME::Lite->send("smtp", $smtp_server,
+					Port=>$smtp_port,
+					AuthUser=>$smtp_username,
+					AuthPass=>$smtp_password);
+			}else{
+				MIME::Lite->send("smtp", $smtp_server,
+					Port=>$smtp_port);
+			}
+		}else{
+			if($smtp_username ne "" && $smtp_password ne ""){
+				MIME::Lite->send("smtp", $smtp_server,
+					AuthUser=>$smtp_username,
+					AuthPass=>$smtp_password);
+			}else{
+				MIME::Lite->send("smtp", $smtp_server);
+			}
+		}
+	}
 	MIME::Lite->quiet(1);
+
 	my $msg = MIME::Lite->new(
 		From	=> $EMAIL_ADDRESS,
 		To	=> $email_address,
@@ -3015,9 +3056,9 @@ Content-Type: text/xml
 <?xml version="1.0" encoding="$CHARSET"?>
 <rss version="2.0">
 <channel>
-<title>$RSS_TITLE</title>
+<title>$SITE_TITLE</title>
 <link>$DOC_BASE</link>
-<description>$RSS_DESCRIPTION</description>
+<description>$SITE_DESCRIPTION</description>
 EOT
 	undef $/;
 	$i = 0;
@@ -3539,7 +3580,7 @@ if($REQUEST_METHOD eq "GET"){
 					$_ = $userline;
 				}
 			}
-			if($var{mode} eq "add" && m/:$var{email_address}:[^:]*$/){
+			if($var{mode} eq "add" && m/:$var{email_address}:[^:]*$/i){
 				close FH;
 				exit_message(get_msg("email_address_already_registered", $var{email_address}));
 			}
