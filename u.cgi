@@ -725,22 +725,15 @@ sub process_tpl_tag{
 	local *FH;
 	my $txt = "";
 
+	open FH, ">", \$txt; my $fh = select FH;
 	if($tag eq "HEADER"){
-		open FH, ">", \$txt; my $fh = select FH;
 		print_header();
-		close FH; select $fh;
 	}elsif($tag eq "FOOTER"){
-		open FH, ">", \$txt; my $fh = select FH;
 		print_footer();
-		close FH; select $fh;
 	}elsif($tag eq "EDIT"){
-		open FH, ">", \$txt; my $fh = select FH;
 		print_edit();
-		close FH; select $fh;
 	}elsif($tag eq "WIKIEDIT"){
-		open FH, ">", \$txt; my $fh = select FH;
 		print_wikiedit();
-		close FH; select $fh;
 	}else{
 		my @tags = qw(
 			TITLE CHARSET CSS PAGE VERSION TEXT DOC_BASE PREVIEW TIME CGI MESSAGE
@@ -751,6 +744,7 @@ sub process_tpl_tag{
 		no strict;
 		$txt = $$tag if(exists $hash{$tag});
 	}
+	close FH; select $fh;
 
 	return $txt;
 }
