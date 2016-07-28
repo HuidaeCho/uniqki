@@ -745,6 +745,7 @@ sub process_tpl_tag{
 		$txt = $$tag if(exists $hash{$tag});
 	}
 	close FH; select $fh;
+	chomp $txt;
 
 	return $txt;
 }
