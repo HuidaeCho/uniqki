@@ -3559,12 +3559,12 @@ if($REQUEST_METHOD eq "GET"){
 	# Add a new user if user was not found
 	if($var{mode} eq "add"){
 		$updated = 1;
-		$reset_hash = generate_set_password_hash($var{id});
 		my $group = $var{admin} eq "yes" ? "admin" : "user";
+		$reset_hash = generate_set_password_hash($var{id});
 		$new_pw .= "$var{id}:reset:$group:$var{email_address}:$reset_hash\n";
 	}
 
-	if($reset_hash){
+	if($reset_hash ne ""){
 		my $link = "$HTTP_BASE$SCRIPT_NAME/$PAGE?reset_pw=$reset_hash";
 		my $subject;
 		my $text;
