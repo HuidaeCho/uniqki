@@ -3448,6 +3448,9 @@ if($REQUEST_METHOD eq "GET"){
 	if(!is_user_id($var{id})){
 		exit_message(get_msg("check_user_id"));
 	}
+	if($var{id} eq $USER && $var{mode} ne "update"){
+	}
+
 	if($var{mode} eq "add" || $var{mode} eq "unblock" ||
 		$var{mode} eq "update"){
 		if($var{pw} ne $var{pw2}){
@@ -3542,28 +3545,25 @@ if($REQUEST_METHOD eq "GET"){
 		}
 		close FH;
 	}else{
+		# Only update yourself. Other actions are already blocked.
 		my @items = split /:/, $adminpw;
 		if($var{id} eq $items[0]){
 			$updated = 1;
-
-			if($var{mode} eq "delete"){
-				exit_message(get_msg("only_user_cannot_be_deleted", $var{id}));
-			}elsif($var{mode} eq "block"){
-				exit_message(get_msg("only_user_cannot_be_blocked", $var{id}));
-			}elsif($var{mode} eq "unblock"){
-				exit_message(get_msg("only_user_cannot_be_unblocked", $var{id}));
-			}elsif($var{mode} eq "update"){
-				my $pw = $var{pw} ne "" ? hash_password($var{id}, $var{pw}) : $items[1];
-				my $group = $var{admin} eq "yes" ? "admin" : ($var{admin} eq "no" ? "user" : $items[2]);
-				my $email_address = $var{email_address} ne "" ? $var{email_address} : $items[3];
-				my $reset_hash = $items[4];
-				# new line from $items[4]
-				my $userline = "$var{id}:$pw:$group:$email_address:$reset_hash";
-				if($userline eq $adminpw){
-					exit_message(get_msg("enter_user_info_to_update", $var{id}));
-				}
-				$new_pw = "$userline\n";
+			my $pw = $var{pw} ne "" ? hash_password($var{id}, $var{pw}) : $items[1];
+			my $group = $var{admin} eq "yes" ? "admin" : ($var{admin} eq "no" ? "user" : $items[2]);
+			my $email_address = $var{email_address} ne "" ? $var{email_address} : $items[3];
+			my $reset_hash = $items[4];
+			# new line from $items[4]
+			my $userline = "$var{id}:$pw:$group:$email_address:$reset_hash";
+			if($userline eq $adminpw){
+				exit_message(get_msg("enter_user_info_to_update", $var{id}));
 			}
+			$new_pw = "$userline\n";
+		}else{
+			# Something's wrong because you're the only user, but
+			# the user line in this script is not you! How did you
+			# login?
+			exit_message(get_message("internal_errors"));
 		}
 	}
 
