@@ -2635,28 +2635,36 @@ if($QUERY_STRING eq "logout"){
 # u.cgi/PAGE?logout_all		Logout from all computers
 	clear_sessions();
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
-}elsif($QUERY_STRING eq "login" && $REQUEST_METHOD eq "POST"){
-#-------------------------------------------------------------------------------
-# u.cgi/PAGE?login		POST login request: Check credentials
-	my %var = get_var();
-	authenticate_user($var{id}, $var{pw}, $var{logout_others});
-}else{
-	handle_session();
-	if($QUERY_STRING eq "login" && !is_logged_in()){
-#-------------------------------------------------------------------------------
-# u.cgi/PAGE?login		GET login request: Login form
-		print_login();
-		exit;
-	}
 }
 
-if($QUERY_STRING eq "loginout"){
+handle_session();
+if(!is_logged_in()){
+	if($QUERY_STRING eq "login"){
+		if($REQUEST_METHOD eq "GET"){
+#-------------------------------------------------------------------------------
+# u.cgi/PAGE?login		GET login request: Login form
+			print_login();
+			exit;
+		}else{
+#-------------------------------------------------------------------------------
+# u.cgi/PAGE?login		POST login request: Check credentials
+			my %var = get_var();
+			authenticate_user($var{id}, $var{pw}, $var{logout_others});
+		}
+	}elsif($QUERY_STRING eq "loginout"){
 #-------------------------------------------------------------------------------
 # u.cgi?loginout		Loginout
 # u.cgi/PAGE?loginout		Loginout
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?".
-		(is_logged_in() ? "logout" : "login"));
-}else{
+		exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?login");
+	}
+}elsif($QUERY_STRING eq "loginout"){
+#-------------------------------------------------------------------------------
+# u.cgi?loginout		Loginout
+# u.cgi/PAGE?loginout		Loginout
+	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?logout");
+}
+
+{
 #-------------------------------------------------------------------------------
 # Is this page wiki?
 	my $page;
