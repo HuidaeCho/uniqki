@@ -473,8 +473,8 @@ sub process_cfg{
 	my $mode = shift;
 	my $cfg = <<'EOT_UNIQKI';
 # Site information
-$SITE_TITLE = 'Uniqki: A Personal Wiki Builder! http://uniqki.isnew.info';
-$SITE_DESCRIPTION = 'This site is powered by Uniqki! http://uniqki.isnew.info';
+$SITE_TITLE = 'Uniqki: A Personal Wiki Builder!';
+$SITE_DESCRIPTION = 'This site is powered by Uniqki <http://uniqki.isnew.info>!';
 
 # Set time zone if different from the system time
 $TIME_ZONE = '';
@@ -756,7 +756,8 @@ sub process_tpl_tag{
 		print_wikiedit();
 	}else{
 		my @tags = qw(
-			TITLE CHARSET CSS PAGE VERSION TEXT DOC_BASE PREVIEW TIME CGI MESSAGE
+			SITE_TITLE SITE_DESCRIPTION TITLE CHARSET CSS PAGE
+			VERSION TEXT DOC_BASE PREVIEW TIME CGI MESSAGE
 		);
 		my %hash;
 		@hash{@tags} = undef;
@@ -819,7 +820,12 @@ sub print_header{
 <link rel="stylesheet" type="text/css" href="[[CSS]]" />
 </head>
 <body>
-<div id="uniqki">
+<div id="container">
+<div id="top">
+<span id="site-title"><a href="[[DOC_BASE]]">[[SITE_TITLE]]</a></span>
+<span id="site-description">[[SITE_DESCRIPTION]]</span>
+</div>
+<div id="main">
 EOT_UNIQKI
 	)
 }
@@ -830,6 +836,10 @@ sub print_footer{
 
 	$footer_printed = 1;
 	process_tpl("footer.tpl", $mode, <<'EOT_UNIQKI'
+</div>
+<div id="bottom">
+<small><i>Powered by <a href="http://uniqki.isnew.info">Uniqki</a>!</i></small>
+</div>
 </div>
 </body>
 </html>
@@ -910,10 +920,7 @@ Restore: <input accesskey="f" type="file" id="file" name="file" />
 <div id="menu">
 <hr />
 <a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">View</a> .
-<a accesskey="i" href="[[DOC_BASE]]/index.html">Index</a> .
-<small><i>
-Powered by <a href="http://uniqki.isnew.info">Uniqki</a>!
-</i></small>
+<a accesskey="i" href="[[DOC_BASE]]/index.html">Index</a>
 </div>
 [[FOOTER]]
 EOT_UNIQKI
@@ -930,10 +937,7 @@ sub print_message{
 <hr />
 <a accesskey="i" href="[[DOC_BASE]]/[[PAGE]].html">View</a> .
 <a accesskey="i" href="index.html">Index</a> .
-<a accesskey="l" href="[[PAGE]]?loginout">Loginout</a><br />
-<small><i>
-Powered by <a href="http://uniqki.isnew.info">Uniqki</a>!
-</i></small>
+<a accesskey="l" href="[[PAGE]]?loginout">Loginout</a>
 </div>
 [[FOOTER]]
 EOT_UNIQKI
@@ -958,8 +962,7 @@ sub print_view{
 <!-- # --><small><i>
 <!-- # -->[[TIME]] .
 <!-- # --><a href="https://validator.w3.org/check?uri=referer">XHTML</a> .
-<!-- # --><a href="https://jigsaw.w3.org/css-validator/check/referer">CSS</a> .
-<!-- # -->Powered by <a href="http://uniqki.isnew.info">Uniqki</a>!
+<!-- # --><a href="https://jigsaw.w3.org/css-validator/check/referer">CSS</a>
 <!-- # --></i></small>
 <!-- # --></div>
 [[FOOTER]]
@@ -1033,8 +1036,7 @@ sub print_wikiview{
 <!-- # --><small><i>
 <!-- # -->[[TIME]] .
 <!-- # --><a href="https://validator.w3.org/check?uri=referer">XHTML</a> .
-<!-- # --><a href="https://jigsaw.w3.org/css-validator/check/referer">CSS</a> .
-<!-- # -->Powered by <a href="http://uniqki.isnew.info">Uniqki</a>!
+<!-- # --><a href="https://jigsaw.w3.org/css-validator/check/referer">CSS</a>
 <!-- # --></i></small>
 <!-- # --></div>
 [[FOOTER]]
@@ -1097,13 +1099,31 @@ textarea {
 }
 
 /******************************************************************************/
-#uniqki {
-	background-color:	white;
-	border:			1px solid #aaaaaa;
+#container {
 	max-width:		960px;
 	margin:			auto;
+}
+#top {
+}
+#site-title {
+	font-weight:		bold;
+	font-size:		120%;
+}
+#site-title a {
+	color:			black;
+	text-decoration:	none;
+}
+#site-description {
+	float:			right;
+}
+#main {
+	background-color:	white;
+	border:			1px solid #aaaaaa;
 	padding:		10px;
 	box-shadow:		5px 5px 5px #aaaaaa;
+}
+#bottom {
+	text-align:		right;
 }
 #login {
 }
