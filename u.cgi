@@ -474,7 +474,7 @@ sub process_cfg{
 	my $cfg = <<'EOT_UNIQKI';
 # Site information
 $SITE_TITLE = 'Uniqki: A Personal Wiki Builder!';
-$SITE_DESCRIPTION = 'This site is powered by Uniqki <http://uniqki.isnew.info>!';
+$SITE_DESCRIPTION = 'This site is powered by <a href="http://uniqki.isnew.info">Uniqki</a>!';
 
 # Set time zone if different from the system time
 $TIME_ZONE = '';
@@ -3070,15 +3070,17 @@ if($QUERY_STRING eq "css"){
 	my $n = 10;
 	$n = $1 if($var{rss} =~ m/^([0-9]+)$/);
 	$n = $i if($n > $i || !$n);
+	(my $site_title = $SITE_TITLE) =~ s/<[^>]*>//g;
+	(my $site_description = $SITE_DESCRIPTION) =~ s/<[^>]*>//g;
 	print <<EOT;
 Content-Type: text/xml
 
 <?xml version="1.0" encoding="$CHARSET"?>
 <rss version="2.0">
 <channel>
-<title>$SITE_TITLE</title>
+<title>$site_title</title>
 <link>$DOC_BASE</link>
-<description>$SITE_DESCRIPTION</description>
+<description>$site_description</description>
 EOT
 	undef $/;
 	$i = 0;
