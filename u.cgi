@@ -3448,6 +3448,15 @@ if($REQUEST_METHOD eq "GET"){
 	if(!is_user_id($var{id})){
 		exit_message(get_msg("check_user_id"));
 	}
+	if($var{mode} eq "add" || $var{mode} eq "unblock" ||
+		$var{mode} eq "update"){
+		if($var{pw} ne $var{pw2}){
+			exit_message(get_msg("confirm_password"));
+		}
+		if($var{pw} ne "" && !is_password($var{pw})){
+			exit_message(get_msg("check_password_requirements"));
+		}
+	}
 
 	if($var{mode} eq "add"){
 		if($var{email_address} eq ""){
@@ -3457,32 +3466,20 @@ if($REQUEST_METHOD eq "GET"){
 			exit_message(get_msg("invalid_email_address",
 					$var{email_address}));
 		}
-		if($var{pw} ne "" || $var{pw2} ne ""){
-			exit_message(get_msg("leave_password_blank"));
+	}elsif($var{mode} eq "unblock"){
+		if($var{email_address} ne ""){
+			exit_message(get_msg("leave_email_address_blank"));
 		}
-	}elsif($var{mode} eq "block" || $var{mode} eq "unblock" ||
-		$var{mode} eq "delete"){
+	}elsif($var{mode} eq "block" || $var{mode} eq "delete"){
 		if($var{email_address} ne ""){
 			exit_message(get_msg("leave_email_address_blank"));
 		}
 		if($var{pw} ne "" || $var{pw2} ne ""){
 			exit_message(get_msg("leave_password_blank"));
 		}
-	}else{
-		my $len = length($var{pw});
-		if($len > 0){
-			if($var{pw} ne $var{pw2}){
-				exit_message(get_msg("confirm_password"));
-			}
-			if(!is_password($var{pw})){
-				exit_message(get_msg("check_password_requirements"));
-			}
-		}elsif($var{pw} ne $var{pw2}){
-			exit_message(get_msg("confirm_password"));
-		}elsif($var{email_address} eq "" && $var{admin} ne "yes" &&
-			$var{admin} ne "no"){
-			exit_message(get_msg("enter_user_info_to_update"));
-		}
+	}elsif($var{pw} eq "" && $var{email_address} eq "" &&
+		$var{admin} ne "yes" && $var{admin} ne "no"){
+		exit_message(get_msg("enter_user_info_to_update"));
 	}
 
 	my $new_pw = "";
@@ -3515,8 +3512,15 @@ if($REQUEST_METHOD eq "GET"){
 					if($items[1] ne ""){
 						exit_message(get_msg("user_already_unblocked", $var{id}));
 					}
-					$reset_hash = generate_set_password_hash($var{id});
-					$_ = "$var{id}:reset:$items[2]:$items[3]:$reset_hash\n";
+					my $pw;
+					if($var{pw} eq ""){
+						$pw = "reset";
+						$reset_hash = generate_set_password_hash($var{id});
+					}else{
+						$pw = hash_password($var{id}, $var{pw});
+						$reset_hash = "";
+					}
+					$_ = "$var{id}:$pw:$items[2]:$items[3]:$reset_hash\n";
 				}elsif($var{mode} eq "update"){
 					my $pw = $var{pw} ne "" ? hash_password($var{id}, $var{pw}) : $items[1];
 					my $group = $var{admin} eq "yes" ? "admin" : ($var{admin} eq "no" ? "user" : $items[2]);
@@ -3571,8 +3575,15 @@ if($REQUEST_METHOD eq "GET"){
 	if($var{mode} eq "add"){
 		$updated = 1;
 		my $group = $var{admin} eq "yes" ? "admin" : "user";
-		$reset_hash = generate_set_password_hash($var{id});
-		$new_pw .= "$var{id}:reset:$group:$var{email_address}:$reset_hash\n";
+		my $pw;
+		if($var{pw} eq ""){
+			$pw = "reset";
+			$reset_hash = generate_set_password_hash($var{id});
+		}else{
+			$pw = hash_password($var{id}, $var{pw});
+			$reset_hash = "";
+		}
+		$new_pw .= "$var{id}:$pw:$group:$var{email_address}:$reset_hash\n";
 	}
 
 	if($reset_hash ne ""){
