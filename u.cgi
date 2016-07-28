@@ -1957,7 +1957,7 @@ sub generate_reset_password_hash{
 
 sub send_email{
 	my ($email_address, $subject, $text) = @_;
-	eval "use MIME::Lite";
+	eval "use MIME::Lite;";
 	exit_message(get_msg("perl_module_not_installed", "MIME::Lite")) if($@);
 
 	MIME::Lite->quiet(1);
