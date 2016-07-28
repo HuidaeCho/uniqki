@@ -818,6 +818,7 @@ sub print_header{
 <meta charset="[[CHARSET]]" />
 <meta name="viewport" content="width=device-width;" />
 <link rel="stylesheet" type="text/css" href="[[CSS]]" />
+<link rel="alternate" type="application/rss+xml" title="Recent changes" href="[[CGI]]?rss" />
 </head>
 <body>
 <div id="container">
