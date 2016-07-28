@@ -54,29 +54,43 @@ my $adminpw = $tmp_adminpw;
 
 ################################################################################
 use strict;
+
+# HTTP server environment variables
 use vars qw(
-	$CGI $HTTP_BASE $DOC_BASE
-
-	$HOSTING
-
 	$HTTP_COOKIE $HTTP_HOST $SERVER_NAME $SCRIPT_NAME $PATH_INFO
 	$QUERY_STRING $REQUEST_METHOD $CONTENT_LENGTH
+);
 
-	$USER $ADMIN $PAGE $FILE $VERSION $TITLE $TEXT $PREVIEW $TIME
-	%MESSAGES $MESSAGE
+# Useful variables
+use vars qw(
+	$HTTP_BASE $DOC_BASE $CGI $PAGE $FILE $USER $ADMIN
+);
 
+# Template variables
+use vars qw(
+	$TITLE $CSS $TEXT $PREVIEW $VERSION $TIME $MESSAGE
+);
+
+# Config and messages variables
+use vars qw(
 	$RSS_TITLE $RSS_DESCRIPTION
-	$TIME_ZONE $PW $TPL $CSS $MSG $CHARSET
+	$TIME_ZONE
+	$PW $TPL $MSG $CHARSET
 	$INACTIVE_TIMEOUT $SET_PASSWORD_TIMEOUT $RESET_PASSWORD_TIMEOUT
 	$EMAIL_ADDRESS $PAGE_NAME_STYLE
-
 	$READ_ACCESS $WRITE_ACCESS
-
 	$HEADER $FOOTER
 	$WIKI_HEADER $WIKI_FOOTER $WIKI_NEW_PAGE $WIKI_UPLOAD
+	%MESSAGES
+);
 
+# parse_file() global variables
+use vars qw(
 	$wiki $begin_parsing $parse_line $end_parsing
+);
 
+# parse_file() local variables
+use vars qw(
 	$text $protocol $protocol_char $protocol_punct $image_ext $block
 	$re_i_start $re_i @re @re_sub $toc $notoc %h_i $h_top $h_prev $p
 	$li_i @li @li_attr $pre $table
@@ -112,9 +126,9 @@ $FILE = $PATH_INFO; $FILE =~ s#^/[^/]+##; $FILE =~ s#^/##;
 
 ################################################################################
 # Awardspace.com free web hosting
-$HOSTING = "";
+my $hosting = "";
 if(-d "/home/www/$SERVER_NAME"){
-	$HOSTING = "awardspace";
+	$hosting = "awardspace";
 	$_ = "/home/www/$SERVER_NAME$SCRIPT_NAME";
 	s#/[^/]*$##;
 	chdir $_;
@@ -738,7 +752,7 @@ sub print_header{
 	return if(!defined $mode && $header_printed);
 
 	$header_printed = 1;
-	process_tpl("header.tpl", shift, <<'EOT_UNIQKI'
+	process_tpl("header.tpl", $mode, <<'EOT_UNIQKI'
 print <<EOT;
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -804,7 +818,7 @@ print qq(<div id="admin">
 <h2>Pages</h2>
 <form action="?restore" method="post" enctype="multipart/form-data">
 <div>
-Backup: <a href="$SCRIPT_NAME?backup">All pages</a>).($PAGE eq "" ? "" : qq(
+Backup: <a href="?backup">All pages</a>).($PAGE eq "" ? "" : qq(
 . <a href="?backup">$PAGE</a>)).qq(
 <br />
 Restore: <input accesskey="f" type="file" id="file" name="file" />
@@ -1428,7 +1442,7 @@ sub make_html{
 	open FH, ">$PAGE.html";
 	print FH $html;
 	close FH;
-	chmod 0755, "$PAGE.html" if($HOSTING eq "awardspace");
+	chmod 0755, "$PAGE.html" if($hosting eq "awardspace");
 	unlock_file("$PAGE.html");
 }
 
@@ -1558,7 +1572,7 @@ sub restore{
 	$zip->removeMember($PW);
 	foreach($zip->memberNames()){
 		$zip->removeMember($_) if(-f $_ && !-w $_);
-		if($HOSTING eq "awardspace" &&
+		if($hosting eq "awardspace" &&
 			(m#\.html$# || m#/#)){
 			my $member = $zip->memberNamed($_);
 			$member->unixFileAttributes(0755);
@@ -1568,7 +1582,7 @@ sub restore{
 	close $fh;
 	unlink $name;
 
-	if($HOSTING eq "awardspace"){
+	if($hosting eq "awardspace"){
 		foreach($zip->memberNames()){
 			chmod 0755, $_ if(m#\.html$# || m#/#);
 		}
@@ -1992,7 +2006,7 @@ sub create_search_form{
 	my $print_title = get_msg("search_form_print_title");
 	my $no_match = get_msg("search_form_no_match");
 	my $form = <<EOT;
-<form class="search_input" action="$SCRIPT_NAME" method="get">
+<form class="search_input" action="$CGI" method="get">
 <div>
 <input accesskey="s" id="search" name="search" />
 <input type="submit" value="$search" />
@@ -2025,7 +2039,7 @@ sub create_comment_form{
 	$cols = "80" if($cols eq "");
 	my $write = get_msg("comment_form_write");
 	my $form = <<EOT;
-<form class="comment_input" action="$SCRIPT_NAME?comment=$comment" method="post">
+<form class="comment_input" action="$CGI?comment=$comment" method="post">
 <div>
 <input type="hidden" id="page" name="page" value="$page" />
 <input type="hidden" id="direction" name="direction" value="$direction" />
@@ -3344,7 +3358,7 @@ if($REQUEST_METHOD eq "GET"){
 		open FH, ">$PAGE/$t.$var{file}";
 		print FH $var{"file="};
 		close FH;
-		chmod 0755, "$PAGE/$t.$var{file}" if($HOSTING eq "awardspace");
+		chmod 0755, "$PAGE/$t.$var{file}" if($hosting eq "awardspace");
 
 		(my $f = $var{file}) =~ s/ /%20/g;
 		exit_message(get_msg("file_uploaded", $var{file}).
@@ -3372,7 +3386,7 @@ if($REQUEST_METHOD eq "GET"){
 		open FH, ">$PAGE/$t.$var{file}";
 		print FH $var{"file="};
 		close FH;
-		chmod 0755, "$PAGE/$t.$var{file}" if($HOSTING eq "awardspace");
+		chmod 0755, "$PAGE/$t.$var{file}" if($hosting eq "awardspace");
 		if($var{preview} eq ""){
 			(my $f = $var{file}) =~ s/ /%20/g;
 			$TEXT .= "\n[$PAGE/$t.$f $var{file}]";
@@ -3608,9 +3622,11 @@ if($REQUEST_METHOD eq "GET"){
 		print_message(1);
 		print_view(1);
 		print_edit(1);
+		print_preview(1);
 		print_updated(1);
 		print_wikiview(1);
 		print_wikiedit(1);
+		print_wikipreview(1);
 		print_css(1);
 	}
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
@@ -3670,7 +3686,7 @@ if($REQUEST_METHOD eq "GET"){
 		open FH, ">$PAGE/$var{file}";
 		print FH $var{"file="};
 		close FH;
-		chmod 0755, "$PAGE/$var{file}" if($HOSTING eq "awardspace");
+		chmod 0755, "$PAGE/$var{file}" if($hosting eq "awardspace");
 		$rebuild = 1;
 	}
 }elsif($QUERY_STRING eq "delete" && $FILE ne ""){
@@ -3742,7 +3758,7 @@ if($REQUEST_METHOD eq "GET"){
 		open FH, ">$PAGE/$var{file}";
 		print FH $var{"file="};
 		close FH;
-		chmod 0755, "$PAGE/$var{file}" if($HOSTING eq "awardspace");
+		chmod 0755, "$PAGE/$var{file}" if($hosting eq "awardspace");
 	}
 	if($var{preview} ne ""){
 		my $uploaded;
