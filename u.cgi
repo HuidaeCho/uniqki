@@ -725,19 +725,20 @@ sub process_tpl{
 	# $mode=2: print for CSS only
 	my ($file, $mode, $tpl) = @_;
 	my $path = "$TPL/$file";
-	local *FH;
 
 	start_html() unless(defined $mode);
 	print "Content-Type: text/css\n\n" if($mode == 2);
 
 	if($mode == 1){
 		if(-d $TPL && !-f $path){
+			local *FH;
 			open FH, ">$path";
 			print FH $tpl;
 			close FH;
 		}
 	}elsif(-f $path){
 		if($mode == 2){
+			local *FH;
 			open FH, $path;
 			print <FH>;
 			close FH;
