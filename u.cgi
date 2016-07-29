@@ -73,14 +73,17 @@ use vars qw(
 
 # Config and messages variables
 use vars qw(
-	$SITE_TITLE $SITE_DESCRIPTION
+	$SITE_TITLE $SITE_DESCRIPTION $CHARSET
 	$TIME_ZONE
-	$PW $TPL $MSG $CHARSET
+	$PASSWORD_FILE $SESSIONS_FILE $MESSAGES_FILE $TEMPLATE_DIRECTORY
+	$PAGE_NAME_STYLE
 	$INACTIVE_TIMEOUT $SET_PASSWORD_TIMEOUT $RESET_PASSWORD_TIMEOUT
-	$EMAIL_ADDRESS $SMTP $PAGE_NAME_STYLE
+	$EMAIL_ADDRESS $SMTP
 	$READ_ACCESS $WRITE_ACCESS
-	$HEADER $FOOTER
-	$WIKI_HEADER $WIKI_FOOTER $WIKI_NEW_PAGE $WIKI_UPLOAD
+	$HEADER_FILE $FOOTER_FILE
+	$WIKI_HEADER_FILE $WIKI_FOOTER_FILE
+	$WIKI_ALLOWED_PAGES $WIKI_ALLOWED_FILES
+
 	%MESSAGES
 );
 
@@ -159,7 +162,7 @@ if($TIME_ZONE ne ""){
 	$ENV{TIME_ZONE} = $TIME_ZONE;
 	eval "use POSIX; POSIX::tzset();";
 }
-$CSS = -f "$TPL/uniqki.css" ? "$TPL/uniqki.css" : "$CGI?css";
+$CSS = -f "$TEMPLATE_DIRECTORY/uniqki.css" ? "$TEMPLATE_DIRECTORY/uniqki.css" : "$CGI?css";
 
 my $smtp_server = "";
 my $smtp_port;
@@ -188,7 +191,7 @@ my $header_printed = 0;
 my $footer_printed = 0;
 my $rebuild = 0;
 my $insecure_pw = 1;
-my $sessions_file = ".sessions";
+my $sessions_file = $SESSIONS_FILE eq "" ? ".sessions" : $SESSIONS_FILE;
 my $debug_started = 0;
 my $html_started = 0;
 
@@ -452,10 +455,10 @@ sub page_exists{
 # Password file
 sub write_pw{
 	my $file;
-	if($PW eq ""){
+	if($PASSWORD_FILE eq ""){
 		$file = "u.pw";
 	}else{
-		$file = $PW;
+		$file = $PASSWORD_FILE;
 	}
 	unless(-f $file){
 		local *FH;
@@ -476,40 +479,29 @@ sub process_cfg{
 $SITE_TITLE = 'Uniqki: A Personal Wiki Builder!';
 $SITE_DESCRIPTION = 'This site is powered by <a href="http://uniqki.isnew.info">Uniqki</a>!';
 
-# Set time zone if different from the system time
-$TIME_ZONE = '';
-
-# Password file: The admin password can be embedded in the script as $adminpw.
-$PW = 'u.pw';
-
-# Template files: The system default ones will be served by u.cgi if missing.
-$TPL = 'u.tpl';
-
-# Message file: The system default messages will be printed if missing.
-$MSG = 'u.msg';
-
 # Character set
 $CHARSET = 'utf-8';
 
-# Login session will be extended by this number of minutes whenever any action
-# is taken by the user.
-$INACTIVE_TIMEOUT = 24*60;
+# Set time zone if different from the system time
+$TIME_ZONE = '';
 
-# Change password timeout in minutes
-$SET_PASSWORD_TIMEOUT = 60;
+# WARNING: Make sure to protect these files and directories from the user using
+# the following directives in .htaccess:
+# <Files ~ "(^u\.(cfg|pw|msg)|^\.sessions|\.(tpl|txt|txt\.v))$">
+#	Deny from all
+# </Files>
 
-# Reset password timeout in minutes
-$RESET_PASSWORD_TIMEOUT = 1;
+# Password file: The admin password can be embedded in the script as $adminpw.
+$PASSWORD_FILE = 'u.pw';
 
-# Email address from which user notifications are sent: 'Your Name
-# <you@example.com>' is not supported.  Enter your email address only as in
-# 'you@example.com'.  Make sure to use single quotes instead of double quotes.
-$EMAIL_ADDRESS = '';
+# Sessions file: The default sessions file is .sessions.
+$SESSIONS_FILE = '.sessions';
 
-# SMTP settings: If this variable is empty, email will be sent using sendmail.
-# The format of this variable is 'server:port:username:password'.  The password
-# may contain colons (:), but the username cannot.
-$SMTP = '';
+# Messages file: The default messages will be printed if missing.
+$MESSAGES_FILE = 'u.msg';
+
+# Template directory: The default template will be served by u.cgi if missing.
+$TEMPLATE_DIRECTORY = 'u.tpl';
 
 # Page name style: case[:hyphens|:underscores|:no_spaces]
 # lower_case (default): All lower case (e.g., page in a uniqki site)
@@ -536,6 +528,26 @@ $SMTP = '';
 # start_case style will create and link to Page_In_A_Uniqki_Site.html.  The
 # same page name in the upper_camel_case style will use PageInAUniqkiSite.html.
 $PAGE_NAME_STYLE = 'lower_case:hyphens';
+
+# Login session will be extended by this number of minutes whenever any action
+# is taken by the user.
+$INACTIVE_TIMEOUT = 24*60;
+
+# Change password timeout in minutes
+$SET_PASSWORD_TIMEOUT = 60;
+
+# Reset password timeout in minutes
+$RESET_PASSWORD_TIMEOUT = 1;
+
+# Email address from which user notifications are sent: 'Your Name
+# <you@example.com>' is not supported.  Enter your email address only as in
+# 'you@example.com'.  Make sure to use single quotes instead of double quotes.
+$EMAIL_ADDRESS = '';
+
+# SMTP settings: If this variable is empty, email will be sent using sendmail.
+# The format of this variable is 'server:port:username:password'.  The password
+# may contain colons (:), but the username cannot.
+$SMTP = '';
 
 # Read access control
 # open: Opens both non-wiki and wiki pages to the public and anyone will be
@@ -566,26 +578,26 @@ $READ_ACCESS = 'open';
 # closed: Requires a login to edit or create wiki pages.
 # admin: Requires admin rights to edit or create wiki pages.
 #
-# Creating new wiki pages also depends on $WIKI_NEW_PAGE.  For security
+# Creating new wiki pages also depends on $WIKI_ALLOWED_PAGES.  For security
 # reasons, non-wiki pages are writable only by admin users and this variable
 # cannot affect that behavior.
 $WRITE_ACCESS = 'open';
 
 # Header and footer files for the parser
-$HEADER = '';
-$FOOTER = '';
+$HEADER_FILE = '';
+$FOOTER_FILE = '';
 
 # Header and footer files for the wiki parser (#!wiki as the first line)
-$WIKI_HEADER = '';
-$WIKI_FOOTER = '';
+$WIKI_HEADER_FILE = '';
+$WIKI_FOOTER_FILE = '';
 
 # Regular expression for wiki page names that are allowed to be created by
 # non-admin users
-$WIKI_NEW_PAGE = q();
+$WIKI_ALLOWED_PAGES = q();
 
 # Regular expression for file names that are allowed to be uploaded by
 # non-admin users to a wiki page
-$WIKI_UPLOAD = q(\.(png|gif|jpg|jpeg|txt|zip)$);
+$WIKI_ALLOWED_FILES = q(\.(png|gif|jpg|jpeg|txt|zip)$);
 EOT_UNIQKI
 	if($mode == 1){
 		unless(-f "u.cfg"){
@@ -687,10 +699,10 @@ table_of_contents => q(Table of contents),
 );
 EOT_UNIQKI
 	my $file = "";
-	if($MSG eq ""){
+	if($MESSAGES_FILE eq ""){
 		$file = "u.msg";
 	}else{
-		$file = $MSG;
+		$file = $MESSAGES_FILE;
 	}
 	if($mode == 1){
 		unless(-f $file){
@@ -776,13 +788,13 @@ sub process_tpl{
 	# $mode=1: write
 	# $mode=2: print for CSS only
 	my ($file, $mode, $tpl) = @_;
-	my $path = "$TPL/$file";
+	my $path = "$TEMPLATE_DIRECTORY/$file";
 
 	start_html() unless(defined $mode);
 	print "Content-Type: text/css\n\n" if($mode == 2);
 
 	if($mode == 1){
-		if(-d $TPL && !-f $path){
+		if(-d $TEMPLATE_DIRECTORY && !-f $path){
 			local *FH;
 			open FH, ">$path";
 			print FH $tpl;
@@ -1608,7 +1620,7 @@ sub restore{
 	$zip->readFromFileHandle($fh);
 	(my $cgi = $CGI) =~ s#^(?:/~[^/]+)?/##;
 	$zip->removeMember($cgi);
-	$zip->removeMember($PW);
+	$zip->removeMember($PASSWORD_FILE);
 	foreach($zip->memberNames()){
 		$zip->removeMember($_) if(-f $_ && !-w $_);
 		if($hosting eq "awardspace" &&
@@ -1652,12 +1664,12 @@ sub find_user_info{
 
 	my $method = 0;
 	# $method=0: No user found
-	# $method=1: Use $PW
+	# $method=1: Use $PASSWORD_FILE
 	# $method=2: Use $adminpw
 
-	if($PW eq ""){
+	if($PASSWORD_FILE eq ""){
 		# No password file is specified in u.cfg.  Since the password
-		# file in the default config is u.pw, an empty $PW was assigned
+		# file in the default config is u.pw, an empty $PASSWORD_FILE was assigned
 		# by the user.
 		if($adminpw eq $tmp_adminpw){
 			# If $adminpw is still temporary, this situation can be
@@ -1668,7 +1680,7 @@ sub find_user_info{
 			# If $adminpw has been changed, use this password.
 			$method = 2;
 		}
-	}elsif(-f $PW){
+	}elsif(-f $PASSWORD_FILE){
 		# Use the password file
 		$method = 1;
 	}elsif($adminpw eq $tmp_adminpw){
@@ -1688,7 +1700,7 @@ sub find_user_info{
 
 	my $userline = "";
 	if($method == 1){
-		open FH, $PW;
+		open FH, $PASSWORD_FILE;
 		my @lines = grep /^$id:/, <FH>;
 		close FH;
 
@@ -1711,13 +1723,13 @@ sub authenticate_user{
 
 	my $method = 0;
 	# $method=0: Login not allowed
-	# $method=1: Create $PW and force to change the password
-	# $method=2: Use $PW
+	# $method=1: Create $PASSWORD_FILE and force to change the password
+	# $method=2: Use $PASSWORD_FILE
 	# $method=3: Use $adminpw
 
-	if($PW eq ""){
+	if($PASSWORD_FILE eq ""){
 		# No password file is specified in u.cfg.  Since the password
-		# file in the default config is u.pw, an empty $PW was assigned
+		# file in the default config is u.pw, an empty $PASSWORD_FILE was assigned
 		# by the user.
 		if($adminpw eq $tmp_adminpw){
 			# If $adminpw is still temporary, this situation can be
@@ -1729,7 +1741,7 @@ sub authenticate_user{
 			# If $adminpw has been changed, use this password.
 			$method = 3;
 		}
-	}elsif(-f $PW){
+	}elsif(-f $PASSWORD_FILE){
 		# Use the password file
 		$method = 2;
 	}elsif($adminpw eq $tmp_adminpw){
@@ -1739,7 +1751,7 @@ sub authenticate_user{
 		# credentials against the temporary password to avoid timing
 		# attacks.
 		if($QUERY_STRING eq "login"){
-			open FH, ">$PW";
+			open FH, ">$PASSWORD_FILE";
 			print FH "$adminpw\n";
 			close FH;
 			$method = 1;
@@ -2137,12 +2149,13 @@ sub parse_file{
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
 		$block, $re_i_start, $re_i, @re, @re_sub, $toc, $notoc,
 		%h_i, $h_top, $h_prev, $p, $li_i, @li, @li_attr, $pre, $table);
-	my ($header, $footer);
+	my ($header_file, $footer_file);
 
 	unless($wiki){
-		($header, $footer) = ($HEADER, $FOOTER);
+		($header_file, $footer_file) = ($HEADER_FILE, $FOOTER_FILE);
 	}else{
-		($header, $footer) = ($WIKI_HEADER, $WIKI_FOOTER);
+		($header_file, $footer_file) =
+			($WIKI_HEADER_FILE, $WIKI_FOOTER_FILE);
 	}
 
 	$begin_parsing = \&begin_parsing unless(defined($begin_parsing));
@@ -2150,7 +2163,7 @@ sub parse_file{
 	$end_parsing = \&end_parsing unless(defined($end_parsing));
 
 	$begin_parsing->();
-	foreach my $f ($header, $file, $footer){
+	foreach my $f ($header_file, $file, $footer_file){
 		# "<" is required for the in-memory file
 		next if($f eq "" || !open UNIQKI_FH, "<", $f);
 		$parse_line->($_) while(<UNIQKI_FH>);
@@ -2168,12 +2181,13 @@ sub parse_text{
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
 		$block, $re_i_start, $re_i, @re, @re_sub, $toc, $notoc,
 		%h_i, $h_top, $h_prev, $p, $li_i, @li, @li_attr, $pre, $table);
-	my ($header, $footer);
+	my ($header_file, $footer_file);
 
 	unless($wiki){
-		($header, $footer) = ($HEADER, $FOOTER);
+		($header_file, $footer_file) = ($HEADER_FILE, $FOOTER_FILE);
 	}else{
-		($header, $footer) = ($WIKI_HEADER, $WIKI_FOOTER);
+		($header_file, $footer_file) =
+			($WIKI_HEADER_FILE, $WIKI_FOOTER_FILE);
 	}
 
 	$begin_parsing = \&begin_parsing unless(defined($begin_parsing));
@@ -2181,14 +2195,14 @@ sub parse_text{
 	$end_parsing = \&end_parsing unless(defined($end_parsing));
 
 	$begin_parsing->();
-	if($header ne "" && open UNIQKI_FH, "<", $header){
+	if($header_file ne "" && open UNIQKI_FH, "<", $header_file){
 		$parse_line->($_) while(<UNIQKI_FH>);
 		close UNIQKI_FH;
 	}
 	foreach my $line (split /\n/, $txt){
 		$parse_line->($line);
 	}
-	if($footer ne "" && open UNIQKI_FH, "<", $footer){
+	if($footer_file ne "" && open UNIQKI_FH, "<", $footer_file){
 		$parse_line->($_) while(<UNIQKI_FH>);
 		close UNIQKI_FH;
 	}
@@ -2743,7 +2757,8 @@ if(!is_logged_in()){
 			open FH, "$page.txt";
 			$wiki = 1 if(<FH> eq "#!wiki\n");
 			close FH;
-		}elsif($WIKI_NEW_PAGE ne "" && $page =~ m/$WIKI_NEW_PAGE/o){
+		}elsif($WIKI_ALLOWED_PAGES ne "" &&
+			$page =~ m/$WIKI_ALLOWED_PAGES/o){
 			$wiki = 1;
 		}
 	}
@@ -3420,8 +3435,9 @@ if($REQUEST_METHOD eq "GET"){
 	if($QUERY_STRING eq "wikiupload"){
 #-------------------------------------------------------------------------------
 # Wiki upload
-		exit if($WIKI_UPLOAD eq "" || !-f "$PAGE.txt" ||
-			$var{file} eq "" || $var{file} !~ m/$WIKI_UPLOAD/oi);
+		exit if($WIKI_ALLOWED_FILES eq "" || !-f "$PAGE.txt" ||
+			$var{file} eq "" ||
+			$var{file} !~ m/$WIKI_ALLOWED_FILES/oi);
 
 		open FH, "$PAGE.txt";
 		if(<FH> ne "#!wiki\n"){
@@ -3457,7 +3473,7 @@ if($REQUEST_METHOD eq "GET"){
 		print_updated();
 		exit;
 	}
-	if($var{file} ne "" && $var{file} =~ m/$WIKI_UPLOAD/oi){
+	if($var{file} ne "" && $var{file} =~ m/$WIKI_ALLOWED_FILES/oi){
 		mkdir $PAGE, 0755 if(!-d $PAGE);
 		open FH, ">$PAGE/$t.$var{file}";
 		print FH $var{"file="};
@@ -3555,9 +3571,9 @@ if($REQUEST_METHOD eq "GET"){
 	my $updated = 0;
 	my $reset_hash = "";
 
-	if(-f $PW){
+	if(-f $PASSWORD_FILE){
 		local *FH;
-		open FH, $PW;
+		open FH, $PASSWORD_FILE;
 		while(<FH>){
 			if(m/^$var{id}:/){
 				$updated = 1;
@@ -3670,11 +3686,11 @@ if($REQUEST_METHOD eq "GET"){
 	}
 
 	if($updated){
-		lock_file($PW);
-		open FH, ">$PW";
+		lock_file($PASSWORD_FILE);
+		open FH, ">$PASSWORD_FILE";
 		print FH $new_pw;
 		close FH;
-		unlock_file($PW);
+		unlock_file($PASSWORD_FILE);
 	}
 
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?admin");
@@ -3705,8 +3721,8 @@ if($REQUEST_METHOD eq "GET"){
 #-------------------------------------------------------------------------------
 # u.cgi?install_tpl		Install the template files, but don't overwrite
 # u.cgi/PAGE?install_tpl	Install the template files, but don't overwrite
-	if($TPL ne ""){
-		mkdir $TPL, 0755 unless(-d $TPL);
+	if($TEMPLATE_DIRECTORY ne ""){
+		mkdir $TEMPLATE_DIRECTORY, 0755 unless(-d $TEMPLATE_DIRECTORY);
 		print_header(1);
 		print_footer(1);
 		print_login(1);
