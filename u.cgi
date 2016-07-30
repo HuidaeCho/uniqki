@@ -828,7 +828,7 @@ sub print_header{
 <head>
 <title>[[TITLE]]</title>
 <meta charset="[[CHARSET]]" />
-<meta name="viewport" content="width=device-width;" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="stylesheet" type="text/css" href="[[CSS]]" />
 <link rel="alternate" type="application/rss+xml" title="Recent changes" href="[[CGI]]?rss" />
 </head>
