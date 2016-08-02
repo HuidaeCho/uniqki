@@ -316,6 +316,21 @@ sub convert_page_name{
 	return $page_name;
 }
 
+sub unescape_comment{
+	my $text = shift;
+	$text =~ y/\x00//d;
+	return $text;
+}
+
+sub escape_comment{
+	my $text = shift;
+	$text =~ s/^([#%])/\x00$1/mg;
+	$text =~ s/{{(.*?)}}(?!})/{\x00{$1}\x00}/g;
+	$text =~ s/^(---+)\n(.*?)\n\1$/$1\n@{[unescape_comment($2)]}\n$1/smg;
+	$text =~ s/\x00/''''/g;
+	return $text;
+}
+
 sub escape_inline_syntax{
 	my $code = shift;
 	$code =~ s#([{"/*'-_|\[])\1#$1\x00$1#g;
@@ -3305,7 +3320,7 @@ EOT
 		exit_message(get_msg("page_not_found", $PAGE));
 	}
 
-	$var{text} =~ s/$/ /mg;
+	$var{text} = escape_comment($var{text});
 
 	lock_file("$PAGE.txt");
 	my $TEXT = "";
@@ -3314,11 +3329,11 @@ EOT
 	local *FH;
 	if(open FH, "$PAGE.txt"){
 		while(<FH>){
-			if(m/^#$var{comment}$/){
+			if(m/^%%$var{comment}$/){
 				if($var{direction} eq "up"){
-					$TEXT .= "$_# $time\n$var{text}\n\n";
+					$TEXT .= "$_%%$time\n$var{text}\n\n";
 				}else{
-					$TEXT .= "# $time\n$var{text}\n\n$_";
+					$TEXT .= "%%$time\n$var{text}\n\n$_";
 				}
 				$added = 1;
 			}else{
@@ -3329,7 +3344,7 @@ EOT
 	}
 	unless($added){
 		unlock_file("$PAGE.txt");
-		exit_message(get_msg("comment_tag_not_found", "#$var{comment}"));
+		exit_message(get_msg("comment_tag_not_found", "%%$var{comment}"));
 	}
 	save($PAGE, $TEXT);
 	unlock_file("$PAGE.txt");
