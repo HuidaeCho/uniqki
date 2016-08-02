@@ -472,12 +472,7 @@ sub page_exists{
 #-------------------------------------------------------------------------------
 # Password file
 sub write_pw{
-	my $file;
-	if($PASSWORD_FILE eq ""){
-		$file = "u.pw";
-	}else{
-		$file = $PASSWORD_FILE;
-	}
+	my $file = $PASSWORD_FILE eq "" ? "u.pw" : $PASSWORD_FILE;
 	unless(-f $file){
 		local *FH;
 		open FH, ">$file";
@@ -617,7 +612,7 @@ $WIKI_ALLOWED_PAGES = q();
 # non-admin users to a wiki page
 $WIKI_ALLOWED_FILES = q(\.(png|gif|jpg|jpeg|txt|zip)$);
 EOT_UNIQKI
-	my $file = $U_CFG ne "" ? $U_CFG : "u.cfg";
+	my $file = $U_CFG eq "" ? "u.cfg" : $U_CFG;
 	if($mode == 1){
 		unless(-f $file){
 			local *FH;
@@ -718,12 +713,7 @@ invalid_comment_id => q(%s: Invalid comment ID),
 table_of_contents => q(Table of contents),
 );
 EOT_UNIQKI
-	my $file = "";
-	if($MESSAGES_FILE eq ""){
-		$file = "u.msg";
-	}else{
-		$file = $MESSAGES_FILE;
-	}
+	my $file = $MESSAGES_FILE eq "" ? "u.msg" : $MESSAGES_FILE;
 	if($mode == 1){
 		unless(-f $file){
 			local *FH;
