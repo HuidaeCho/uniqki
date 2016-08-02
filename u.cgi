@@ -326,7 +326,8 @@ sub escape_comment{
 	my $text = shift;
 	$text =~ s/^([#%])/\x00$1/mg;
 	$text =~ s/{{(.*?)}}(?!})/{\x00{$1}\x00}/g;
-	$text =~ s/^(---+)\n(.*?)\n\1$/$1\n@{[unescape_comment($2)]}\n$1/smg;
+	$text =~ s/^(---+)$/\x00$1/mg;
+	$text =~ s/^\x00(---+)\n(.*?)\n\x00\1$/$1\n@{[unescape_comment($2)]}\n$1/smg;
 	$text =~ s/\x00/''''/g;
 	return $text;
 }
@@ -684,9 +685,6 @@ not_wiki_page => q(%s: This page is not a wiki page.),
 not_allowed_to_create_nonwiki_page => q(%s: You are not allowed to create this non-wiki page.),
 not_allowed_to_edit_wiki_page => q(%s: You are not allowed to edit this wiki page.),
 not_allowed_to_edit_wiki_page => q(%s: You are not allowed to edit this wiki page.),
-goto_form_title => q(Goto form),
-search_form_title => q(Search form),
-comment_form_title => q(Comment form),
 recent_changes_title => q(Recent changes),
 recent_changes_matching_title => q(Recent changes matching %s pattern),
 old_changes_title => q(Old changes),
@@ -701,14 +699,18 @@ search_title => q(Search for %s),
 search_matching_title => q(Search %s for %s),
 diff_title => q(Differences of page %s between versions %d and %d),
 
+goto_form_title => q(Goto form),
 goto_form_goto => q(Go to),
+search_form_title => q(Search form),
 search_form_search => q(Search),
 search_form_simple => q(Simple),
 search_form_link => q(Link),
 search_form_ignore_case => q(Ignore case),
 search_form_print_title => q(Print title),
 search_form_no_match => q(No match),
+comment_form_title => q(Comment form),
 comment_form_write => q(Write),
+invalid_comment_id => q(%s: Invalid comment ID),
 
 table_of_contents => q(Table of contents),
 );
@@ -2119,12 +2121,15 @@ EOT
 sub create_comment_form{
 	# $mode=undef: return
 	# $mode=1: print
-	my ($mode, $page, $comment, $direction, $rows, $cols) = @_;
+	my ($page, $comment, $direction, $rows, $cols, $mode) = @_;
 	$page = $PAGE if($page eq "");
 	$comment = "comment" if($comment eq "");
 	$direction = "down" if($direction eq "");
 	$rows = "6" if($rows eq "");
 	$cols = "80" if($cols eq "");
+	exit_message(get_msg("invalid_comment_id", $comment))
+		unless($comment =~ m/^[a-zA-Z0-9_-]+$/);
+
 	my $write = get_msg("comment_form_write");
 	my $form = <<EOT;
 <form class="comment_input" action="$CGI?comment=$comment" method="post">
@@ -3308,8 +3313,8 @@ EOT
 
 		local $TITLE = get_msg("comment_form_title");
 		print_header();
-		create_comment_form(1, $PAGE, $var{comment}, $var{direction},
-			$var{rows}, $var{cols});
+		create_comment_form($PAGE, $var{comment}, $var{direction},
+			$var{rows}, $var{cols}, 1);
 		print_footer();
 		exit;
 	}
@@ -3320,6 +3325,9 @@ EOT
 		exit_message(get_msg("page_not_found", $PAGE));
 	}
 
+	exit_message(get_msg("invalid_comment_id", $var{comment}))
+		unless($var{comment} =~ m/^[a-zA-Z0-9_-]+$/);
+
 	$var{text} = escape_comment($var{text});
 
 	lock_file("$PAGE.txt");
@@ -3329,11 +3337,11 @@ EOT
 	local *FH;
 	if(open FH, "$PAGE.txt"){
 		while(<FH>){
-			if(m/^%%$var{comment}$/){
+			if(m/^#%$var{comment}$/){
 				if($var{direction} eq "up"){
-					$TEXT .= "$_%%$time\n$var{text}\n\n";
+					$TEXT .= "$_#%$time\n$var{text}\n\n";
 				}else{
-					$TEXT .= "%%$time\n$var{text}\n\n$_";
+					$TEXT .= "#%$time\n$var{text}\n\n$_";
 				}
 				$added = 1;
 			}else{
@@ -3344,7 +3352,7 @@ EOT
 	}
 	unless($added){
 		unlock_file("$PAGE.txt");
-		exit_message(get_msg("comment_tag_not_found", "%%$var{comment}"));
+		exit_message(get_msg("comment_tag_not_found", "#%$var{comment}"));
 	}
 	save($PAGE, $TEXT);
 	unlock_file("$PAGE.txt");
