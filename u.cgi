@@ -253,8 +253,8 @@ sub config_read_write_access{
 	my @items = split /:/, $READ_ACCESS;
 	my $nonwiki_read_access = $items[0] ne "open" && $items[0] ne "closed" ?
 		"admin" : $items[0];
-	my $wiki_read_access = $items[1] ne "open" && $items[1] ne "closed" ?
-		"admin" : $items[1];
+	my $wiki_read_access = index($READ_ACCESS, ":") == -1 ? $nonwiki_read_access :
+		($items[1] ne "open" && $items[1] ne "closed" ? "admin" : $items[1]);
 	my $wiki_write_access = $WRITE_ACCESS ne "open" &&
 		$WRITE_ACCESS ne "closed" ? "admin" : $WRITE_ACCESS;
 	return ($nonwiki_read_access, $wiki_read_access, $wiki_write_access);
