@@ -764,7 +764,7 @@ sub is_email_address{
 sub is_session_id{
 	my $session_id = shift;
 	my $len = length($session_id);
-	return $len == 64 && $session_id =~ m/^[A-Za-z0-9]+$/;
+	return $len == 64 && $session_id =~ m/^[a-zA-Z0-9]+$/;
 }
 
 #-------------------------------------------------------------------------------
@@ -3600,7 +3600,10 @@ if($REQUEST_METHOD eq "GET"){
 				$updated = 1;
 
 				# Delete user
-				next if($var{mode} eq "delete");
+				if($var{mode} eq "delete"){
+					clear_sessions($var{id});
+					next;
+				}
 
 				if($var{mode} eq "add"){
 					close FH;
@@ -3610,12 +3613,13 @@ if($REQUEST_METHOD eq "GET"){
 				# Update user information
 				my @items = split /:/;
 				if($var{mode} eq "block"){
-					if($items[1] eq ""){
+					if($items[1] eq "blocked"){
 						exit_message(get_msg("user_already_blocked", $var{id}));
 					}
+					clear_sessions($var{id});
 					$_ = "$var{id}:blocked:$items[2]:$items[3]:\n";
 				}elsif($var{mode} eq "unblock"){
-					if($items[1] ne ""){
+					if($items[1] ne "blocked"){
 						exit_message(get_msg("user_already_unblocked", $var{id}));
 					}
 					my $pw;
