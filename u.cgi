@@ -57,6 +57,7 @@ use strict;
 
 # HTTP server environment variables
 use vars qw(
+	$U_CFG
 	$HTTPS $HTTP_COOKIE $HTTP_HOST $SERVER_NAME $SCRIPT_NAME $PATH_INFO
 	$QUERY_STRING $REQUEST_METHOD $CONTENT_LENGTH
 );
@@ -109,6 +110,7 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 
 ################################################################################
 # CGI variables
+$U_CFG = $ENV{U_CFG};
 $HTTPS = $ENV{HTTPS};
 $HTTP_COOKIE = $ENV{HTTP_COOKIE};
 $HTTP_HOST = $ENV{HTTP_HOST};
@@ -615,16 +617,17 @@ $WIKI_ALLOWED_PAGES = q();
 # non-admin users to a wiki page
 $WIKI_ALLOWED_FILES = q(\.(png|gif|jpg|jpeg|txt|zip)$);
 EOT_UNIQKI
+	my $file = $U_CFG ne "" ? $U_CFG : "u.cfg";
 	if($mode == 1){
-		unless(-f "u.cfg"){
+		unless(-f $file){
 			local *FH;
-			open FH, ">u.cfg";
+			open FH, ">$file";
 			print FH $cfg;
 			close FH;
 		}
 	}else{
 		eval $cfg;
-		do "u.cfg" if(-f "u.cfg");
+		do $file if(-f $file);
 	}
 }
 
