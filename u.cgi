@@ -3321,9 +3321,7 @@ EOT
 	exit unless(verify_input("comment", \%var));
 
 	$PAGE = $var{page};
-	unless(-f "$PAGE.txt"){
-		exit_message(get_msg("page_not_found", $PAGE));
-	}
+	exit_message(get_msg("page_not_found", $PAGE)) unless(-f "$PAGE.txt");
 
 	exit_message(get_msg("invalid_comment_id", $var{comment}))
 		unless($var{comment} =~ m/^[a-zA-Z0-9_-]+$/);
