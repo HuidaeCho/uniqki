@@ -744,6 +744,57 @@ current_version => q(The current version of page %s is %d.),
 file_uploaded => q(%s: File uploaded. Copy and paste the link below.),
 
 table_of_contents => q(Table of contents),
+
+powered_by_uniqki => q(Powered by <a href="http://uniqki.isnew.info">Uniqki</a>!),
+
+login => q(Login),
+username => q(Username),
+password => q(Password),
+logout_from_other_computers => q(Logout from other computers),
+view => q(View),
+
+admin => q(Admin),
+pages => q(Pages),
+backup => q(Backup),
+restore => q(Restore),
+users => q(Users),
+add_new_user => q(Add new user),
+block_user => q(Block user),
+unblock_user => q(Unblock user),
+delete_user => q(Delete user),
+update_user_info => q(Update user information),
+email_address => q(Email address),
+non_admin => q(Non-admin),
+admin => q(Admin),
+dont_change => q(Don't change),
+type_password_again => q(Type password again),
+manage_user => q(Manage user),
+add_new_user_info => q(Add new user: Enter new user information and leave passwords blank for an email notification),
+block_unblock_delete_user_info => q(Block/unblock/delete user: Enter an existing username),
+change_email_address_info => q(Change email address: Enter an existing username and type email address),
+change_password_info => q(Change password: Enter an existing username and type new password twice),
+username_requirements => q(Username requirements: 4 or more letters (a-z, A-Z) and digits (0-9)),
+password_requirements => q(Password requirements: 8 or more characters with at least one letter (a-z, A-Z), one digit (0-9), and one special character excluding spaces and tabs),
+
+refresh => q(Refresh),
+edit => q(Edit),
+index => q(Index),
+loginout => q(Loginout),
+diff => q(Diff),
+backlink => q(Backlinks),
+xhtml => q(XHTML),
+css => q(CSS),
+
+preview => q(Preview),
+save => q(Save),
+upload => q(Uploaded),
+cancel => q(Cancel),
+
+updated => q(updated!),
+save_your_changes_and_read => q(Please save your changes and read),
+latest_version => q(the latest version),
+
+wiki_edit => q(Wiki Edit),
 );
 EOT_UNIQKI
 	my $file = $MESSAGES_FILE eq "" ? "u.msg" : $MESSAGES_FILE;
@@ -809,7 +860,7 @@ sub process_tpl_tag{
 		print_edit();
 	}elsif($tag eq "WIKIEDIT"){
 		print_wikiedit();
-	}else{
+	}elsif($tag =~ m/^[A-Z_]+$/){
 		my @tags = qw(
 			SITE_TITLE SITE_DESCRIPTION INDEX_PAGE TITLE CHARSET
 			CSS PAGE VERSION TEXT DOC_BASE PREVIEW TIME CGI MESSAGE
@@ -819,6 +870,8 @@ sub process_tpl_tag{
 
 		no strict;
 		$txt = $$tag if(exists $hash{$tag});
+	}elsif($tag =~ m/^[a-z_]+$/){
+		$txt = get_msg($tag);
 	}
 	close FH; select $fh;
 	chomp $txt;
@@ -856,7 +909,7 @@ sub process_tpl{
 	}
 
 	$_ = $tpl;
-	s/\[\[([A-Z_]*)\]\]/@{[process_tpl_tag($1)]}/g;
+	s/\[\[([A-Za-z_]*)\]\]/@{[process_tpl_tag($1)]}/g;
 	print;
 }
 
@@ -873,7 +926,7 @@ sub print_header{
 <meta charset="[[CHARSET]]" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="stylesheet" type="text/css" href="[[CSS]]" />
-<link rel="alternate" type="application/rss+xml" title="Recent changes" href="[[CGI]]?rss" />
+<link rel="alternate" type="application/rss+xml" title="[[recent_changes]]" href="[[CGI]]?rss" />
 </head>
 <body>
 <div id="container">
@@ -894,7 +947,7 @@ sub print_footer{
 	process_tpl("footer.tpl", $mode, <<'EOT_UNIQKI'
 </div>
 <div id="bottom">
-<small><i>Powered by <a href="http://uniqki.isnew.info">Uniqki</a>!</i></small>
+<small><i>[[powered_by_uniqki]]</i></small>
 </div>
 </div>
 </body>
@@ -907,20 +960,20 @@ sub print_login{
 	process_tpl("login.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
 <div id="login">
-<h1>[[PAGE]] Login</h1>
+<h1>[[PAGE]] [[login]]</h1>
 <form action="[[PAGE]]?login" method="post">
 <div>
-<input accesskey="i" type="text" id="user" name="user" placeholder="Username" />
-<input accesskey="p" type="password" id="pw" name="pw" placeholder="Password" />
-<input type="checkbox" id="logout_others" name="logout_others" value="1" /> Logout from other computers
-<input accesskey="l" type="submit" value="Login" />
+<input accesskey="i" type="text" id="user" name="user" placeholder="[[username]]" />
+<input accesskey="p" type="password" id="pw" name="pw" placeholder="[[password]]" />
+<input type="checkbox" id="logout_others" name="logout_others" value="1" /> [[logout_from_other_computers]]
+<input accesskey="l" type="submit" value="[[login]]" />
 </div>
 </form>
 </div>
 <div id="menu">
 <hr />
-<a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">View</a> .
-<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">Index</a>
+<a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .
+<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a>
 </div>
 [[FOOTER]]
 EOT_UNIQKI
@@ -931,52 +984,52 @@ sub print_admin{
 	process_tpl("admin.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
 <div id="admin">
-<h1>[[PAGE]] Admin</h1>
-<h2>Pages</h2>
+<h1>[[PAGE]] [[admin]]</h1>
+<h2>[[pages]]</h2>
 <form action="?restore" method="post" enctype="multipart/form-data">
 <div>
-Backup: <a href="[[CGI]]?backup">All pages</a> .
+[[backup]]: <a href="[[CGI]]?backup">[[all_pages]]</a> .
 <a href="?backup">[[PAGE]]</a>
 <br />
-Restore: <input accesskey="f" type="file" id="file" name="file" />
-<input accesskey="r" type="submit" value="Restore" />
+[[restore]]: <input accesskey="f" type="file" id="file" name="file" />
+<input accesskey="r" type="submit" value="[[restore]]" />
 </div>
 </form>
 
-<h2>Users</h2>
+<h2>[[users]]</h2>
 <form action="?user" method="post">
 <div>
-<input type="radio" id="mode" name="mode" value="add">Add new user
-<input type="radio" id="mode" name="mode" value="block">Block user
-<input type="radio" id="mode" name="mode" value="unblock">Unblock user
-<input type="radio" id="mode" name="mode" value="delete">Delete user
-<input type="radio" id="mode" name="mode" value="update">Update user information
+<input type="radio" id="mode" name="mode" value="add">[[add_new_user]]
+<input type="radio" id="mode" name="mode" value="block">[[block_user]]
+<input type="radio" id="mode" name="mode" value="unblock">[[unblock_user]]
+<input type="radio" id="mode" name="mode" value="delete">[[delete_user]]
+<input type="radio" id="mode" name="mode" value="update">[[update_user_info]]
 <br />
-<input accesskey="i" type="text" id="user" name="user" placeholder="Username" />
-<input accesskey="e" type="text" id="email_address" name="email_address" placeholder="Email address" />
-<input type="radio" id="admin" name="admin" value="no" /> Non-admin
-<input type="radio" id="admin" name="admin" value="yes" /> Admin
-<input type="radio" id="admin" name="admin" value="keep" /> Don't change
+<input accesskey="i" type="text" id="user" name="user" placeholder="[[username]]" />
+<input accesskey="e" type="text" id="email_address" name="email_address" placeholder="[[email_address]]" />
+<input type="radio" id="admin" name="admin" value="no" /> [[non_admin]]
+<input type="radio" id="admin" name="admin" value="yes" /> [[admin]]
+<input type="radio" id="admin" name="admin" value="keep" /> [[dont_change]]
 <br />
-<input accesskey="p" type="password" id="pw" name="pw" placeholder="Password" />
-<input type="password" id="pw2" name="pw2" placeholder="Confirm password" />
-<input accesskey="u" type="submit" value="Manage user" />
+<input accesskey="p" type="password" id="pw" name="pw" placeholder="[[password]]" />
+<input type="password" id="pw2" name="pw2" placeholder="[[type_password_again]]" />
+<input accesskey="u" type="submit" value="[[manage_user]]" />
 <br />
 <ul>
-<li>Add new user: Enter new user information and leave passwords blank for an email notification</li>
-<li>Block/unblock/delete user: Enter an existing username</li>
-<li>Change email address: Enter an existing username and type email address</li>
-<li>Change password: Enter an existing username and type new password twice</li>
-<li>Username requirements: 4 or more letters (a-z, A-Z) and digits (0-9)</li>
-<li>Password requirements: 8 or more characters with at least one letter (a-z, A-Z), one digit (0-9), and one special character excluding spaces and tabs</li>
+<li>[[add_new_user_info]]</li>
+<li>[[block_unblock_delete_user_info]]</li>
+<li>[[change_email_address_info]]</li>
+<li>[[change_password_info]]</li>
+<li>[[username_requirements]]</li>
+<li>[[password_requirements]]</li>
 </ul>
 </div>
 </form>
 </div>
 <div id="menu">
 <hr />
-<a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">View</a> .
-<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">Index</a>
+<a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .
+<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a>
 </div>
 [[FOOTER]]
 EOT_UNIQKI
@@ -991,9 +1044,9 @@ sub print_message{
 </div>
 <div id="menu">
 <hr />
-<a accesskey="i" href="[[DOC_BASE]]/[[PAGE]].html">View</a> .
-<a accesskey="i" href="[[INDEX_PAGE]].html">Index</a> .
-<a accesskey="l" href="[[PAGE]]?loginout">Loginout</a>
+<a accesskey="i" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .
+<a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
+<a accesskey="l" href="[[PAGE]]?loginout">[[loginout]]</a>
 </div>
 [[FOOTER]]
 EOT_UNIQKI
@@ -1011,14 +1064,14 @@ sub print_view{
 </div>
 <!-- # --><div id="menu">
 <!-- # --><hr />
-<!-- # --><a accesskey="r" href="[[CGI]]/[[PAGE]]?refresh">Refresh</a> .
-<!-- # --><a accesskey="e" href="[[CGI]]/[[PAGE]]?edit">Edit</a> .
-<!-- # --><a accesskey="i" href="[[INDEX_PAGE]].html">Index</a> .
-<!-- # --><a accesskey="l" href="[[CGI]]/[[PAGE]]?loginout">Loginout</a><br />
+<!-- # --><a accesskey="r" href="[[CGI]]/[[PAGE]]?refresh">[[refresh]]</a> .
+<!-- # --><a accesskey="e" href="[[CGI]]/[[PAGE]]?edit">[[edit]]</a> .
+<!-- # --><a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
+<!-- # --><a accesskey="l" href="[[CGI]]/[[PAGE]]?loginout">[[loginout]]</a><br />
 <!-- # --><small><i>
 <!-- # -->[[TIME]] .
-<!-- # --><a href="https://validator.w3.org/check?uri=referer">XHTML</a> .
-<!-- # --><a href="https://jigsaw.w3.org/css-validator/check/referer">CSS</a>
+<!-- # --><a href="https://validator.w3.org/check?uri=referer">[[xhtml]]</a> .
+<!-- # --><a href="https://jigsaw.w3.org/css-validator/check/referer">[[css]]</a>
 <!-- # --></i></small>
 <!-- # --></div>
 [[FOOTER]]
@@ -1030,17 +1083,17 @@ sub print_edit{
 	process_tpl("edit.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
 <div id="edit">
-<h1>[[PAGE]] Edit</h1>
+<h1>[[PAGE]] [[edit]]</h1>
 <form action="[[PAGE]]?edit" method="post" enctype="multipart/form-data">
 <div>
 <input type="hidden" id="version" name="version" value="[[VERSION]]" />
 <textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
 <br />
-<input accesskey="p" type="submit" id="preview" name="preview" value="Preview" />
-<input accesskey="s" type="submit" id="save" name="save" value="Save" /> .
-Upload <input accesskey="u" type="file" id="file" name="file" /> .
-<a accesskey="c" href="[[DOC_BASE]]/[[PAGE]].html">Cancel</a> .
-<a accesskey="c" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">Index</a>
+<input accesskey="p" type="submit" id="preview" name="preview" value="[[preview]]" />
+<input accesskey="s" type="submit" id="save" name="save" value="[[save]]" /> .
+[[upload]] <input accesskey="u" type="file" id="file" name="file" /> .
+<a accesskey="c" href="[[DOC_BASE]]/[[PAGE]].html">[[cancel]]</a> .
+<a accesskey="c" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a>
 </div>
 </form>
 </div>
@@ -1065,8 +1118,8 @@ sub print_updated{
 	process_tpl("updated.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
 <div id="updated">
-<h1>[[PAGE]] updated!</h1>
-Please save your changes and read <a href="[[DOC_BASE]]/[[PAGE]].html">the latest version</a>!
+<h1>[[PAGE]] [[updated]]</h1>
+[[save_your_changes_and_read]] <a href="[[DOC_BASE]]/[[PAGE]].html">[[latest_version]]</a>!
 <br />
 <textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
 </div>
@@ -1085,14 +1138,14 @@ sub print_wikiview{
 [[TEXT]]
 </div>
 <!-- # --><div id="wikimenu">
-<!-- # --><a accesskey="e" href="[[CGI]]/[[PAGE]]?wikiedit">EditPage</a> .
-<!-- # --><a accesskey="d" href="[[CGI]]/[[PAGE]]?diff=-1">Diff</a> .
-<!-- # --><a accesskey="l" href="[[CGI]]?search=[[PAGE]]%5C.html&amp;link=1">BackLink</a> .
-<!-- # --><a accesskey="i" href="[[INDEX_PAGE]].html">Index</a><br />
+<!-- # --><a accesskey="e" href="[[CGI]]/[[PAGE]]?wikiedit">[[edit]]</a> .
+<!-- # --><a accesskey="d" href="[[CGI]]/[[PAGE]]?diff=-1">[[diff]]</a> .
+<!-- # --><a accesskey="l" href="[[CGI]]?search=[[PAGE]]%5C.html&amp;link=1">[[backlinks]]</a> .
+<!-- # --><a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a><br />
 <!-- # --><small><i>
 <!-- # -->[[TIME]] .
-<!-- # --><a href="https://validator.w3.org/check?uri=referer">XHTML</a> .
-<!-- # --><a href="https://jigsaw.w3.org/css-validator/check/referer">CSS</a>
+<!-- # --><a href="https://validator.w3.org/check?uri=referer">[[xhtml]]</a> .
+<!-- # --><a href="https://jigsaw.w3.org/css-validator/check/referer">[[css]]</a>
 <!-- # --></i></small>
 <!-- # --></div>
 [[FOOTER]]
@@ -1104,16 +1157,16 @@ sub print_wikiedit{
 	process_tpl("wikiedit.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
 <div id="wikiedit">
-<h1>[[PAGE]] Wiki Edit</h1>
+<h1>[[PAGE]] [[wiki_edit]]</h1>
 <form action="[[PAGE]]?wikiedit" method="post" enctype="multipart/form-data">
 <div>
 <input type="hidden" id="version" name="version" value="[[VERSION]]" />
 <textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea><br />
-<input accesskey="p" type="submit" id="preview" name="preview" value="Preview" />
-<input accesskey="s" type="submit" id="save" name="save" value="Save" /> .
-Upload <input accesskey="u" type="file" id="file" name="file" /> .
-<a accesskey="c" href="[[DOC_BASE]]/[[PAGE]].html">Cancel</a> .
-<a accesskey="c" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">Index</a>
+<input accesskey="p" type="submit" id="preview" name="preview" value="[[preview]]" />
+<input accesskey="s" type="submit" id="save" name="save" value="[[save]]" /> .
+[[upload]] <input accesskey="u" type="file" id="file" name="file" /> .
+<a accesskey="c" href="[[DOC_BASE]]/[[PAGE]].html">[[cancel]]</a> .
+<a accesskey="c" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a>
 </div>
 </form>
 </div>
