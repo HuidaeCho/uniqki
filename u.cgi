@@ -163,11 +163,11 @@ if($TIME_ZONE ne ""){
 	$ENV{TIME_ZONE} = $TIME_ZONE;
 }
 
-eval "use POSIX qw(setlocale tzset strftime);";
+eval "use POSIX qw(setlocale LC_ALL tzset strftime);";
 my $use_posix = $@ ? 0 : 1;
 if($use_posix){
 	tzset() if($TIME_ZONE ne "");
-	setlocale(LC_ALL, $LOCALE) if($LOCALE ne "");
+	setlocale(LC_ALL(), $LOCALE) if($LOCALE ne "");
 }
 sub format_time{
 	my $time = shift;
