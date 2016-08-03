@@ -791,8 +791,7 @@ upload => q(Upload),
 cancel => q(Cancel),
 
 updated => q(updated!),
-save_your_changes_and_read => q(Please save your changes and read),
-latest_version => q(the latest version),
+save_your_changes_and_read_latest_version => q(Please save your changes and read <a href="[[DOC_BASE]]/[[PAGE]].html">the latest version</a>!),
 
 wiki_edit => q(Wiki Edit),
 );
@@ -872,6 +871,7 @@ sub process_tpl_tag{
 		$txt = $$tag if(exists $hash{$tag});
 	}elsif($tag =~ m/^[a-z_]+$/){
 		$txt = get_msg($tag);
+		$txt =~ s/\[\[(DOC_BASE|PAGE)\]\]/@{[process_tpl_tag($1)]}/g;
 	}
 	close FH; select $fh;
 	chomp $txt;
@@ -1119,7 +1119,7 @@ sub print_updated{
 [[HEADER]]
 <div id="updated">
 <h1>[[PAGE]] [[updated]]</h1>
-[[save_your_changes_and_read]] <a href="[[DOC_BASE]]/[[PAGE]].html">[[latest_version]]</a>!
+[[save_your_changes_and_read_latest_version]]
 <br />
 <textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
 </div>
