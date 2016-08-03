@@ -75,7 +75,7 @@ use vars qw(
 # Config and messages variables
 use vars qw(
 	$SITE_TITLE $SITE_DESCRIPTION $CHARSET
-	$TIME_ZONE
+	$TIME_ZONE $TIME_FORMAT
 	$PASSWORD_FILE $SESSIONS_FILE $MESSAGES_FILE $TEMPLATE_DIRECTORY
 	$PAGE_NAME_STYLE
 	$INACTIVE_TIMEOUT $SET_PASSWORD_TIMEOUT $RESET_PASSWORD_TIMEOUT
@@ -160,11 +160,25 @@ if($TIME_ZONE ne ""){
 	if($TIME_ZONE =~ m/^gmt([+-])([0-9]+)$/i){
 		$TIME_ZONE = "GMT".($1 eq "+" ? "-" : "+").$2;
 	}
-
 	$ENV{TIME_ZONE} = $TIME_ZONE;
-	eval "use POSIX; POSIX::tzset();";
 }
-$CSS = -f "$TEMPLATE_DIRECTORY/uniqki.css" ? "$TEMPLATE_DIRECTORY/uniqki.css" : "$CGI?css";
+
+eval "use POSIX qw(tzset strftime);";
+my $use_posix = $@ ? 0 : 1;
+tzset() if($use_posix);
+sub format_time{
+	my $time = shift;
+	my $ftime;
+	if($use_posix){
+		$ftime = strftime($TIME_FORMAT, localtime $time);
+	}else{
+		$ftime = scalar localtime $time;
+	}
+	return $ftime;
+}
+
+$CSS = -f "$TEMPLATE_DIRECTORY/uniqki.css" ?
+	"$TEMPLATE_DIRECTORY/uniqki.css" : "$CGI?css";
 
 my $smtp_server = "";
 my $smtp_port;
@@ -253,8 +267,10 @@ sub config_read_write_access{
 	my @items = split /:/, $READ_ACCESS;
 	my $nonwiki_read_access = $items[0] ne "open" && $items[0] ne "closed" ?
 		"admin" : $items[0];
-	my $wiki_read_access = index($READ_ACCESS, ":") == -1 ? $nonwiki_read_access :
-		($items[1] ne "open" && $items[1] ne "closed" ? "admin" : $items[1]);
+	my $wiki_read_access = index($READ_ACCESS, ":") == -1 ?
+		$nonwiki_read_access :
+		($items[1] ne "open" && $items[1] ne "closed" ?
+			"admin" : $items[1]);
 	my $wiki_write_access = $WRITE_ACCESS ne "open" &&
 		$WRITE_ACCESS ne "closed" ? "admin" : $WRITE_ACCESS;
 	return ($nonwiki_read_access, $wiki_read_access, $wiki_write_access);
@@ -497,6 +513,9 @@ $CHARSET = 'utf-8';
 
 # Set time zone if different from the system time
 $TIME_ZONE = '';
+
+# Time format interpreted by the POSIX::strftime function
+$TIME_FORMAT = "%a %b %e %H:%M:%S %Y";
 
 # WARNING: Make sure to protect these files and directories from the user using
 # the following directives in .htaccess:
@@ -1487,7 +1506,7 @@ sub make_html{
 	chomp $TEXT;
 
 	$TITLE = $PAGE if($TITLE eq "");
-	local $TIME = scalar localtime((stat "$PAGE.txt")[9]);
+	local $TIME = format_time((stat "$PAGE.txt")[9]);
 
 	my $html;
 	open FH, ">", \$html; my $fh = select FH;
@@ -2879,7 +2898,7 @@ if($QUERY_STRING eq "css"){
 		s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
 		print qq(<div class="diff_unchanged">= $_</div>\n);
 	}
-	eval "use Encode;";
+	eval "use Encode qw(decode);";
 	my $encode = $@ ? 0 : 1;
 	for(my $i=0; $i<=$#delta; $i++,$m++,$n++){
 		my ($x, $y) = split /,/, $delta[$i];
@@ -2889,8 +2908,8 @@ if($QUERY_STRING eq "css"){
 				my $l0 = $line0[$m];
 				my $l1 = $line1[$n];
 				if($encode){
-					$l0 = Encode::decode($CHARSET, $l0);
-					$l1 = Encode::decode($CHARSET, $l1);
+					$l0 = decode($CHARSET, $l0);
+					$l1 = decode($CHARSET, $l1);
 				}
 				my @l0 = split //, $l0, -1;
 				my @l1 = split //, $l1, -1;
@@ -3323,7 +3342,7 @@ EOT
 
 	lock_file("$PAGE.txt");
 	my $TEXT = "";
-	my $time = scalar localtime;
+	my $time = format_time(time);
 	my $added = 0;
 	local *FH;
 	if(open FH, "$PAGE.txt"){
