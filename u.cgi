@@ -663,9 +663,9 @@ sub process_msg{
 	my $mode = shift;
 	my $msg = <<'EOT_UNIQKI';
 %MESSAGES = (
+internal_errors => q(Internal errors),
+session_errors => q(Session errors),
 perl_module_not_installed => q(%s: Perl module not installed.),
-internal_errors => q(Internal errors.),
-session_errors => q(Session errors.),
 
 change_admin_password => q(The admin password cannot be the same as the temporary password. Please use a different password. <a href="?admin">Go to the admin page</a>),
 
