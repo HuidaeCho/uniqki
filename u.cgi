@@ -931,8 +931,8 @@ sub print_header{
 <body>
 <div id="container">
 <div id="top">
-<span id="site-title"><a href="[[DOC_BASE]]">[[SITE_TITLE]]</a></span>
-<span id="site-description">[[SITE_DESCRIPTION]]</span>
+<div id="site-title"><a href="[[DOC_BASE]]">[[SITE_TITLE]]</a></div>
+<div id="site-description">[[SITE_DESCRIPTION]]</div>
 </div>
 <div id="main">
 EOT_UNIQKI
@@ -1223,7 +1223,6 @@ textarea {
 	text-decoration:	none;
 }
 #site-description {
-	float:			right;
 }
 #main {
 	background-color:	white;
