@@ -787,7 +787,7 @@ css => q(CSS),
 
 preview => q(Preview),
 save => q(Save),
-upload => q(Uploaded),
+upload => q(Upload),
 cancel => q(Cancel),
 
 updated => q(updated!),
