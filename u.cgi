@@ -509,8 +509,8 @@ sub process_cfg{
 	my $mode = shift;
 	my $cfg = <<'EOT_UNIQKI';
 # Site information
-$SITE_TITLE = 'Uniqki: A Personal Wiki Builder!';
-$SITE_DESCRIPTION = 'This site is powered by <a href="http://uniqki.isnew.info">Uniqki</a>!';
+$SITE_TITLE = 'Uniqki: A Personal Wiki Builder';
+$SITE_DESCRIPTION = 'A <a href="http://uniqki.isnew.info">Uniqki</a> site';
 
 # Index page
 $INDEX_PAGE = 'index';
