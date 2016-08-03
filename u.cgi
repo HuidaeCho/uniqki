@@ -74,7 +74,7 @@ use vars qw(
 
 # Config and messages variables
 use vars qw(
-	$SITE_TITLE $SITE_DESCRIPTION $CHARSET
+	$SITE_TITLE $SITE_DESCRIPTION $CHARSET $LOCALE
 	$TIME_ZONE $TIME_FORMAT
 	$PASSWORD_FILE $SESSIONS_FILE $MESSAGES_FILE $TEMPLATE_DIRECTORY
 	$PAGE_NAME_STYLE
@@ -163,9 +163,12 @@ if($TIME_ZONE ne ""){
 	$ENV{TIME_ZONE} = $TIME_ZONE;
 }
 
-eval "use POSIX qw(tzset strftime);";
+eval "use POSIX qw(setlocale tzset strftime);";
 my $use_posix = $@ ? 0 : 1;
-tzset() if($use_posix);
+if($use_posix){
+	tzset() if($TIME_ZONE ne "");
+	setlocale(LC_ALL, $LOCALE) if($LOCALE ne "");
+}
 sub format_time{
 	my $time = shift;
 	my $ftime;
@@ -510,6 +513,9 @@ $SITE_DESCRIPTION = 'This site is powered by <a href="http://uniqki.isnew.info">
 
 # Character set
 $CHARSET = 'utf-8';
+
+# Locale: Setting this variable to an empty string uses the default locale.
+$LOCALE = '';
 
 # Set time zone if different from the system time
 $TIME_ZONE = '';
