@@ -3918,7 +3918,7 @@ EOT
 		$pw = "reset";
 		$reset_hash = generate_set_password_hash($var{user});
 
-		my $link = "$HTTP_BASE$SCRIPT_NAME/$PAGE?reset_pw=$reset_hash";
+		my $link = "$HTTP_BASE$SCRIPT_NAME/$PAGE?reset_password=$reset_hash";
 		my $subject = get_msg("new_user_email_subject", $DOC_BASE);
 		my $text = get_msg("new_user_email_text", $var{user}, $DOC_BASE, $link, $SET_PASSWORD_TIMEOUT);
 		if(!send_email($var{email_address}, $subject, $text)){
@@ -4114,7 +4114,7 @@ EOT
 	exit_message(get_msg("user_not_found", $var{user})) unless($unblocked);
 
 	if($reset_hash ne ""){
-		my $link = "$HTTP_BASE$SCRIPT_NAME/$PAGE?reset_pw=$reset_hash";
+		my $link = "$HTTP_BASE$SCRIPT_NAME/$PAGE?reset_password=$reset_hash";
 		my $subject;
 		my $text;
 		if($var{mode} eq "add"){
