@@ -667,7 +667,7 @@ internal_errors => q(Internal errors),
 session_errors => q(Session errors),
 perl_module_not_installed => q(%s: Perl module not installed.),
 
-change_admin_password => q(The admin password cannot be the same as the temporary password. Please use a different password. <a href="?admin">Go to the admin page</a>),
+change_admin_password => q(The admin password cannot be the same as the temporary password. Please use a different password. Go to <a href="?manage_users">the user management page</a>.),
 
 read_secured => q(This Uniqki site is read-secured until you <a href="?login">login</a>.),
 write_secured => q(This Uniqki site is write-secured until you <a href="?login">login</a>.),
@@ -675,26 +675,25 @@ login_not_allowed => q(Login is not allowed.),
 login_failed => q(Login failed.),
 admin_actions_not_allowed => q(Admin actions are not allowed. Please <a href="?login">login</a> first.),
 
-invalid_user_management_mode => q(%s: Invalid user management mode. <a href="?admin">Go back to the admin page</a>),
-cannot_add_yourself => q(You cannot add yourself. <a href="?admin">Go back to the admin page</a>),
-cannot_block_yourself => q(You cannot block yourself. <a href="?admin">Go back to the admin page</a>),
-cannot_unblock_yourself => q(You cannot unblock yourself. <a href="?admin">Go back to the admin page</a>),
-cannot_delete_yourself => q(You cannot delete yourself. <a href="?admin">Go back to the admin page</a>),
-user_already_blocked => q(%s: User already blocked. <a href="?admin">Go back to the admin page</a>),
-user_already_unblocked => q(%s: User already unblocked. <a href="?admin">Go back to the admin page</a>),
-user_already_exists => q(%s: User already exists. <a href="?admin">Go back to the admin page</a>),
-email_address_already_registered => q(%s: Email address already registered. <a href="?admin">Go back to the admin page</a>),
-enter_user_info_to_update => q(%s: Please enter user information to update. <a href="?admin">Go back to the admin page</a>),
-user_not_found => q(%s: User not found. <a href="?admin">Go back to the admin page</a>),
+cannot_add_yourself => q(You cannot add yourself. Go back to <a href="?manage_users">the user management page</a>.),
+cannot_block_yourself => q(You cannot block yourself. Go back to <a href="?manage_users">the user management page</a>.),
+cannot_unblock_yourself => q(You cannot unblock yourself. Go back to <a href="?manage_users">the user management page</a>.),
+cannot_delete_yourself => q(You cannot delete yourself. Go back to <a href="?manage_users">the user management page</a>.),
+user_already_blocked => q(%s: User already blocked. Go back to <a href="?manage_users">the user management page</a>.),
+user_already_unblocked => q(%s: User already unblocked. Go back to <a href="?manage_users">the user management page</a>.),
+user_already_exists => q(%s: User already exists. Go back to <a href="?manage_users">the user management page</a>.),
+email_address_already_registered => q(%s: Email address already registered. Go back to <a href="?manage_users">the user management page</a>.),
+enter_user_info_to_update => q(%s: Please enter user information to update. Go back to <a href="?manage_users">the user management page</a>.),
+user_not_found => q(%s: User not found. Go back to <a href="?manage_users">the user management page</a>.),
 
-enter_username => q(Please enter a username to manage. <a href="?admin">Go back to the admin page</a>),
-check_username => q(Please enter a username that meets character requirements. <a href="?admin">Go back to the admin page</a>),
-enter_email_address => q(Please enter an email address. <a href="?admin">Go back to the admin page</a>),
-check_email_address => q(Please enter a valid email address. <a href="?admin">Go back to the admin page</a>),
-leave_email_address_blank => q(Please leave the email address blank. <a href="?admin">Go back to the admin page</a>),
-check_password => q(Please enter a password that meets the length and character requirements. <a href="?admin">Go back to the admin page</a>),
-confirm_password => q(Please confirm the password. <a href="?admin">Go back to the admin page</a>),
-leave_password_blank => q(Please leave the password blank. <a href="?admin">Go back to the admin page</a>),
+enter_username => q(Please enter a username to manage. Go back to <a href="?manage_users">the user management page</a>.),
+check_username => q(Please enter a username that meets character requirements. Go back to <a href="?manage_user">the user management page</a>.),
+enter_email_address => q(Please enter an email address. Go back to <a href="?manage_users">the user management page</a>.),
+check_email_address => q(Please enter a valid email address. Go back to <a href="?manage_users">the user management page</a>.),
+leave_email_address_blank => q(Please leave the email address blank. Go back to <a href="?manage_users">the user management page</a>.),
+check_password => q(Please enter a password that meets the length and character requirements. Go back to <a href="?manage_users">the user management page</a>.),
+confirm_password => q(Please confirm the password. Go back to <a href="?manage_users">the user management page</a>.),
+leave_password_blank => q(Please leave the password blank. Go back to <a href="?manage_users">the user management page</a>.),
 
 new_user_email_subject => q(%s: Registered),
 new_user_email_text => q(Your username %s is registered at %s. Please set your password by visiting %s within %d minutes.),
@@ -702,7 +701,7 @@ unblocked_user_email_subject => q(%s: Unblocked),
 unblocked_user_email_text => q(Your username %s is unblocked at %s. Please set your password by visiting %s within %d minutes.),
 reset_password_email_subject => q(%s: Reset password),
 reset_password_email_text => q(Please reset your password for username %s at %s by visiting %s within %d minutes.),
-email_notification_failed => q(Email notification failed for user %s <%s>. <a href="?admin">Go back to the admin page</a>),
+email_notification_failed => q(Email notification failed for user %s <%s>. Go back to <a href="?manage_users">the user management page</a>.),
 
 page_not_found => q(%s: Page not found.),
 create_page => q(%s: Page not found. <a href="?edit">Create this page</a>),
@@ -753,28 +752,22 @@ password => q(Password),
 logout_from_other_computers => q(Logout from other computers),
 view => q(View),
 
-admin => q(Admin),
-pages => q(Pages),
+manage_pages => q(Manage pages),
 backup => q(Backup),
 restore => q(Restore),
-users => q(Users),
-add_new_user => q(Add new user),
+manage_users => q(Manage users),
+add_user => q(Add user),
+update_user => q(Update user),
 block_user => q(Block user),
 unblock_user => q(Unblock user),
 delete_user => q(Delete user),
-update_user_info => q(Update user information),
 email_address => q(Email address),
 non_admin => q(Non-admin),
 admin => q(Admin),
 dont_change => q(Don't change),
 type_password_again => q(Type password again),
-manage_user => q(Manage user),
-add_new_user_info => q(Add new user: Enter new user information and leave passwords blank for an email notification),
-block_unblock_delete_user_info => q(Block/unblock/delete user: Enter an existing username),
-change_email_address_info => q(Change email address: Enter an existing username and type email address),
-change_password_info => q(Change password: Enter an existing username and type new password twice),
-username_requirements => q(Username requirements: 4 or more letters (a-z, A-Z) and digits (0-9)),
-password_requirements => q(Password requirements: 8 or more characters with at least one letter (a-z, A-Z), one digit (0-9), and one special character excluding spaces and tabs),
+username_requirements => q(Username requirements: 4 or more letters (a-z, A-Z) and digits (0-9).),
+password_requirements => q(Password requirements: 8 or more characters with at least one letter (a-z, A-Z), one digit (0-9), and one special character excluding spaces and tabs. Leave the password field blank for an email notification with a temporary link for resetting the password.),
 
 refresh => q(Refresh),
 edit => q(Edit),
@@ -960,10 +953,10 @@ sub print_login{
 	process_tpl("login.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
 <div id="login">
-<h1>[[PAGE]] [[login]]</h1>
+<h1>[[login]]</h1>
 <form action="[[PAGE]]?login" method="post">
 <div>
-<input accesskey="i" type="text" id="user" name="user" placeholder="[[username]]" />
+<input accesskey="u" type="text" id="user" name="user" placeholder="[[username]]" />
 <input accesskey="p" type="password" id="pw" name="pw" placeholder="[[password]]" />
 <input type="checkbox" id="logout_others" name="logout_others" value="1" /> [[logout_from_other_computers]]
 <input accesskey="l" type="submit" value="[[login]]" />
@@ -980,12 +973,11 @@ EOT_UNIQKI
 	)
 }
 
-sub print_admin{
-	process_tpl("admin.tpl", shift, <<'EOT_UNIQKI'
+sub print_manage_pages{
+	process_tpl("manage_pages.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
-<div id="admin">
-<h1>[[PAGE]] [[admin]]</h1>
-<h2>[[pages]]</h2>
+<div id="manage_pages">
+<h1>[[manage_pages]]</h1>
 <form action="?restore" method="post" enctype="multipart/form-data">
 <div>
 [[backup]]: <a href="[[CGI]]?backup">[[all_pages]]</a> .
@@ -995,34 +987,87 @@ sub print_admin{
 <input accesskey="r" type="submit" value="[[restore]]" />
 </div>
 </form>
+</div>
+<div id="menu">
+<hr />
+<a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .
+<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a>
+</div>
+[[FOOTER]]
+EOT_UNIQKI
+	)
+}
 
-<h2>[[users]]</h2>
-<form action="?user" method="post">
+sub print_manage_users{
+	process_tpl("manage_users.tpl", shift, <<'EOT_UNIQKI'
+[[HEADER]]
+<div id="manage_users">
+<h1>[[manage_users]]</h1>
+<ul>
+<li>[[username_requirements]]</li>
+<li>[[password_requirements]]</li>
+</ul>
+
+<h2>[[add_user]]</h2>
+<form action="?add_user" method="post">
 <div>
-<input type="radio" id="mode" name="mode" value="add">[[add_new_user]]
-<input type="radio" id="mode" name="mode" value="block">[[block_user]]
-<input type="radio" id="mode" name="mode" value="unblock">[[unblock_user]]
-<input type="radio" id="mode" name="mode" value="delete">[[delete_user]]
-<input type="radio" id="mode" name="mode" value="update">[[update_user_info]]
-<br />
-<input accesskey="i" type="text" id="user" name="user" placeholder="[[username]]" />
+<input accesskey="u" type="text" id="user" name="user" placeholder="[[username]]" />
 <input accesskey="e" type="text" id="email_address" name="email_address" placeholder="[[email_address]]" />
+<br />
+<input type="radio" id="admin" name="admin" value="no" /> [[non_admin]]
+<input type="radio" id="admin" name="admin" value="yes" /> [[admin]]
+<br />
+<input accesskey="p" type="password" id="pw" name="pw" placeholder="[[password]]" />
+<input type="password" id="pw2" name="pw2" placeholder="[[type_password_again]]" />
+<br />
+<input type="submit" value="[[add_user]]" />
+</div>
+</form>
+
+<h2>[[update_user]]</h2>
+<form action="?update_user" method="post">
+<div>
+<input accesskey="u" type="text" id="user" name="user" placeholder="[[username]]" />
+<input accesskey="e" type="text" id="email_address" name="email_address" placeholder="[[email_address]]" />
+<br />
 <input type="radio" id="admin" name="admin" value="no" /> [[non_admin]]
 <input type="radio" id="admin" name="admin" value="yes" /> [[admin]]
 <input type="radio" id="admin" name="admin" value="keep" /> [[dont_change]]
 <br />
 <input accesskey="p" type="password" id="pw" name="pw" placeholder="[[password]]" />
 <input type="password" id="pw2" name="pw2" placeholder="[[type_password_again]]" />
-<input accesskey="u" type="submit" value="[[manage_user]]" />
 <br />
-<ul>
-<li>[[add_new_user_info]]</li>
-<li>[[block_unblock_delete_user_info]]</li>
-<li>[[change_email_address_info]]</li>
-<li>[[change_password_info]]</li>
-<li>[[username_requirements]]</li>
-<li>[[password_requirements]]</li>
-</ul>
+<input type="submit" value="[[update_user]]" />
+</div>
+</form>
+
+<h2>[[block_user]]</h2>
+<form action="?block_user" method="post">
+<div>
+<input accesskey="u" type="text" id="user" name="user" placeholder="[[username]]" />
+<br />
+<input type="submit" value="[[block_user]]" />
+</div>
+</form>
+
+<h2>[[unblock_user]]</h2>
+<form action="?unblock_user" method="post">
+<div>
+<input accesskey="u" type="text" id="user" name="user" placeholder="[[username]]" />
+<br />
+<input accesskey="p" type="password" id="pw" name="pw" placeholder="[[password]]" />
+<input type="password" id="pw2" name="pw2" placeholder="[[type_password_again]]" />
+<br />
+<input type="submit" value="[[unblock_user]]" />
+</div>
+</form>
+
+<h2>[[delete_user]]</h2>
+<form action="?delete_user" method="post">
+<div>
+<input accesskey="u" type="text" id="user" name="user" placeholder="[[username]]" />
+<br />
+<input type="submit" value="[[delete_user]]" />
 </div>
 </form>
 </div>
@@ -1083,7 +1128,7 @@ sub print_edit{
 	process_tpl("edit.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
 <div id="edit">
-<h1>[[PAGE]] [[edit]]</h1>
+<h1>[[edit]] [[PAGE]]</h1>
 <form action="[[PAGE]]?edit" method="post" enctype="multipart/form-data">
 <div>
 <input type="hidden" id="version" name="version" value="[[VERSION]]" />
@@ -1157,7 +1202,7 @@ sub print_wikiedit{
 	process_tpl("wikiedit.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
 <div id="wikiedit">
-<h1>[[PAGE]] [[wiki_edit]]</h1>
+<h1>[[wiki_edit]] [[PAGE]]</h1>
 <form action="[[PAGE]]?wikiedit" method="post" enctype="multipart/form-data">
 <div>
 <input type="hidden" id="version" name="version" value="[[VERSION]]" />
@@ -1235,7 +1280,9 @@ textarea {
 }
 #login {
 }
-#admin {
+#manage_pages {
+}
+#manage_users {
 }
 #message {
 }
@@ -1880,7 +1927,7 @@ sub authenticate_user{
 
 	if($method == 1){
 		# Force to change the password
-		exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?admin");
+		exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
 	}
 
 	$USER = $user;
@@ -3602,242 +3649,19 @@ if($REQUEST_METHOD eq "GET"){
 }
 }elsif(!$ADMIN){
 	exit_message(get_msg("admin_actions_not_allowed"));
-################################################################################
-# Admin actions
-}elsif($QUERY_STRING eq "admin"){
-#-------------------------------------------------------------------------------
-# u.cgi?admin			Admin page
-# u.cgi/PAGE?admin		Admin page
-	print_admin();
-	exit;
-}elsif($QUERY_STRING eq "user"){
-#-------------------------------------------------------------------------------
-# u.cgi?user			User management
-# u.cgi/PAGE?user		User management
-	my %var = get_var();
-	if($var{mode} ne "add" && $var{mode} ne "block" &&
-		$var{mode} ne "unblock" && $var{mode} ne "delete" &&
-		$var{mode} ne "update"){
-		exit_message(get_msg("invalid_user_management_mode", $var{mode}));
-	}
-	if($var{user} eq ""){
-		exit_message(get_msg("enter_username"));
-	}
-	if(!is_username($var{user})){
-		exit_message(get_msg("check_username"));
-	}
-	if($var{user} eq $USER && $var{mode} ne "update"){
-		exit_message(get_msg("cannot_$var{mode}_yourself"));
-	}
-
-	if($var{mode} eq "add" || $var{mode} eq "unblock" ||
-		$var{mode} eq "update"){
-		if($var{pw} ne $var{pw2}){
-			exit_message(get_msg("confirm_password"));
-		}
-		if($var{pw} ne "" && !is_password($var{pw})){
-			exit_message(get_msg("check_password"));
-		}
-	}
-
-	if($var{mode} eq "add"){
-		if($var{email_address} eq ""){
-			exit_message(get_msg("enter_email_address"));
-		}
-		if(!is_email_address($var{email_address})){
-			exit_message(get_msg("check_email_address"));
-		}
-	}elsif($var{mode} eq "unblock"){
-		if($var{email_address} ne ""){
-			exit_message(get_msg("leave_email_address_blank"));
-		}
-	}elsif($var{mode} eq "block" || $var{mode} eq "delete"){
-		if($var{email_address} ne ""){
-			exit_message(get_msg("leave_email_address_blank"));
-		}
-		if($var{pw} ne "" || $var{pw2} ne ""){
-			exit_message(get_msg("leave_password_blank"));
-		}
-	}elsif($var{pw} eq "" && $var{email_address} eq "" &&
-		$var{admin} ne "yes" && $var{admin} ne "no"){
-		exit_message(get_msg("enter_user_info_to_update"));
-	}
-
-	my $new_pw = "";
-	my $updated = 0;
-	my $reset_hash = "";
-
-	if(-f $PASSWORD_FILE){
-		local *FH;
-		open FH, $PASSWORD_FILE;
-		while(<FH>){
-			if(m/^$var{user}:/){
-				$updated = 1;
-
-				# Delete user
-				if($var{mode} eq "delete"){
-					clear_sessions($var{user});
-					next;
-				}
-
-				if($var{mode} eq "add"){
-					close FH;
-					exit_message(get_msg("user_already_exists", $var{user}));
-				}
-
-				# Update user information
-				my @items = split /:/;
-				if($var{mode} eq "block"){
-					if($items[1] eq "blocked"){
-						exit_message(get_msg("user_already_blocked", $var{user}));
-					}
-					clear_sessions($var{user});
-					$_ = "$var{user}:blocked:$items[2]:$items[3]:\n";
-				}elsif($var{mode} eq "unblock"){
-					if($items[1] ne "blocked"){
-						exit_message(get_msg("user_already_unblocked", $var{user}));
-					}
-					my $pw;
-					if($var{pw} eq ""){
-						$pw = "reset";
-						$reset_hash = generate_set_password_hash($var{user});
-					}else{
-						$pw = hash_password($var{user}, $var{pw});
-						$reset_hash = "";
-					}
-					$_ = "$var{user}:$pw:$items[2]:$items[3]:$reset_hash\n";
-				}elsif($var{mode} eq "update"){
-					my $pw = $var{pw} ne "" ? hash_password($var{user}, $var{pw}) : $items[1];
-					my $group = $var{admin} eq "yes" ? "admin" : ($var{admin} eq "no" ? "user" : $items[2]);
-					my $email_address = $var{email_address} ne "" ? $var{email_address} : $items[3];
-					my $reset_hash = $items[4];
-					# new line from $items[4]
-					my $userline = "$var{user}:$pw:$group:$email_address:$reset_hash";
-					if($userline eq $_){
-						exit_message(get_msg("enter_user_info_to_update", $var{user}));
-					}
-					$_ = $userline;
-				}
-			}
-			if($var{mode} eq "add" && m/:$var{email_address}:[^:]*$/i){
-				close FH;
-				exit_message(get_msg("email_address_already_registered", $var{email_address}));
-			}
-			$new_pw .= $_;
-		}
-		close FH;
-	}else{
-		# Only update yourself. Other actions are already blocked.
-		my @items = split /:/, $adminpw;
-		if($var{user} eq $items[0]){
-			$updated = 1;
-			my $pw = $var{pw} ne "" ? hash_password($var{user}, $var{pw}) : $items[1];
-			my $group = $var{admin} eq "yes" ? "admin" : ($var{admin} eq "no" ? "user" : $items[2]);
-			my $email_address = $var{email_address} ne "" ? $var{email_address} : $items[3];
-			my $reset_hash = $items[4];
-			# new line from $items[4]
-			my $userline = "$var{user}:$pw:$group:$email_address:$reset_hash";
-			if($userline eq $adminpw){
-				exit_message(get_msg("enter_user_info_to_update", $var{user}));
-			}
-			$new_pw = "$userline\n";
-		}else{
-			# Something's wrong because you're the only user, but
-			# the user line in this script is not you! How did you
-			# login?
-			exit_message(get_message("internal_errors"));
-		}
-	}
-
-	if(!$updated && $var{mode} ne "add"){
-		exit_message(get_msg("user_not_found", $var{user}));
-	}
-
-	# Add a new user if user was not found
-	if($var{mode} eq "add"){
-		$updated = 1;
-		my $group = $var{admin} eq "yes" ? "admin" : "user";
-		my $pw;
-		if($var{pw} eq ""){
-			$pw = "reset";
-			$reset_hash = generate_set_password_hash($var{user});
-		}else{
-			$pw = hash_password($var{user}, $var{pw});
-			$reset_hash = "";
-		}
-		$new_pw .= "$var{user}:$pw:$group:$var{email_address}:$reset_hash\n";
-	}
-
-	if($reset_hash ne ""){
-		my $link = "$HTTP_BASE$SCRIPT_NAME/$PAGE?reset_pw=$reset_hash";
-		my $subject;
-		my $text;
-		if($var{mode} eq "add"){
-			$subject = get_msg("new_user_email_subject", $DOC_BASE);
-			$text = get_msg("new_user_email_text", $var{user}, $DOC_BASE, $link, $SET_PASSWORD_TIMEOUT);
-		}else{
-			$subject = get_msg("unblocked_user_email_subject", $DOC_BASE);
-			$text = get_msg("unblocked_user_email_text", $var{user}, $DOC_BASE, $link, $SET_PASSWORD_TIMEOUT);
-		}
-		if(!send_email($var{email_address}, $subject, $text)){
-			exit_message(get_msg("email_notification_failed",
-					$var{user}, $var{email_address}));
-		}
-	}
-
-	if($updated){
-		lock_file($PASSWORD_FILE);
-		open FH, ">$PASSWORD_FILE";
-		print FH $new_pw;
-		close FH;
-		unlock_file($PASSWORD_FILE);
-	}
-
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?admin");
 }elsif($insecure_pw){
 #-------------------------------------------------------------------------------
 # Admin password is still temporary. No admin actions are allowed other than
 # changing the password.
 	exit_message(get_msg("change_admin_password"));
-}elsif($QUERY_STRING eq "install_pw"){
+################################################################################
+# Admin actions
+}elsif($QUERY_STRING eq "manage_pages"){
 #-------------------------------------------------------------------------------
-# u.cgi?install_pw		Install the password file, but don't overwrite
-# u.cgi/PAGE?install_pw		Install the password file, but don't overwrite
-	write_pw();
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
-}elsif($QUERY_STRING eq "install_cfg"){
-#-------------------------------------------------------------------------------
-# u.cgi?install_cfg		Install the config file, but don't overwrite
-# u.cgi/PAGE?install_cfg	Install the config file, but don't overwrite
-	process_cfg(1);
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
-}elsif($QUERY_STRING eq "install_msg"){
-#-------------------------------------------------------------------------------
-# u.cgi?install_msg		Install the message file, but don't overwrite
-# u.cgi/PAGE?install_msg	Install the message file, but don't overwrite
-	process_msg(1);
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
-}elsif($QUERY_STRING eq "install_tpl"){
-#-------------------------------------------------------------------------------
-# u.cgi?install_tpl		Install the template files, but don't overwrite
-# u.cgi/PAGE?install_tpl	Install the template files, but don't overwrite
-	if($TEMPLATE_DIRECTORY ne ""){
-		mkdir $TEMPLATE_DIRECTORY, 0755 unless(-d $TEMPLATE_DIRECTORY);
-		print_header(1);
-		print_footer(1);
-		print_login(1);
-		print_admin(1);
-		print_message(1);
-		print_view(1);
-		print_edit(1);
-		print_preview(1);
-		print_updated(1);
-		print_wikiview(1);
-		print_wikiedit(1);
-		print_wikipreview(1);
-		print_css(1);
-	}
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
+# u.cgi?manage_pages		Manage pages
+# u.cgi/PAGE?manage_pages	Manage pages
+	print_manage_pages();
+	exit;
 }elsif($QUERY_STRING eq "backup"){
 #-------------------------------------------------------------------------------
 # u.cgi?backup			Backup all pages
@@ -3849,7 +3673,7 @@ if($REQUEST_METHOD eq "GET"){
 # u.cgi?restore			Restore
 # u.cgi/PAGE?restore		Restore
 	restore();
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?admin");
+	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_pages");
 }elsif($QUERY_STRING =~ m/^refresh(?:&.+)?$/){
 #-------------------------------------------------------------------------------
 # u.cgi?refresh			Refresh all
@@ -3878,6 +3702,366 @@ if($REQUEST_METHOD eq "GET"){
 	print qq(</div>\n);
 	print_footer();
 	exit;
+}elsif($QUERY_STRING eq "manage_users"){
+#-------------------------------------------------------------------------------
+# u.cgi?manage_users		Manage users
+# u.cgi/PAGE?manage_users	Manage users
+	print_manage_users();
+	exit;
+}elsif($QUERY_STRING eq "add_user"){
+#-------------------------------------------------------------------------------
+# u.cgi?add_user		Add user
+# u.cgi/PAGE?add_user		Add user
+	my %var = get_var();
+	if($var{user} eq ""){
+		exit_message(get_msg("enter_username"));
+	}
+	if(!is_username($var{user})){
+		exit_message(get_msg("check_username"));
+	}
+	if($var{user} eq $USER){
+		exit_message(get_msg("cannot_add_yourself"));
+	}
+	if($var{email_address} eq ""){
+		exit_message(get_msg("enter_email_address"));
+	}
+	if(!is_email_address($var{email_address})){
+		exit_message(get_msg("check_email_address"));
+	}
+	if($var{pw} ne $var{pw2}){
+		exit_message(get_msg("confirm_password"));
+	}
+	if($var{pw} ne "" && !is_password($var{pw})){
+		exit_message(get_msg("check_password"));
+	}
+
+	my $new_pw = "";
+
+	if(-f $PASSWORD_FILE){
+		local *FH;
+		open FH, $PASSWORD_FILE;
+		while(<FH>){
+			if(m/^$var{user}:/){
+				close FH;
+				exit_message(get_msg("user_already_exists", $var{user}));
+			}
+			if(m/:$var{email_address}:[^:]*$/i){
+				close FH;
+				exit_message(get_msg("email_address_already_registered", $var{email_address}));
+			}
+			$new_pw .= $_;
+		}
+		close FH;
+	}
+
+	# Add a new user if user was not found
+	my $group = $var{admin} eq "yes" ? "admin" : "user";
+	my $pw;
+	my $reset_hash;
+	if($var{pw} eq ""){
+		$pw = "reset";
+		$reset_hash = generate_set_password_hash($var{user});
+
+		my $link = "$HTTP_BASE$SCRIPT_NAME/$PAGE?reset_pw=$reset_hash";
+		my $subject = get_msg("new_user_email_subject", $DOC_BASE);
+		my $text = get_msg("new_user_email_text", $var{user}, $DOC_BASE, $link, $SET_PASSWORD_TIMEOUT);
+		if(!send_email($var{email_address}, $subject, $text)){
+			exit_message(get_msg("email_notification_failed",
+					$var{user}, $var{email_address}));
+		}
+	}else{
+		$pw = hash_password($var{user}, $var{pw});
+		$reset_hash = "";
+	}
+	$new_pw .= "$var{user}:$pw:$group:$var{email_address}:$reset_hash\n";
+
+	lock_file($PASSWORD_FILE);
+	open FH, ">$PASSWORD_FILE";
+	print FH $new_pw;
+	close FH;
+	unlock_file($PASSWORD_FILE);
+
+	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
+}elsif($QUERY_STRING eq "update_user"){
+#-------------------------------------------------------------------------------
+# u.cgi?update_user		Update user
+# u.cgi/PAGE?update_user	Update user
+	my %var = get_var();
+	if($var{user} eq ""){
+		exit_message(get_msg("enter_username"));
+	}
+	if(!is_username($var{user})){
+		exit_message(get_msg("check_username"));
+	}
+	if($var{pw} ne $var{pw2}){
+		exit_message(get_msg("confirm_password"));
+	}
+	if($var{pw} ne "" && !is_password($var{pw})){
+		exit_message(get_msg("check_password"));
+	}
+	if($var{pw} eq "" && $var{email_address} eq "" &&
+		$var{admin} ne "yes" && $var{admin} ne "no"){
+		exit_message(get_msg("enter_user_info_to_update"));
+	}
+
+	my $new_pw = "";
+	my $updated = 0;
+
+	if(-f $PASSWORD_FILE){
+		local *FH;
+		open FH, $PASSWORD_FILE;
+		while(<FH>){
+			if(m/^$var{user}:/){
+				$updated = 1;
+				my @items = split /:/;
+				my $pw = $var{pw} ne "" ? hash_password($var{user}, $var{pw}) : $items[1];
+				my $group = $var{admin} eq "yes" ? "admin" : ($var{admin} eq "no" ? "user" : $items[2]);
+				my $email_address = $var{email_address} ne "" ? $var{email_address} : $items[3];
+				my $reset_hash = $items[4];
+				# new line from $items[4]
+				my $userline = "$var{user}:$pw:$group:$email_address:$reset_hash";
+				if($userline eq $_){
+					close FH;
+					exit_message(get_msg("enter_user_info_to_update", $var{user}));
+				}
+				$_ = $userline;
+			}
+			$new_pw .= $_;
+		}
+		close FH;
+	}else{
+		# Only update yourself.
+		my @items = split /:/, $adminpw;
+		if($var{user} ne $items[0]){
+			# Something's wrong because you're the only user, but
+			# the user line in this script is not you! How did you
+			# login?
+			exit_message(get_message("internal_errors"));
+		}
+
+		$updated = 1;
+		my $pw = $var{pw} ne "" ? hash_password($var{user}, $var{pw}) : $items[1];
+		my $group = $var{admin} eq "yes" ? "admin" : ($var{admin} eq "no" ? "user" : $items[2]);
+		my $email_address = $var{email_address} ne "" ? $var{email_address} : $items[3];
+		my $reset_hash = $items[4];
+		# new line from $items[4]
+		my $userline = "$var{user}:$pw:$group:$email_address:$reset_hash";
+		if($userline eq $adminpw){
+			exit_message(get_msg("enter_user_info_to_update", $var{user}));
+		}
+		$new_pw = "$userline\n";
+	}
+	exit_message(get_msg("user_not_found", $var{user})) unless($updated);
+
+	lock_file($PASSWORD_FILE);
+	open FH, ">$PASSWORD_FILE";
+	print FH $new_pw;
+	close FH;
+	unlock_file($PASSWORD_FILE);
+
+	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
+}elsif($QUERY_STRING eq "block_user"){
+#-------------------------------------------------------------------------------
+# u.cgi?block_user		Block user
+# u.cgi/PAGE?block_user		Block user
+	my %var = get_var();
+	if($var{user} eq ""){
+		exit_message(get_msg("enter_username"));
+	}
+	if(!is_username($var{user})){
+		exit_message(get_msg("check_username"));
+	}
+	if($var{user} eq $USER){
+		exit_message(get_msg("cannot_block_yourself"));
+	}
+
+	my $new_pw = "";
+	my $blocked = 0;
+
+	if(-f $PASSWORD_FILE){
+		local *FH;
+		open FH, $PASSWORD_FILE;
+		while(<FH>){
+			if(m/^$var{user}:/){
+				my @items = split /:/;
+				if($items[1] eq "blocked"){
+					close FH;
+					exit_message(get_msg("user_already_blocked", $var{user}));
+				}
+				$blocked = 1;
+				clear_sessions($var{user});
+				$_ = "$var{user}:blocked:$items[2]:$items[3]:\n";
+			}
+			$new_pw .= $_;
+		}
+		close FH;
+	}
+	exit_message(get_msg("user_not_found", $var{user})) unless($blocked);
+
+	lock_file($PASSWORD_FILE);
+	open FH, ">$PASSWORD_FILE";
+	print FH $new_pw;
+	close FH;
+	unlock_file($PASSWORD_FILE);
+
+	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
+}elsif($QUERY_STRING eq "unblock_user"){
+#-------------------------------------------------------------------------------
+# u.cgi?unblock_user		Unblock user
+# u.cgi/PAGE?unblock_user	Unblock user
+	my %var = get_var();
+	if($var{user} eq ""){
+		exit_message(get_msg("enter_username"));
+	}
+	if(!is_username($var{user})){
+		exit_message(get_msg("check_username"));
+	}
+	if($var{user} eq $USER){
+		exit_message(get_msg("cannot_unblock_yourself"));
+	}
+
+	if($var{pw} ne $var{pw2}){
+		exit_message(get_msg("confirm_password"));
+	}
+	if($var{pw} ne "" && !is_password($var{pw})){
+		exit_message(get_msg("check_password"));
+	}
+
+	my $new_pw = "";
+	my $unblocked = 0;
+	my $reset_hash = "";
+
+	if(-f $PASSWORD_FILE){
+		local *FH;
+		open FH, $PASSWORD_FILE;
+		while(<FH>){
+			if(m/^$var{user}:/){
+				my @items = split /:/;
+				if($items[1] ne "blocked"){
+					close FH;
+					exit_message(get_msg("user_already_unblocked", $var{user}));
+				}
+				$unblocked = 1;
+				my $pw;
+				if($var{pw} eq ""){
+					$pw = "reset";
+					$reset_hash = generate_set_password_hash($var{user});
+				}else{
+					$pw = hash_password($var{user}, $var{pw});
+					$reset_hash = "";
+				}
+				$_ = "$var{user}:$pw:$items[2]:$items[3]:$reset_hash\n";
+			}
+			$new_pw .= $_;
+		}
+		close FH;
+	}
+	exit_message(get_msg("user_not_found", $var{user})) unless($unblocked);
+
+	if($reset_hash ne ""){
+		my $link = "$HTTP_BASE$SCRIPT_NAME/$PAGE?reset_pw=$reset_hash";
+		my $subject;
+		my $text;
+		if($var{mode} eq "add"){
+			$subject = get_msg("new_user_email_subject", $DOC_BASE);
+			$text = get_msg("new_user_email_text", $var{user}, $DOC_BASE, $link, $SET_PASSWORD_TIMEOUT);
+		}else{
+			$subject = get_msg("unblocked_user_email_subject", $DOC_BASE);
+			$text = get_msg("unblocked_user_email_text", $var{user}, $DOC_BASE, $link, $SET_PASSWORD_TIMEOUT);
+		}
+		if(!send_email($var{email_address}, $subject, $text)){
+			exit_message(get_msg("email_notification_failed",
+					$var{user}, $var{email_address}));
+		}
+	}
+
+	lock_file($PASSWORD_FILE);
+	open FH, ">$PASSWORD_FILE";
+	print FH $new_pw;
+	close FH;
+	unlock_file($PASSWORD_FILE);
+
+	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
+}elsif($QUERY_STRING eq "delete_user"){
+#-------------------------------------------------------------------------------
+# u.cgi?delete_user		Delete user
+# u.cgi/PAGE?delete_user	Delete user
+	my %var = get_var();
+	if($var{user} eq ""){
+		exit_message(get_msg("enter_username"));
+	}
+	if(!is_username($var{user})){
+		exit_message(get_msg("check_username"));
+	}
+	if($var{user} eq $USER){
+		exit_message(get_msg("cannot_delete_yourself"));
+	}
+
+	my $new_pw = "";
+	my $deleted = 0;
+
+	if(-f $PASSWORD_FILE){
+		local *FH;
+		open FH, $PASSWORD_FILE;
+		while(<FH>){
+			if(m/^$var{user}:/){
+				$deleted = 1;
+				clear_sessions($var{user});
+				next;
+			}
+			$new_pw .= $_;
+		}
+		close FH;
+	}
+	exit_message(get_msg("user_not_found", $var{user})) unless($deleted);
+
+	lock_file($PASSWORD_FILE);
+	open FH, ">$PASSWORD_FILE";
+	print FH $new_pw;
+	close FH;
+	unlock_file($PASSWORD_FILE);
+
+	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
+}elsif($QUERY_STRING eq "install_password"){
+#-------------------------------------------------------------------------------
+# u.cgi?install_password	Install the password file, but don't overwrite
+# u.cgi/PAGE?install_password	Install the password file, but don't overwrite
+	write_pw();
+	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
+}elsif($QUERY_STRING eq "install_config"){
+#-------------------------------------------------------------------------------
+# u.cgi?install_config		Install the config file, but don't overwrite
+# u.cgi/PAGE?install_config	Install the config file, but don't overwrite
+	process_cfg(1);
+	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
+}elsif($QUERY_STRING eq "install_messages"){
+#-------------------------------------------------------------------------------
+# u.cgi?install_messages	Install the messages file, but don't overwrite
+# u.cgi/PAGE?install_messages	Install the messages file, but don't overwrite
+	process_msg(1);
+	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
+}elsif($QUERY_STRING eq "install_template"){
+#-------------------------------------------------------------------------------
+# u.cgi?install_template	Install the template files, but don't overwrite
+# u.cgi/PAGE?install_template	Install the template files, but don't overwrite
+	if($TEMPLATE_DIRECTORY ne ""){
+		mkdir $TEMPLATE_DIRECTORY, 0755 unless(-d $TEMPLATE_DIRECTORY);
+		print_header(1);
+		print_footer(1);
+		print_login(1);
+		print_manage_pages(1);
+		print_manage_users(1);
+		print_message(1);
+		print_view(1);
+		print_edit(1);
+		print_preview(1);
+		print_updated(1);
+		print_wikiview(1);
+		print_wikiedit(1);
+		print_wikipreview(1);
+		print_css(1);
+	}
+	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }elsif($PAGE eq ""){
 #-------------------------------------------------------------------------------
 # u.cgi?ACTION			Redirect to index
