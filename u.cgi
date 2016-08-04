@@ -679,6 +679,7 @@ cannot_add_yourself => q(You cannot add yourself. Go back to <a href="?manage_us
 cannot_block_yourself => q(You cannot block yourself. Go back to <a href="?manage_users">the user management page</a>.),
 cannot_unblock_yourself => q(You cannot unblock yourself. Go back to <a href="?manage_users">the user management page</a>.),
 cannot_delete_yourself => q(You cannot delete yourself. Go back to <a href="?manage_users">the user management page</a>.),
+cannot_delete_only_admin => q(You cannot delete yourself because you are the only admin. Go back to <a href="?manage_myself">the self management page</a>.),
 user_already_blocked => q(%s: User already blocked. Go back to <a href="?manage_users">the user management page</a>.),
 user_already_unblocked => q(%s: User already unblocked. Go back to <a href="?manage_users">the user management page</a>.),
 user_already_exists => q(%s: User already exists. Go back to <a href="?manage_users">the user management page</a>.),
@@ -755,6 +756,7 @@ view => q(View),
 manage_pages => q(Manage pages),
 backup => q(Backup),
 restore => q(Restore),
+
 manage_users => q(Manage users),
 add_user => q(Add user),
 update_user => q(Update user),
@@ -767,7 +769,12 @@ admin => q(Admin),
 dont_change => q(Don't change),
 type_password_again => q(Type password again),
 username_requirements => q(Username requirements: 4 or more letters (a-z, A-Z) and digits (0-9).),
-password_requirements => q(Password requirements: 8 or more characters with at least one letter (a-z, A-Z), one digit (0-9), and one special character excluding spaces and tabs. Leave the password field blank for an email notification with a temporary link for resetting the password.),
+password_requirements => q(Password requirements: 8 or more characters with at least one letter (a-z, A-Z), one digit (0-9), and one special character excluding spaces and tabs.),
+leave_password_blank_for_email_notification => q(Leave the password field blank for an email notification with a temporary link for resetting the password.),
+
+manage_myself => q(Manage myself),
+update_myself => q(Update myself),
+delete_myself => q(Delete myself),
 
 refresh => q(Refresh),
 edit => q(Edit),
@@ -1003,10 +1010,8 @@ sub print_manage_users{
 [[HEADER]]
 <div id="manage_users">
 <h1>[[manage_users]]</h1>
-<ul>
-<li>[[username_requirements]]</li>
-<li>[[password_requirements]]</li>
-</ul>
+<p>[[username_requirements]]</p>
+<p>[[password_requirements]] [[leave_password_blank_for_email_notification]]</p>
 
 <h2>[[add_user]]</h2>
 <form action="?add_user" method="post">
@@ -1068,6 +1073,42 @@ sub print_manage_users{
 <input accesskey="u" type="text" id="user" name="user" placeholder="[[username]]" />
 <br />
 <input type="submit" value="[[delete_user]]" />
+</div>
+</form>
+</div>
+<div id="menu">
+<hr />
+<a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .
+<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a>
+</div>
+[[FOOTER]]
+EOT_UNIQKI
+	)
+}
+
+sub print_manage_myself{
+	process_tpl("manage_myself.tpl", shift, <<'EOT_UNIQKI'
+[[HEADER]]
+<div id="manage_myself">
+<h1>[[manage_myself]]</h1>
+
+<h2>[[update_myself]]</h2>
+<p>[[password_requirements]]</p>
+<form action="?update_myself" method="post">
+<div>
+<input accesskey="e" type="text" id="email_address" name="email_address" placeholder="[[email_address]]" />
+<br />
+<input accesskey="p" type="password" id="pw" name="pw" placeholder="[[password]]" />
+<input type="password" id="pw2" name="pw2" placeholder="[[type_password_again]]" />
+<br />
+<input type="submit" value="[[update_myself]]" />
+</div>
+</form>
+
+<h2>[[delete_myself]]</h2>
+<form action="?delete_myself" method="post">
+<div>
+<input type="submit" value="[[delete_myself]]" />
 </div>
 </form>
 </div>
@@ -1283,6 +1324,8 @@ textarea {
 #manage_pages {
 }
 #manage_users {
+}
+#manage_myself {
 }
 #message {
 }
@@ -3504,76 +3547,77 @@ EOT
 		}
 		exit_message(get_msg($msg_id, $PAGE));
 	}
-if($REQUEST_METHOD eq "GET"){
-	local *FH;
-	local $TITLE = $PAGE;
-	local $TEXT;
-	if($QUERY_STRING eq "wikiedit"){
+	if($REQUEST_METHOD eq "GET"){
+		local *FH;
+		local $TITLE = $PAGE;
+		local $TEXT;
+		if($QUERY_STRING eq "wikiedit"){
 #-------------------------------------------------------------------------------
 # u.cgi/PAGE?wikiedit		Edit wiki PAGE
-		$TEXT = "";
-		if(-f "$PAGE.txt"){
+			$TEXT = "";
+			if(-f "$PAGE.txt"){
+				open FH, "$PAGE.txt"; local $/ = undef;
+				$TEXT = <FH>;
+				close FH;
+				chomp $TEXT;
+				if("#!wiki\n" ne substr $TEXT, 0, 7){
+					exit_message(get_msg("internal_errors"));
+				}
+
+				$TEXT = substr $TEXT, 7;
+				$TEXT =~ s/&/&amp;/g;
+				$TEXT =~ s/</&lt;/g;
+				$TEXT =~ s/>/&gt;/g;
+			}
+		}elsif($QUERY_STRING =~ m/^wikieditback(?:=([0-9]+))?$/){
+#-------------------------------------------------------------------------------
+# u.cgi/PAGE?wikieditback	Edit the current-1 version of wiki PAGE
+# u.cgi/PAGE?wikieditback=([0-9]+) Edit the current-\1 version of wiki PAGE
+			unless(-f "$PAGE.txt"){
+				exit_message(get_msg("page_not_found", $PAGE));
+			}
+
+			my $version = get_version($PAGE);
+			my $backversion = $version - ($1 eq ""?1:$1);
+
 			open FH, "$PAGE.txt"; local $/ = undef;
 			$TEXT = <FH>;
 			close FH;
-			chomp $TEXT;
 			if("#!wiki\n" ne substr $TEXT, 0, 7){
 				exit_message(get_msg("internal_errors"));
+			}
+
+			if($backversion >= $version || $backversion <= 0){
+				close FH;
+				exit_message(get_msg("current_version", $PAGE, $version));
+			}
+
+			open FH, "$PAGE.txt.v"; local $/ = "\x00\n";
+			while(<FH>){
+				m/^([0-9]+):.*?\n(.*)\x00\n$/s;
+				$TEXT = patch($TEXT, $2);
+				last if($backversion == $1);
+			}
+			close FH;
+			if("#!wiki\n" ne substr $TEXT, 0, 7){
+				# Previous version was not a wiki page
+				exit_message(get_msg("not_wiki_page", $PAGE));
 			}
 
 			$TEXT = substr $TEXT, 7;
 			$TEXT =~ s/&/&amp;/g;
 			$TEXT =~ s/</&lt;/g;
 			$TEXT =~ s/>/&gt;/g;
-		}
-	}elsif($QUERY_STRING =~ m/^wikieditback(?:=([0-9]+))?$/){
-#-------------------------------------------------------------------------------
-# u.cgi/PAGE?wikieditback	Edit the current-1 version of wiki PAGE
-# u.cgi/PAGE?wikieditback=([0-9]+) Edit the current-\1 version of wiki PAGE
-		unless(-f "$PAGE.txt"){
-			exit_message(get_msg("page_not_found", $PAGE));
+			chomp $TEXT;
+		}else{
+			exit;
 		}
 
-		my $version = get_version($PAGE);
-		my $backversion = $version - ($1 eq ""?1:$1);
-
-		open FH, "$PAGE.txt"; local $/ = undef;
-		$TEXT = <FH>;
-		close FH;
-		if("#!wiki\n" ne substr $TEXT, 0, 7){
-			exit_message(get_msg("internal_errors"));
-		}
-
-		if($backversion >= $version || $backversion <= 0){
-			close FH;
-			exit_message(get_msg("current_version", $PAGE, $version));
-		}
-
-		open FH, "$PAGE.txt.v"; local $/ = "\x00\n";
-		while(<FH>){
-			m/^([0-9]+):.*?\n(.*)\x00\n$/s;
-			$TEXT = patch($TEXT, $2);
-			last if($backversion == $1);
-		}
-		close FH;
-		if("#!wiki\n" ne substr $TEXT, 0, 7){
-			# Previous version was not a wiki page
-			exit_message(get_msg("not_wiki_page", $PAGE));
-		}
-
-		$TEXT = substr $TEXT, 7;
-		$TEXT =~ s/&/&amp;/g;
-		$TEXT =~ s/</&lt;/g;
-		$TEXT =~ s/>/&gt;/g;
-		chomp $TEXT;
-	}else{
+		local $VERSION = get_version($PAGE) + 1;
+		print_wikiedit();
 		exit;
 	}
 
-	local $VERSION = get_version($PAGE) + 1;
-	print_wikiedit();
-	exit;
-}elsif($REQUEST_METHOD eq "POST"){
 	my %var = get_var();
 	exit unless(verify_input($QUERY_STRING, \%var));
 
@@ -3646,16 +3690,128 @@ if($REQUEST_METHOD eq "GET"){
 	lock_file("$PAGE.txt");
 	save($PAGE, "#!wiki\n$TEXT\n");
 	unlock_file("$PAGE.txt");
-}
+}elsif($QUERY_STRING eq "manage_myself"){
+#-------------------------------------------------------------------------------
+# u.cgi?manage_myself		Manage myself
+# u.cgi/PAGE?manage_myself	Manage myself
+	print_manage_myself();
+	exit;
+}elsif($QUERY_STRING eq "update_myself" && $REQUEST_METHOD eq "POST" && is_logged_in()){
+#-------------------------------------------------------------------------------
+# u.cgi?update_myself		Update myself
+# u.cgi/PAGE?update_myself	Update myself
+	my %var = get_var();
+	if($var{pw} ne $var{pw2}){
+		exit_message(get_msg("confirm_password"));
+	}
+	if($var{pw} ne "" && !is_password($var{pw})){
+		exit_message(get_msg("check_password"));
+	}
+	if($var{pw} eq "" && $var{email_address} eq ""){
+		exit_message(get_msg("enter_user_info_to_update"));
+	}
+
+	my $new_pw = "";
+	my $updated = 0;
+
+	if(-f $PASSWORD_FILE){
+		local *FH;
+		open FH, $PASSWORD_FILE;
+		while(<FH>){
+			if(m/^$USER:/){
+				$updated = 1;
+				my @items = split /:/;
+				my $pw = $var{pw} ne "" ? hash_password($USER, $var{pw}) : $items[1];
+				my $group = $items[2];
+				my $email_address = $var{email_address} ne "" ? $var{email_address} : $items[3];
+				my $reset_hash = $items[4];
+				# new line from $items[4]
+				my $userline = "$USER:$pw:$group:$email_address:$reset_hash";
+				if($userline eq $_){
+					close FH;
+					exit_message(get_msg("enter_user_info_to_update", $USER));
+				}
+				$_ = $userline;
+			}
+			$new_pw .= $_;
+		}
+		close FH;
+	}else{
+		my @items = split /:/, $adminpw;
+		if($USER ne $items[0]){
+			# Something's wrong because you're the only user, but
+			# the user line in this script is not you! How did you
+			# login?
+			exit_message(get_message("internal_errors"));
+		}
+
+		$updated = 1;
+		my $pw = $var{pw} ne "" ? hash_password($USER, $var{pw}) : $items[1];
+		my $group = $items[2];
+		my $email_address = $var{email_address} ne "" ? $var{email_address} : $items[3];
+		my $reset_hash = $items[4];
+		# new line from $items[4]
+		my $userline = "$USER:$pw:$group:$email_address:$reset_hash";
+		if($userline eq $adminpw){
+			exit_message(get_msg("enter_user_info_to_update", $USER));
+		}
+		$new_pw = "$userline\n";
+	}
+	# How did you login when your username is not found?
+	exit_message(get_msg("internal_errors")) unless($updated);
+
+	lock_file($PASSWORD_FILE);
+	open FH, ">$PASSWORD_FILE";
+	print FH $new_pw;
+	close FH;
+	unlock_file($PASSWORD_FILE);
+
+	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?update_myself");
+}elsif($QUERY_STRING eq "delete_myself" && $REQUEST_METHOD eq "POST" && is_logged_in()){
+#-------------------------------------------------------------------------------
+# u.cgi?delete_myself		Delete myself
+# u.cgi/PAGE?delete_myself	Delete myself
+	my $new_pw = "";
+	my $deleted = 0;
+	my $admin = 0;
+
+	if(-f $PASSWORD_FILE){
+		local *FH;
+		open FH, $PASSWORD_FILE;
+		while(<FH>){
+			$admin++ if($ADMIN && m/^[^:]*:[^:]*:admin:/);
+			if(m/^$USER:/){
+				$deleted = 1;
+				next;
+			}
+			$new_pw .= $_;
+		}
+		close FH;
+	}
+	# How did you login when your username is not found?
+	exit_message(get_msg("internal_errors")) unless($deleted);
+
+	# You cannot delete yourself when you are the only admin.
+	exit_message(get_msg("cannot_delete_only_admin")) if($admin == 1);
+
+	clear_sessions($USER);
+
+	lock_file($PASSWORD_FILE);
+	open FH, ">$PASSWORD_FILE";
+	print FH $new_pw;
+	close FH;
+	unlock_file($PASSWORD_FILE);
+
+	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }elsif(!$ADMIN){
+################################################################################
+# Admin actions
 	exit_message(get_msg("admin_actions_not_allowed"));
 }elsif($insecure_pw){
 #-------------------------------------------------------------------------------
 # Admin password is still temporary. No admin actions are allowed other than
 # changing the password.
 	exit_message(get_msg("change_admin_password"));
-################################################################################
-# Admin actions
 }elsif($QUERY_STRING eq "manage_pages"){
 #-------------------------------------------------------------------------------
 # u.cgi?manage_pages		Manage pages
@@ -3708,7 +3864,7 @@ if($REQUEST_METHOD eq "GET"){
 # u.cgi/PAGE?manage_users	Manage users
 	print_manage_users();
 	exit;
-}elsif($QUERY_STRING eq "add_user"){
+}elsif($QUERY_STRING eq "add_user" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
 # u.cgi?add_user		Add user
 # u.cgi/PAGE?add_user		Add user
@@ -3782,7 +3938,7 @@ if($REQUEST_METHOD eq "GET"){
 	unlock_file($PASSWORD_FILE);
 
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
-}elsif($QUERY_STRING eq "update_user"){
+}elsif($QUERY_STRING eq "update_user" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
 # u.cgi?update_user		Update user
 # u.cgi/PAGE?update_user	Update user
@@ -3830,7 +3986,6 @@ if($REQUEST_METHOD eq "GET"){
 		}
 		close FH;
 	}else{
-		# Only update yourself.
 		my @items = split /:/, $adminpw;
 		if($var{user} ne $items[0]){
 			# Something's wrong because you're the only user, but
@@ -3860,7 +4015,7 @@ if($REQUEST_METHOD eq "GET"){
 	unlock_file($PASSWORD_FILE);
 
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
-}elsif($QUERY_STRING eq "block_user"){
+}elsif($QUERY_STRING eq "block_user" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
 # u.cgi?block_user		Block user
 # u.cgi/PAGE?block_user		Block user
@@ -3905,7 +4060,7 @@ if($REQUEST_METHOD eq "GET"){
 	unlock_file($PASSWORD_FILE);
 
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
-}elsif($QUERY_STRING eq "unblock_user"){
+}elsif($QUERY_STRING eq "unblock_user" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
 # u.cgi?unblock_user		Unblock user
 # u.cgi/PAGE?unblock_user	Unblock user
@@ -3982,7 +4137,7 @@ if($REQUEST_METHOD eq "GET"){
 	unlock_file($PASSWORD_FILE);
 
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
-}elsif($QUERY_STRING eq "delete_user"){
+}elsif($QUERY_STRING eq "delete_user" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
 # u.cgi?delete_user		Delete user
 # u.cgi/PAGE?delete_user	Delete user
@@ -4051,6 +4206,7 @@ if($REQUEST_METHOD eq "GET"){
 		print_login(1);
 		print_manage_pages(1);
 		print_manage_users(1);
+		print_manage_myself(1);
 		print_message(1);
 		print_view(1);
 		print_edit(1);
