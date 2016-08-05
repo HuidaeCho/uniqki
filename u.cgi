@@ -2174,6 +2174,7 @@ sub close_session{
 	my $new_sessions = "";
 	my $deleted = 0;
 
+	local *FH;
 	open FH, $sessions_file;
 	while(<FH>){
 		if(m/^$session_id:/){
@@ -2208,6 +2209,7 @@ sub clear_sessions{
 	my $new_sessions = "";
 	my $deleted = 0;
 
+	local *FH;
 	open FH, $sessions_file;
 	while(<FH>){
 		if(m/^[^:]*:$user:/){
@@ -2268,8 +2270,8 @@ sub clear_password_reset_token{
 
 	my $new_pw = "";
 	my $cleared = 0;
-	local *FH;
 
+	local *FH;
 	open FH, $PASSWORD_FILE;
 	while(<FH>){
 		if(":$reset_token\n" eq substr $_,
@@ -2307,7 +2309,6 @@ sub generate_salt{
 
 sub generate_session_id{
 	my $user = shift;
-	local *FH;
 	my $session_id;
 	my $i = 0;
 	my $found;
@@ -2322,6 +2323,7 @@ sub generate_session_id{
 
 	my $expires = time + $INACTIVE_TIMEOUT * 60;
 
+	local *FH;
 	lock_file($sessions_file);
 	unless(open FH, ">>$sessions_file"){
 		unlock_file($sessions_file);
