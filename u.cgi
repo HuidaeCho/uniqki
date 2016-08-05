@@ -724,7 +724,7 @@ refresh_pages => q(Refresh pages),
 refresh_pages_matching => q(Refresh pages matching %s pattern),
 search => q(Search for %s),
 search_matching => q(Search %s for %s),
-diff => q(Differences of page %s between versions %d and %d),
+differences => q(Differences of page %s between versions %d and %d),
 
 goto_form => q(Goto form),
 goto_form_goto => q(Go to),
@@ -3460,7 +3460,7 @@ if($QUERY_STRING eq "css"){
 		exit_message("current_version", $PAGE, $current_version)
 	}
 
-	my $title = get_msg("diff", $PAGE, $version, $current_version);
+	my $title = get_msg("differences", $PAGE, $version, $current_version);
 	local $TITLE = $title;
 
 	local *FH;
