@@ -172,8 +172,9 @@ if($use_posix){
 	setlocale(LC_ALL(), $LOCALE) if($LOCALE ne "");
 }
 
-$CSS = -f "$TEMPLATE_DIRECTORY/uniqki.css" ?
-	"$TEMPLATE_DIRECTORY/uniqki.css" : "$CGI?css";
+$CSS = "/" ne substr $TEMPLATE_DIRECTORY, 0, 1 &&
+	-f "$TEMPLATE_DIRECTORY/uniqki.css" ? "$TEMPLATE_DIRECTORY/uniqki.css" :
+	"$CGI?css";
 
 my $smtp_server = "";
 my $smtp_port;
