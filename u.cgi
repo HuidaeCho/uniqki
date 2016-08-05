@@ -3128,7 +3128,7 @@ if($QUERY_STRING eq "login"){
 	}
 }
 
-if($QUERY_STRING eq "css"){
+if($QUERY_STRING eq "css" || $PATH_INFO eq "/$CSS"){
 #-------------------------------------------------------------------------------
 # u.cgi?css			Print CSS
 	print_css(2);
