@@ -172,7 +172,7 @@ if($use_posix){
 	setlocale(LC_ALL(), $LOCALE) if($LOCALE ne "");
 }
 
-$CSS = "/" ne substr $TEMPLATE_DIRECTORY, 0, 1 &&
+$CSS = "/" ne substr($TEMPLATE_DIRECTORY, 0, 1) &&
 	-f "$TEMPLATE_DIRECTORY/uniqki.css" ? "$TEMPLATE_DIRECTORY/uniqki.css" :
 	"$CGI?css";
 
