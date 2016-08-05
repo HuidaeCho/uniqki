@@ -724,7 +724,7 @@ refresh_pages => q(Refresh pages),
 refresh_pages_matching => q(Refresh pages matching %s pattern),
 search => q(Search for %s),
 search_matching => q(Search %s for %s),
-differences => q(Differences of page %s between versions %d and %d),
+differences => q(Differences of page <a href="%s">%1$s</a> between versions %d and %d),
 
 goto_form => q(Goto form),
 goto_form_goto => q(Go to),
