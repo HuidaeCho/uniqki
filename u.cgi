@@ -703,7 +703,7 @@ reset_password_email_text => q(Please reset your password for username %s at %s 
 email_notification_failed => q(Email notification failed for user %s <%s>.),
 
 page_not_found => q(%s: Page not found.),
-create_page => q(%s: Page not found. <a href="?edit">Create this page</a>),
+create_page => q(%s: Page not found. <a href="?edit">Create this page.</a>),
 not_wiki_page => q(%s: This page is not a wiki page.),
 not_allowed_to_create_nonwiki_page => q(%s: You are not allowed to create this non-wiki page.),
 not_allowed_to_edit_wiki_page => q(%s: You are not allowed to edit this wiki page.),
