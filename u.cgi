@@ -1357,7 +1357,8 @@ form {
 	margin:			0px;
 }
 pre {
-	background-color:	#dddddd;
+	background-color:	#eeeeee;
+	border:			1px solid #dddddd;
 	overflow:		auto;
 }
 textarea {
