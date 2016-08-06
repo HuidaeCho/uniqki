@@ -69,7 +69,7 @@ use vars qw(
 
 # Template variables
 use vars qw(
-	$TITLE $CSS $TEXT $PREVIEW $VERSION $TIME $PASSWORD_RESET_TOKEN $MESSAGE
+	$TITLE $TEXT $PREVIEW $VERSION $TIME $PASSWORD_RESET_TOKEN $MESSAGE
 );
 
 # Config and messages variables
@@ -171,8 +171,6 @@ if($use_posix){
 	tzset() if($TIME_ZONE ne "");
 	setlocale(LC_ALL(), $LOCALE) if($LOCALE ne "");
 }
-
-$CSS = "$CGI?css";
 
 my $smtp_server = "";
 my $smtp_port;
@@ -884,7 +882,7 @@ sub process_tpl_tag{
 	}elsif($tag =~ m/^[A-Z_]+$/){
 		my @tags = qw(
 			SITE_TITLE SITE_DESCRIPTION INDEX_PAGE TITLE CHARSET
-			CSS PAGE VERSION TEXT DOC_BASE PREVIEW TIME CGI MESSAGE
+			PAGE VERSION TEXT DOC_BASE PREVIEW TIME CGI MESSAGE
 			PASSWORD_RESET_TOKEN
 		);
 		my %hash;
@@ -948,7 +946,7 @@ sub print_header{
 <title>[[TITLE]]</title>
 <meta charset="[[CHARSET]]" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="stylesheet" type="text/css" href="[[CSS]]" />
+<link rel="stylesheet" type="text/css" href="[[CGI]]?css" />
 <link rel="alternate" type="application/rss+xml" title="[[recent_changes]]" href="[[CGI]]?rss" />
 </head>
 <body>
@@ -3126,7 +3124,7 @@ if($QUERY_STRING eq "login"){
 	}
 }
 
-if($QUERY_STRING eq "css" || $PATH_INFO eq "/$CSS"){
+if($QUERY_STRING eq "css" || $PATH_INFO eq "/$TEMPLATE_DIRECTORY/uniqki.css"){
 #-------------------------------------------------------------------------------
 # u.cgi?css			Print CSS
 	print_css(2);
