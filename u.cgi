@@ -3125,7 +3125,7 @@ if($QUERY_STRING eq "login"){
 	}
 }
 
-if($QUERY_STRING eq "css" || $PATH_INFO eq "/$TEMPLATE_DIRECTORY/uniqki.css"){
+if($QUERY_STRING eq "css"){
 #-------------------------------------------------------------------------------
 # u.cgi?css			Print CSS
 	print_css(2);
