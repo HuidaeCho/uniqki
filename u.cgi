@@ -2624,7 +2624,7 @@ sub parse_line{
 	s/[\r\n]//g;
 
 	# Apply regular expressions where needed
-	if(!$pre && m/^(?:(?!#)|#html )(.*)$/){
+	if(!$pre){
 		for(my $i=$re_i_start; $i<$re_i; $i++){
 			eval "s\x1e$re[$i]\x1e$re_sub[$i]\x1eg;";
 		}
@@ -2724,13 +2724,13 @@ sub parse_line{
 		return;
 	}
 	# Clear regular expressions
-	if(m/^#noregex(?:| (.+))$/){
-		if($1 eq ""){
+	if(m/^#noregex(?:| (.)([^\1]+)\1)$/){
+		if($2 eq ""){
 			$re_i = 0;
 			$#re = $#re_sub = -1;
 		}else{
 			for(my $i=0; $i<$re_i; $i++){
-				if($re[$i] eq $1){
+				if($re[$i] eq $2){
 					$re_i--;
 					for(; $i<$re_i; $i++){
 						$re[$i] = $re[$i+1];
