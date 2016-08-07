@@ -806,7 +806,8 @@ cancel => q(Cancel),
 updated => q(updated!),
 save_your_changes_and_read_latest_version => q(Please save your changes and read <a href="[[DOC_BASE]]/[[PAGE]].html">the latest version</a>!),
 
-wiki_edit => q(Wiki Edit),
+edit_page => q(Edit [[PAGE]]),
+wikiedit_page => q(WikiEdit [[PAGE]]),
 );
 EOT_UNIQKI
 	my $file = $MESSAGES_FILE eq "" ? "u.msg" : $MESSAGES_FILE;
@@ -1243,7 +1244,7 @@ sub print_edit{
 	process_tpl("edit.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
 <div id="edit">
-<h1>[[edit]] [[PAGE]]</h1>
+<h1>[[edit_page]]</h1>
 <form action="[[PAGE]]?edit" method="post" enctype="multipart/form-data">
 <div>
 <input type="hidden" id="version" name="version" value="[[VERSION]]" />
@@ -1317,7 +1318,7 @@ sub print_wikiedit{
 	process_tpl("wikiedit.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
 <div id="wikiedit">
-<h1>[[wiki_edit]] [[PAGE]]</h1>
+<h1>[[wikiedit_page]]</h1>
 <form action="[[PAGE]]?wikiedit" method="post" enctype="multipart/form-data">
 <div>
 <input type="hidden" id="version" name="version" value="[[VERSION]]" />
