@@ -794,7 +794,7 @@ edit => q(Edit),
 index => q(Index),
 loginout => q(Loginout),
 diff => q(Diff),
-backlink => q(Backlinks),
+backlinks => q(Backlinks),
 xhtml => q(XHTML),
 css => q(CSS),
 
