@@ -4,7 +4,7 @@
 # Author:	Huidae Cho
 # Since:	May 23, 2007
 #
-# Copyright (C) 2007, 2008, 2010, 2011, 2016 Huidae Cho <http://geni.isnew.info>
+# Copyright (C) 2007-2008, 2010-2011, 2016, Huidae Cho <http://geni.isnew.info>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
