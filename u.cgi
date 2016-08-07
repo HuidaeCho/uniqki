@@ -1342,7 +1342,7 @@ sub print_wikipreview{
 <div id="wikipreview">
 [[PREVIEW]]
 </div>
-[[EDIT]]
+[[WIKIEDIT]]
 [[FOOTER]]
 EOT_UNIQKI
 	)
@@ -1445,7 +1445,6 @@ textarea {
 
 /******************************************************************************/
 #toc {
-	padding-bottom:		1px;
 }
 .toc_heading {
 	font-weight:		bold;
