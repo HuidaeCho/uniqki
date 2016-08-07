@@ -1440,7 +1440,7 @@ textarea {
 #wikipreview {
 }
 #wikimenu {
-	padding:		5px;
+	padding:		5px 5px 0px 5px;
 }
 
 /******************************************************************************/
