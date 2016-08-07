@@ -74,7 +74,7 @@ use vars qw(
 
 # Config and messages variables
 use vars qw(
-	$SITE_TITLE $SITE_DESCRIPTION $INDEX_PAGE $CHARSET $LOCALE
+	$SITE_TITLE $SITE_DESCRIPTION $INDEX_PAGE $LANG $CHARSET $LOCALE
 	$TIME_ZONE $TIME_FORMAT
 	$PASSWORD_FILE $SESSIONS_FILE $MESSAGES_FILE $TEMPLATE_DIRECTORY
 	$PAGE_NAME_STYLE
@@ -514,6 +514,9 @@ $SITE_DESCRIPTION = 'A <a href="http://uniqki.isnew.info">Uniqki</a> site';
 # Index page
 $INDEX_PAGE = 'index';
 
+# Language
+$LANG = "en";
+
 # Character set
 $CHARSET = 'utf-8';
 
@@ -881,9 +884,9 @@ sub process_tpl_tag{
 		print_wikiedit();
 	}elsif($tag =~ m/^[A-Z_]+$/){
 		my @tags = qw(
-			SITE_TITLE SITE_DESCRIPTION INDEX_PAGE TITLE CHARSET
-			PAGE VERSION TEXT DOC_BASE PREVIEW TIME CGI MESSAGE
-			PASSWORD_RESET_TOKEN
+			SITE_TITLE SITE_DESCRIPTION INDEX_PAGE TITLE LANG
+			CHARSET PAGE VERSION TEXT DOC_BASE PREVIEW TIME CGI
+			MESSAGE PASSWORD_RESET_TOKEN
 		);
 		my %hash;
 		@hash{@tags} = undef;
@@ -941,7 +944,7 @@ sub print_header{
 	$header_printed = 1;
 	process_tpl("header.tpl", $mode, <<'EOT_UNIQKI'
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="[[LANG]]">
 <head>
 <title>[[TITLE]]</title>
 <meta charset="[[CHARSET]]" />
