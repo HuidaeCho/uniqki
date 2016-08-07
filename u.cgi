@@ -2749,8 +2749,7 @@ sub parse_line{
 	}
 	# Output verbose html code
 	if(m/^#html (.+)$/){
-		$_ = $1;
-		$text .= "$_\n";
+		$text .= "$1\n";
 		return;
 	}
 	# Table of contents
@@ -2768,8 +2767,7 @@ sub parse_line{
 		return;
 	}
 	if(m/^##shell (.+)$/){
-		$_ = $1;
-		$text .= `$_`;
+		$text .= `$1`;
 		return;
 	}
 	if(m/^##((?:sub |{).*)$/){
