@@ -202,6 +202,7 @@ my $insecure_pw = 1;
 my $sessions_file = $SESSIONS_FILE eq "" ? ".sessions" : $SESSIONS_FILE;
 my $debug_started = 0;
 my $html_started = 0;
+my %locked_files = ();
 
 ################################################################################
 # Non-user-replaceable subroutines
@@ -1681,19 +1682,23 @@ sub get_version{
 }
 
 sub lock_file{
-	local *FH;
+	my $file = shift;
 	my $timeout = 60;
 	my $i = 0;
-	while(-f "$_[0].lock"){
+	while(-f "$file.lock"){
 		exit_message("internal_errors") if(++$i > $timeout);
 		sleep 1;
 	}
-	exit_message("internal_errors") unless(open FH, ">$_[0].lock");
+	$locked_files{$file} = 1;
+	local *FH;
+	exit_message("internal_errors") unless(open FH, ">$file.lock");
 	close FH;
 }
 
 sub unlock_file{
-	unlink "$_[0].lock";
+	my $file = shift;
+	unlink "$file.lock";
+	delete $locked_files{$file};
 }
 
 sub preview{
@@ -2135,12 +2140,13 @@ sub start_session{
 
 sub renew_session{
 	my $session_id = shift;
-	local *FH;
 
 	my $expires = time + $INACTIVE_TIMEOUT * 60;
 	my $new_sessions = "";
 	my $renewed = 0;
 
+	lock_file($sessions_file);
+	local *FH;
 	open FH, $sessions_file;
 	while(<FH>){
 		if(m/^$session_id:/){
@@ -2153,14 +2159,12 @@ sub renew_session{
 	close FH;
 
 	if($renewed){
-		lock_file($sessions_file);
 		open FH, ">$sessions_file";
 		print FH $new_sessions;
 		close FH;
-		unlock_file($sessions_file);
-
 		set_cookie($session_id, $expires);
 	}
+	unlock_file($sessions_file);
 }
 
 sub close_session{
@@ -2175,6 +2179,7 @@ sub close_session{
 	my $new_sessions = "";
 	my $deleted = 0;
 
+	lock_file($sessions_file);
 	local *FH;
 	open FH, $sessions_file;
 	while(<FH>){
@@ -2187,12 +2192,11 @@ sub close_session{
 	close FH;
 
 	if($deleted){
-		lock_file($sessions_file);
 		open FH, ">$sessions_file";
 		print FH $new_sessions;
 		close FH;
-		unlock_file($sessions_file);
 	}
+	unlock_file($sessions_file);
 }
 
 sub clear_sessions{
@@ -2210,6 +2214,7 @@ sub clear_sessions{
 	my $new_sessions = "";
 	my $deleted = 0;
 
+	lock_file($sessions_file);
 	local *FH;
 	open FH, $sessions_file;
 	while(<FH>){
@@ -2222,12 +2227,11 @@ sub clear_sessions{
 	close FH;
 
 	if($deleted){
-		lock_file($sessions_file);
 		open FH, ">$sessions_file";
 		print FH $new_sessions;
 		close FH;
-		unlock_file($sessions_file);
 	}
+	unlock_file($sessions_file);
 }
 
 sub handle_session{
@@ -2272,6 +2276,7 @@ sub clear_password_reset_token{
 	my $new_pw = "";
 	my $cleared = 0;
 
+	lock_file($PASSWORD_FILE);
 	local *FH;
 	open FH, $PASSWORD_FILE;
 	while(<FH>){
@@ -2286,12 +2291,11 @@ sub clear_password_reset_token{
 	close FH;
 
 	if($cleared){
-		lock_file($PASSWORD_FILE);
 		open FH, ">$PASSWORD_FILE";
 		print FH $new_pw;
 		close FH;
-		unlock_file($PASSWORD_FILE);
 	}
+	unlock_file($PASSWORD_FILE);
 }
 
 sub generate_random_string{
@@ -2324,12 +2328,9 @@ sub generate_session_id{
 
 	my $expires = time + $INACTIVE_TIMEOUT * 60;
 
-	local *FH;
 	lock_file($sessions_file);
-	unless(open FH, ">>$sessions_file"){
-		unlock_file($sessions_file);
-		exit_message("session_errors");
-	}
+	local *FH;
+	exit_message("session_errors") unless(open FH, ">>$sessions_file");
 	print FH "$session_id:$user:active:$expires\n";
 	close FH;
 	unlock_file($sessions_file);
@@ -3053,6 +3054,12 @@ sub end_parsing{
 	$text =~ s#(<(?:p|li|dd)>)\n+#$1#g; $text =~ s#\n+(</(?:p|li|dd)>)#$1#g;
 }
 
+END{
+	while(my $file = each %locked_files){
+		unlock_file($file);
+	}
+}
+
 if($PAGE eq $CGI && $FILE ne ""){
 ################################################################################
 # u.cgi/u.cgi/.../PAGE?ACTION	Called from a secured site
@@ -3177,6 +3184,7 @@ if($QUERY_STRING eq "css"){
 	my $new_pw = "";
 	my $reset_token_added = 0;
 
+	lock_file($PASSWORD_FILE);
 	if(-f $PASSWORD_FILE){
 		local *FH;
 		open FH, $PASSWORD_FILE;
@@ -3207,7 +3215,6 @@ if($QUERY_STRING eq "css"){
 			$email_address);
 	}
 
-	lock_file($PASSWORD_FILE);
 	open FH, ">$PASSWORD_FILE";
 	print FH $new_pw;
 	close FH;
@@ -3235,6 +3242,7 @@ if($QUERY_STRING eq "css"){
 	my $new_pw = "";
 	my $reset = 0;
 
+	lock_file($PASSWORD_FILE);
 	if(-f $PASSWORD_FILE){
 		local *FH;
 		open FH, $PASSWORD_FILE;
@@ -3253,7 +3261,6 @@ if($QUERY_STRING eq "css"){
 	# Password reset token cannot be found this time?
 	exit_message("internal_errors") unless($reset);
 
-	lock_file($PASSWORD_FILE);
 	open FH, ">$PASSWORD_FILE";
 	print FH $new_pw;
 	close FH;
@@ -3300,6 +3307,7 @@ if($QUERY_STRING eq "css"){
 	my $new_pw = "";
 	my $updated = 0;
 
+	lock_file($PASSWORD_FILE);
 	if(-f $PASSWORD_FILE){
 		local *FH;
 		open FH, $PASSWORD_FILE;
@@ -3351,7 +3359,6 @@ if($QUERY_STRING eq "css"){
 	# How did you login when your username is not found?
 	exit_message("internal_errors") unless($updated);
 
-	lock_file($PASSWORD_FILE);
 	open FH, ">$PASSWORD_FILE";
 	print FH $new_pw;
 	close FH;
@@ -3366,6 +3373,7 @@ if($QUERY_STRING eq "css"){
 	my $deleted = 0;
 	my $admin = 0;
 
+	lock_file($PASSWORD_FILE);
 	if(-f $PASSWORD_FILE){
 		local *FH;
 		open FH, $PASSWORD_FILE;
@@ -3387,7 +3395,6 @@ if($QUERY_STRING eq "css"){
 
 	clear_sessions($USER);
 
-	lock_file($PASSWORD_FILE);
 	open FH, ">$PASSWORD_FILE";
 	print FH $new_pw;
 	close FH;
@@ -3933,10 +3940,11 @@ EOT
 
 	$var{text} = escape_comment($var{text});
 
-	lock_file("$PAGE.txt");
 	my $TEXT = "";
 	my $time = format_time(time);
 	my $added = 0;
+
+	lock_file("$PAGE.txt");
 	local *FH;
 	if(open FH, "$PAGE.txt"){
 		while(<FH>){
@@ -3953,10 +3961,7 @@ EOT
 		}
 		close FH;
 	}
-	unless($added){
-		unlock_file("$PAGE.txt");
-		exit_message("comment_tag_not_found", "#%$var{comment}");
-	}
+	exit_message("comment_tag_not_found", "#%$var{comment}") unless($added);
 	save($PAGE, $TEXT);
 	unlock_file("$PAGE.txt");
 }elsif($QUERY_STRING ne "delete" && $FILE ne ""){
@@ -4268,6 +4273,7 @@ EOT
 	(my $escaped_email_address = $var{email_address}) =~ s/\./\\./g;
 	my $new_pw = "";
 
+	lock_file($PASSWORD_FILE);
 	if(-f $PASSWORD_FILE){
 		local *FH;
 		open FH, $PASSWORD_FILE;
@@ -4313,7 +4319,6 @@ EOT
 	}
 	$new_pw .= "$var{user}:$pw:$group:$var{email_address}:$reset_token\n";
 
-	lock_file($PASSWORD_FILE);
 	open FH, ">$PASSWORD_FILE";
 	print FH $new_pw;
 	close FH;
@@ -4345,6 +4350,7 @@ EOT
 	my $new_pw = "";
 	my $updated = 0;
 
+	lock_file($PASSWORD_FILE);
 	if(-f $PASSWORD_FILE){
 		local *FH;
 		open FH, $PASSWORD_FILE;
@@ -4398,7 +4404,6 @@ EOT
 	}
 	exit_message("user_not_found", $var{user}) unless($updated);
 
-	lock_file($PASSWORD_FILE);
 	open FH, ">$PASSWORD_FILE";
 	print FH $new_pw;
 	close FH;
@@ -4423,6 +4428,7 @@ EOT
 	my $new_pw = "";
 	my $blocked = 0;
 
+	lock_file($PASSWORD_FILE);
 	if(-f $PASSWORD_FILE){
 		local *FH;
 		open FH, $PASSWORD_FILE;
@@ -4444,7 +4450,6 @@ EOT
 	}
 	exit_message("user_not_found", $var{user}) unless($blocked);
 
-	lock_file($PASSWORD_FILE);
 	open FH, ">$PASSWORD_FILE";
 	print FH $new_pw;
 	close FH;
@@ -4477,6 +4482,7 @@ EOT
 	my $unblocked = 0;
 	my $reset_token = "";
 
+	lock_file($PASSWORD_FILE);
 	if(-f $PASSWORD_FILE){
 		local *FH;
 		open FH, $PASSWORD_FILE;
@@ -4518,7 +4524,6 @@ EOT
 		}
 	}
 
-	lock_file($PASSWORD_FILE);
 	open FH, ">$PASSWORD_FILE";
 	print FH $new_pw;
 	close FH;
@@ -4543,6 +4548,7 @@ EOT
 	my $new_pw = "";
 	my $deleted = 0;
 
+	lock_file($PASSWORD_FILE);
 	if(-f $PASSWORD_FILE){
 		local *FH;
 		open FH, $PASSWORD_FILE;
@@ -4558,7 +4564,6 @@ EOT
 	}
 	exit_message("user_not_found", $var{user}) unless($deleted);
 
-	lock_file($PASSWORD_FILE);
 	open FH, ">$PASSWORD_FILE";
 	print FH $new_pw;
 	close FH;
@@ -4721,11 +4726,11 @@ EOT
 		exit_message("page_not_found", $PAGE);
 	}
 
-	local *FH;
 	lock_file("$PAGE.txt");
 	my $current_version = get_version($PAGE);
 	my $version = $1 > 0 ? $1 : $current_version + ($1 < 0 ? $1 : -1);
 	if($version > 0 && $version < $current_version){
+		local *FH;
 		open FH, "$PAGE.txt"; local $/ = undef;
 		my $text = <FH>;
 		close FH;
