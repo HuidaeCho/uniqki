@@ -3920,15 +3920,17 @@ EOT
 		my ($time, $page) = m/^[0-9]+ (.+? GMT) (.*)$/;
 		local *FH;
 		open FH, "$page.html";
-		my $txt = <FH>;
+		my $text = <FH>;
 		close FH;
-		$txt =~ s/\r//g;
-		$txt =~ s/^.*<!-- start text -->|<!-- end text -->.*$//si;
-		my $has_more = ($txt =~ s/<!-- more -->.*$//s);
+
+		$text =~ s/\r//g;
+		$text =~ s/^.*<!-- start text -->|<!-- end text -->.*$//sgi;
+
+		my $has_more = ($text =~ s/<!-- more -->.*$//s);
 		my $title;
-		if($txt =~ m#<h1[^>]*>(.+?)</h1>(.*)$#si){
+		if($text =~ m#<h1[^>]*>(.+?)</h1>(.*)$#si){
 			$title = $1;
-			$txt = $2;
+			$text = $2;
 			$title =~ s/<[^>]*>//g;
 			$title =~ s/&[^ ]*;/ /g;
 			$title =~ s/[ \t\n]+/ /g;
@@ -3937,22 +3939,22 @@ EOT
 		}else{
 			$title = $page;
 		}
-		$txt =~ s#<(script|style).*?</\1>##sgi;
-		$txt =~ s/<[^>]*>//g;
-		$txt =~ s/&[^ ]*;/ /g;
-		$txt =~ s/[ \t\n]+/ /g;
-		$txt =~ s/^ //;
-		$txt =~ s/ $//;
-		if($txt =~ m/^((?:[^ ]+ ){20})/){
-			$txt = "$1...";
+		$text =~ s#<(script|style).*?</\1>##sgi;
+		$text =~ s/<[^>]*>//g;
+		$text =~ s/&[^ ]*;/ /g;
+		$text =~ s/[ \t\n]+/ /g;
+		$text =~ s/^ //;
+		$text =~ s/ $//;
+		if($text =~ m/^((?:[^ ]+ ){20})/){
+			$text = "$1...";
 		}elsif($has_more){
-			$txt .= " ...";
+			$text .= " ...";
 		}
 		print <<EOT;
 <item>
 <title>$title</title>
 <link>$DOC_BASE/$page.html</link>
-<description>$txt</description>
+<description>$text</description>
 <pubDate>$time</pubDate>
 </item>
 EOT
@@ -4019,7 +4021,9 @@ EOT
 		my $text = <FH>;
 		close FH;
 
+		$text =~ s/^.*<!-- start text -->|<!-- end text -->.*$//sgi;
 		$text =~ s#<(script|style).*?</\1>##sgi;
+
 		if($var{title} eq "1" && $text =~ m#<h1[^>]*>(.+?)</h1>#si){
 			$_ = $1;
 			s/<[^>]*>//g; s/[<>]//g;
