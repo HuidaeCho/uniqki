@@ -64,7 +64,7 @@ use vars qw(
 
 # Useful variables
 use vars qw(
-	$HTTP_BASE $DOC_BASE $CGI $PAGE $FILE $USER $ADMIN
+	$HTTP_BASE $DOC_BASE $CGI $PAGE $FILE $USER
 );
 
 # Template variables
@@ -194,7 +194,7 @@ process_msg();
 ################################################################################
 # Initialization
 $USER = "";
-$ADMIN = 0;
+my $is_admin = 0;
 my $header_printed = 0;
 my $footer_printed = 0;
 my $rebuild = 0;
@@ -289,6 +289,12 @@ sub exit_message{
 	local $MESSAGE = get_msg(@_);
 	(local $TITLE = $MESSAGE) =~ s/<[^>]*>//g;
 	print_message();
+	exit;
+}
+
+sub exit_text{
+	print "Content-Type: text/plain\n\n";
+	print shift;
 	exit;
 }
 
@@ -464,7 +470,7 @@ sub is_logged_in{
 }
 
 sub has_read_access{
-	return 1 if($ADMIN);
+	return 1 if($is_admin);
 	if($wiki){
 		return 1 if($wiki_read_access eq "open");
 		return 1 if($wiki_read_access eq "closed" && is_logged_in());
@@ -476,7 +482,7 @@ sub has_read_access{
 }
 
 sub has_write_access{
-	return 1 if($ADMIN);
+	return 1 if($is_admin);
 	return 0 unless($wiki);
 	return 1 if($wiki_write_access eq "open");
 	return 1 if($wiki_write_access eq "closed" && is_logged_in());
@@ -749,7 +755,6 @@ table_of_contents => q(Table of contents),
 
 powered_by_uniqki => q(Powered by <a href="http://uniqki.isnew.info">Uniqki</a>!),
 
-login => q(Login),
 username => q(Username),
 password => q(Password),
 logout_from_other_computers => q(Logout from other computers),
@@ -794,6 +799,8 @@ refresh => q(Refresh),
 edit => q(Edit),
 index => q(Index),
 loginout => q(Loginout),
+login => q(Login),
+logout => q(Logout),
 diff => q(Diff),
 backlinks => q(Backlinks),
 xhtml => q(XHTML),
@@ -908,12 +915,18 @@ sub process_tpl_tag{
 sub process_tpl{
 	# $mode=undef: print
 	# $mode=1: write
-	# $mode=2: print for CSS only
+	# $mode=2: print for CSS and JavaScript only
 	my ($file, $mode, $tpl) = @_;
 	my $path = "$TEMPLATE_DIRECTORY/$file";
 
 	start_html() unless(defined $mode);
-	print "Content-Type: text/css\n\n" if($mode == 2);
+	if($mode == 2){
+		if(".css" eq substr $file, -4){
+			print "Content-Type: text/css\n\n";
+		}elsif(".js" eq substr $file, -3){
+			print "Content-Type: text/javascript\n\n";
+		}
+	}
 
 	if($mode == 1){
 		if(-d $TEMPLATE_DIRECTORY && !-f $path){
@@ -929,14 +942,9 @@ sub process_tpl{
 		$tpl = <FH>;
 		close FH;
 	}
-	if($mode == 2){
-		print $tpl;
-		return;
-	}
 
-	$_ = $tpl;
-	s/\[\[([A-Za-z_]*)\]\]/@{[process_tpl_tag($1)]}/g;
-	print;
+	$tpl =~ s/\[\[([A-Za-z_]*)\]\]/@{[process_tpl_tag($1)]}/g;
+	print $tpl;
 }
 
 sub print_header{
@@ -953,6 +961,7 @@ sub print_header{
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="stylesheet" type="text/css" href="[[CGI]]?css" />
 <link rel="alternate" type="application/rss+xml" title="[[recent_changes]]" href="[[CGI]]?rss" />
+<script src="[[CGI]]?js"></script>
 </head>
 <body>
 <div id="container">
@@ -996,9 +1005,9 @@ sub print_login{
 </div>
 </form>
 </div>
-<div id="menu">
 <hr />
-<a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .
+<div id="menu">
+<span class="read-access"><a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a>
 </div>
 [[FOOTER]]
@@ -1021,10 +1030,11 @@ sub print_manage_pages{
 </div>
 </form>
 </div>
-<div id="menu">
 <hr />
-<a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .
-<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a>
+<div id="menu">
+<span class="read-access"><a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .</span>
+<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a> .
+<a accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
 </div>
 [[FOOTER]]
 EOT_UNIQKI
@@ -1102,10 +1112,11 @@ sub print_manage_users{
 </div>
 </form>
 </div>
-<div id="menu">
 <hr />
-<a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .
-<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a>
+<div id="menu">
+<span class="read-access"><a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .</span>
+<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a> .
+<a accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
 </div>
 [[FOOTER]]
 EOT_UNIQKI
@@ -1138,10 +1149,11 @@ sub print_manage_myself{
 </div>
 </form>
 </div>
-<div id="menu">
 <hr />
-<a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .
-<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a>
+<div id="menu">
+<span class="read-access"><a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .</span>
+<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a> .
+<a accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
 </div>
 [[FOOTER]]
 EOT_UNIQKI
@@ -1162,9 +1174,9 @@ sub print_forgot_password{
 </div>
 </form>
 </div>
-<div id="menu">
 <hr />
-<a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .
+<div id="menu">
+<span class="read-access"><a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a>
 </div>
 [[FOOTER]]
@@ -1188,9 +1200,9 @@ sub print_reset_password{
 </div>
 </form>
 </div>
-<div id="menu">
 <hr />
-<a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .
+<div id="menu">
+<span class="read-access"><a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a>
 </div>
 [[FOOTER]]
@@ -1204,11 +1216,12 @@ sub print_message{
 <div id="message">
 [[MESSAGE]]
 </div>
-<div id="menu">
 <hr />
-<a accesskey="i" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .
+<div id="menu">
+<span class="read-access"><a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
-<a accesskey="l" href="[[PAGE]]?loginout">[[loginout]]</a>
+<a class="visitor" accesskey="l" href="[[PAGE]]?login">[[login]]</a>
+<a class="user" accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
 </div>
 [[FOOTER]]
 EOT_UNIQKI
@@ -1224,17 +1237,18 @@ sub print_view{
 <div id="view">
 [[TEXT]]
 </div>
-<!-- # --><div id="menu">
 <!-- # --><hr />
+<!-- # --><div id="menu">
 <!-- # --><a accesskey="r" href="[[CGI]]/[[PAGE]]?refresh">[[refresh]]</a> .
-<!-- # --><a accesskey="e" href="[[CGI]]/[[PAGE]]?edit">[[edit]]</a> .
+<!-- # --><span class="write-access"><a accesskey="e" href="[[CGI]]/[[PAGE]]?edit">[[edit]]</a> .</span>
 <!-- # --><a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
-<!-- # --><a accesskey="l" href="[[CGI]]/[[PAGE]]?loginout">[[loginout]]</a><br />
-<!-- # --><small><i>
+<!-- # --><a class="visitor" accesskey="l" href="[[CGI]]/[[PAGE]]?login">[[login]]</a>
+<!-- # --><a class="user" accesskey="l" href="[[CGI]]/[[PAGE]]?logout">[[logout]]</a>
+<!-- # --></div>
+<!-- # --><div id="timestamp">
 <!-- # -->[[TIME]] .
 <!-- # --><a href="https://validator.w3.org/check?uri=referer">[[xhtml]]</a> .
 <!-- # --><a href="https://jigsaw.w3.org/css-validator/check/referer">[[css]]</a>
-<!-- # --></i></small>
 <!-- # --></div>
 [[FOOTER]]
 EOT_UNIQKI
@@ -1255,7 +1269,7 @@ sub print_edit{
 <input accesskey="s" type="submit" id="save" name="save" value="[[save]]" /> .
 [[upload]] <input accesskey="u" type="file" id="file" name="file" /> .
 <a accesskey="c" href="[[DOC_BASE]]/[[PAGE]].html">[[cancel]]</a> .
-<a accesskey="c" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a>
+<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a>
 </div>
 </form>
 </div>
@@ -1300,15 +1314,17 @@ sub print_wikiview{
 [[TEXT]]
 </div>
 <!-- # --><div id="wikimenu">
-<!-- # --><a accesskey="e" href="[[CGI]]/[[PAGE]]?wikiedit">[[edit]]</a> .
-<!-- # --><a accesskey="d" href="[[CGI]]/[[PAGE]]?diff=-1">[[diff]]</a> .
-<!-- # --><a accesskey="l" href="[[CGI]]?search=[[PAGE]]%5C.html&amp;link=1">[[backlinks]]</a> .
-<!-- # --><a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a><br />
-<!-- # --><small><i>
+<!-- # --><span class="write-access"><a accesskey="e" href="[[CGI]]/[[PAGE]]?wikiedit">[[edit]]</a> .</span>
+<!-- # --><span class="read-access"><a accesskey="d" href="[[CGI]]/[[PAGE]]?diff=-1">[[diff]]</a> .
+<!-- # --><a accesskey="l" href="[[CGI]]?search=[[PAGE]]%5C.html&amp;link=1">[[backlinks]]</a> .</span>
+<!-- # --><a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
+<!-- # --><a class="visitor" accesskey="l" href="[[CGI]]/[[PAGE]]?login">[[login]]</a>
+<!-- # --><a class="user" accesskey="l" href="[[CGI]]/[[PAGE]]?logout">[[logout]]</a>
+<!-- # --></div>
+<!-- # --><div id="timestamp">
 <!-- # -->[[TIME]] .
 <!-- # --><a href="https://validator.w3.org/check?uri=referer">[[xhtml]]</a> .
 <!-- # --><a href="https://jigsaw.w3.org/css-validator/check/referer">[[css]]</a>
-<!-- # --></i></small>
 <!-- # --></div>
 [[FOOTER]]
 EOT_UNIQKI
@@ -1328,7 +1344,7 @@ sub print_wikiedit{
 <input accesskey="s" type="submit" id="save" name="save" value="[[save]]" /> .
 [[upload]] <input accesskey="u" type="file" id="file" name="file" /> .
 <a accesskey="c" href="[[DOC_BASE]]/[[PAGE]].html">[[cancel]]</a> .
-<a accesskey="c" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a>
+<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a>
 </div>
 </form>
 </div>
@@ -1411,6 +1427,12 @@ textarea {
 #message {
 }
 #menu {
+	display:		none;
+}
+#timestamp {
+	padding-top:		2px;
+	font-size:		smaller;
+	font-style:		italic;
 }
 
 /******************************************************************************/
@@ -1442,6 +1464,7 @@ textarea {
 }
 #wikimenu {
 	padding:		5px 5px 0px 5px;
+	display:		none;
 }
 
 /******************************************************************************/
@@ -1530,6 +1553,124 @@ textarea {
 	margin-top:		10px;
 	padding-top:		10px;
 }
+EOT_UNIQKI
+	)
+}
+
+sub print_js{
+	process_tpl("uniqki.js", shift, <<'EOT_UNIQKI'
+/* http://developer.mozilla.org/en/docs/AJAX:Getting_Started */
+function ajax_request(url, data, func){
+	var xml_request = null;
+
+	/* Create an XMLHTTP instance */
+	if(window.XMLHttpRequest){ /* Mozilla, Safari, ... */
+		xml_request = new XMLHttpRequest();
+		if(xml_request.overrideMimeType){
+			/* Some web servers return a non-standard mime type. */
+			xml_request.overrideMimeType('text/xml');
+		}
+	}else
+	if(window.ActiveXObject){ /* IE */
+		try{
+			xml_request = new ActiveXObject('Msxml2.XMLHTTP');
+		}catch(e){
+		try{
+			xml_request = new ActiveXObject('Microsoft.XMLHTTP');
+		}catch(e){}
+		}
+	}
+	if(!xml_request){
+		alert('Cannot create an XMLHTTP instance.');
+		return;
+	}
+
+	/* This function has no arguments. */
+	xml_request.onreadystatechange = function(){
+		if(xml_request.readyState != 4)
+			return;
+		if(xml_request.status != 200)
+			return;
+		func(xml_request);
+	}
+
+	if(data == null)
+		var method = 'GET';
+	else{
+		var method = 'POST';
+		xml_request.setRequestHeader('Content-Type',
+			'application/x-www-form-urlencoded');
+	}
+
+	/* xml_request.open(method, url, asynchronous) */
+	xml_request.open(method, url, true);
+
+	/* xml_request.send(POST data) */
+	/* required even if the method is not POST. */
+	xml_request.send(data);
+}
+
+/* http://forum.java.sun.com/thread.jspa?threadID=696590&tstart=105 */
+function ajax_responseXML(xml_request){
+	var xml = null;
+
+	if(window.ActiveXObject){ /* IE */
+		xml = document.createElement('div');
+		xml.innerHTML = xml_request.responseText;
+
+		/* Huidae Cho <http://geni.isnew.info> */
+		xml.getElementById = function(id){
+			for(var i = 0; i < this.childNodes.length; i++){
+				if(id == this.childNodes[i].id)
+					return this.childNodes[i];
+			}
+			return null;
+		}
+	}else
+	if(window.XMLHttpRequest){
+		xml = xml_request.responseXML;
+	}
+
+	return xml;
+}
+
+function process_menu(xml_request){
+	var items = xml_request.responseText.split(':');
+	var user = items[0];
+	var is_admin = items[1];
+	var has_read_access = items[2];
+	var has_write_access = items[3];
+
+	[].forEach.call(document.getElementsByClassName(
+			user == '' ? 'user' : 'visitor'),
+		function(el){
+			el.parentNode.removeChild(el);
+		});
+	if(is_admin == 0)
+		[].forEach.call(document.getElementsByClassName('admin'),
+			function(el){
+				el.parentNode.removeChild(el);
+			});
+	if(has_read_access == 0)
+		[].forEach.call(document.getElementsByClassName('read_access'),
+			function(el){
+				el.parentNode.removeChild(el);
+			});
+	if(has_write_access == 0)
+		[].forEach.call(document.getElementsByClassName('write_access'),
+			function(el){
+				el.parentNode.removeChild(el);
+			});
+
+	var menu = document.getElementById('menu');
+	var wikimenu = document.getElementById('wikimenu');
+	if(menu != null)
+		menu.style.display = 'block';
+	if(wikimenu != null)
+		wikimenu.style.display = 'block';
+}
+
+ajax_request('[[CGI]]?user_info', null, process_menu);
 EOT_UNIQKI
 	)
 }
@@ -2115,7 +2256,7 @@ sub authenticate_user{
 	clear_password_reset_token($reset_token);
 
 	$USER = $user;
-	$ADMIN = 1 if($group eq "admin");
+	$is_admin = 1 if($group eq "admin");
 }
 
 sub find_session_info{
@@ -2266,7 +2407,7 @@ sub handle_session{
 	$insecure_pw = 0 if($userpw ne substr $tmp_adminpw, 0, length($userpw));
 
 	$USER = $user;
-	$ADMIN = 1 if($group eq "admin");
+	$is_admin = 1 if($group eq "admin");
 }
 
 sub clear_password_reset_token{
@@ -3138,6 +3279,15 @@ if($QUERY_STRING eq "css"){
 # u.cgi?css			Print CSS
 	print_css(2);
 	exit;
+}elsif($QUERY_STRING eq "js"){
+#-------------------------------------------------------------------------------
+# u.cgi?js			Print JavaScript
+	print_js(2);
+	exit;
+}elsif($QUERY_STRING eq "user_info"){
+#-------------------------------------------------------------------------------
+# u.cgi?user_info		Print user information
+	exit_text("$USER:$is_admin:".has_read_access().":".has_write_access());
 }elsif($QUERY_STRING eq "forgot_password"){
 #-------------------------------------------------------------------------------
 # u.cgi?forgot_password		Forgot password
@@ -3378,7 +3528,7 @@ if($QUERY_STRING eq "css"){
 		local *FH;
 		open FH, $PASSWORD_FILE;
 		while(<FH>){
-			$admin++ if($ADMIN && m/^[^:]*:[^:]*:admin:/);
+			$admin++ if($is_admin && m/^[^:]*:[^:]*:admin:/);
 			if(m/^$USER:/){
 				$deleted = 1;
 				next;
@@ -4129,7 +4279,7 @@ EOT
 	lock_file("$PAGE.txt");
 	save($PAGE, "#!wiki\n$TEXT\n");
 	unlock_file("$PAGE.txt");
-}elsif(!$ADMIN){
+}elsif(!$is_admin){
 ################################################################################
 # Admin actions
 	exit_message("admin_actions_not_allowed");
@@ -4611,6 +4761,7 @@ EOT
 		print_wikiedit(1);
 		print_wikipreview(1);
 		print_css(1);
+		print_js(1);
 	}
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }elsif($PAGE eq ""){
