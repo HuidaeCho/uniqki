@@ -671,6 +671,78 @@ sub process_msg{
 	my $mode = shift;
 	my $msg = <<'EOT_UNIQKI';
 %MESSAGES = (
+################################################################################
+# Template messages: These messages don't support printf format specifiers such
+# as %s because there is no way to pass arguments to these messages from the
+# template.  However, [[DOC_BASE]] and [[PAGE]] tags can be used to generate
+# dynamic text.
+powered_by_uniqki => q(Powered by <a href="http://uniqki.isnew.info">Uniqki</a>!),
+
+username => q(Username),
+password => q(Password),
+logout_from_other_computers => q(Logout from other computers),
+view => q(View),
+
+manage_pages => q(Manage pages),
+backup => q(Backup),
+restore => q(Restore),
+
+manage_users => q(Manage users),
+add_user => q(Add user),
+update_user => q(Update user),
+block_user => q(Block user),
+unblock_user => q(Unblock user),
+delete_user => q(Delete user),
+email_address => q(Email address),
+non_admin => q(Non-admin),
+admin => q(Admin),
+dont_change => q(Don't change),
+type_password_again => q(Type password again),
+username_requirements => q(Username requirements: 4 or more letters (a-z, A-Z) and digits (0-9).),
+password_requirements => q(Password requirements: 8 or more characters with at least one letter (a-z, A-Z), one digit (0-9), and one special character excluding spaces and tabs.),
+leave_password_blank_for_email_notification => q(Leave the password field blank for an email notification with a temporary link for resetting the password.),
+
+manage_myself => q(Manage myself),
+update_myself => q(Update myself),
+delete_myself => q(Delete myself),
+
+forgot_password => q(Forgot password),
+enter_username_or_email_address => q(Please enter a username or an email address.),
+user_info_mismatch => q(User information mismatch!),
+email_address_not_found => q(%s: Email address not found.),
+user_blocked => q(%s: User blocked.),
+
+reset_password => q(Reset password),
+password_reset_token_expired => q(Password reset token expired.),
+password_reset_token_still_valid => q(You still have a valid password reset token. Please refer to the last email notification.),
+invalid_password_reset_token => q(Invalid password reset token.),
+password_reset_token_not_found => q(Password reset token not found.),
+
+refresh => q(Refresh),
+edit => q(Edit),
+index => q(Index),
+loginout => q(Loginout),
+login => q(Login),
+logout => q(Logout),
+diff => q(Diff),
+backlinks => q(Backlinks),
+xhtml => q(XHTML),
+css => q(CSS),
+
+preview => q(Preview),
+save => q(Save),
+upload => q(Upload),
+cancel => q(Cancel),
+
+page_updated => q([[PAGE]] updated!),
+save_your_changes_and_read_latest_version => q(Please save your changes and read <a href="[[DOC_BASE]]/[[PAGE]].html">the latest version</a>!),
+
+edit_page => q(Edit [[PAGE]]),
+wikiedit_page => q(WikiEdit [[PAGE]]),
+
+################################################################################
+# Non-template messages: These messages support printf format specifiers such
+# as %s, but [[...]] tags cannot be used.
 internal_errors => q(Internal errors),
 session_errors => q(Session errors),
 perl_module_not_installed => q(%s: Perl module not installed.),
@@ -751,70 +823,6 @@ current_version => q(The current version of page %s is %d.),
 file_uploaded => q(%s: File uploaded. Copy and paste the link below:<pre id="file_link_example">[[%s|%1$s]]</pre>),
 
 table_of_contents => q(Table of contents),
-
-powered_by_uniqki => q(Powered by <a href="http://uniqki.isnew.info">Uniqki</a>!),
-
-username => q(Username),
-password => q(Password),
-logout_from_other_computers => q(Logout from other computers),
-view => q(View),
-
-manage_pages => q(Manage pages),
-backup => q(Backup),
-restore => q(Restore),
-
-manage_users => q(Manage users),
-add_user => q(Add user),
-update_user => q(Update user),
-block_user => q(Block user),
-unblock_user => q(Unblock user),
-delete_user => q(Delete user),
-email_address => q(Email address),
-non_admin => q(Non-admin),
-admin => q(Admin),
-dont_change => q(Don't change),
-type_password_again => q(Type password again),
-username_requirements => q(Username requirements: 4 or more letters (a-z, A-Z) and digits (0-9).),
-password_requirements => q(Password requirements: 8 or more characters with at least one letter (a-z, A-Z), one digit (0-9), and one special character excluding spaces and tabs.),
-leave_password_blank_for_email_notification => q(Leave the password field blank for an email notification with a temporary link for resetting the password.),
-
-manage_myself => q(Manage myself),
-update_myself => q(Update myself),
-delete_myself => q(Delete myself),
-
-forgot_password => q(Forgot password),
-enter_username_or_email_address => q(Please enter a username or an email address.),
-user_info_mismatch => q(User information mismatch!),
-email_address_not_found => q(%s: Email address not found.),
-user_blocked => q(%s: User blocked.),
-
-reset_password => q(Reset password),
-password_reset_token_expired => q(Password reset token expired.),
-password_reset_token_still_valid => q(You still have a valid password reset token. Please refer to the last email notification.),
-invalid_password_reset_token => q(Invalid password reset token.),
-password_reset_token_not_found => q(Password reset token not found.),
-
-refresh => q(Refresh),
-edit => q(Edit),
-index => q(Index),
-loginout => q(Loginout),
-login => q(Login),
-logout => q(Logout),
-diff => q(Diff),
-backlinks => q(Backlinks),
-xhtml => q(XHTML),
-css => q(CSS),
-
-preview => q(Preview),
-save => q(Save),
-upload => q(Upload),
-cancel => q(Cancel),
-
-updated => q(updated!),
-save_your_changes_and_read_latest_version => q(Please save your changes and read <a href="[[DOC_BASE]]/[[PAGE]].html">the latest version</a>!),
-
-edit_page => q(Edit [[PAGE]]),
-wikiedit_page => q(WikiEdit [[PAGE]]),
 );
 EOT_UNIQKI
 	my $file = $MESSAGES_FILE eq "" ? "u.msg" : $MESSAGES_FILE;
@@ -1295,7 +1303,7 @@ sub print_updated{
 	process_tpl("updated.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
 <div id="updated">
-<h1>[[PAGE]] [[updated]]</h1>
+<h1>[[page_updated]]</h1>
 [[save_your_changes_and_read_latest_version]]
 <br />
 <textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
