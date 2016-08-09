@@ -960,7 +960,7 @@ sub print_header{
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="stylesheet" type="text/css" href="[[CGI]]?css" />
 <link rel="alternate" type="application/rss+xml" title="[[recent_changes]]" href="[[CGI]]?rss" />
-<script src="[[CGI]]?js"></script>
+<script src="[[CGI]]/[[PAGE]]?js"></script>
 </head>
 <body>
 <div id="container">
@@ -1673,7 +1673,7 @@ function process_menu(xml_request){
 		wikimenu.style.display = 'block';
 }
 
-ajax_request('[[CGI]]?user_info', null, process_menu);
+ajax_request('[[CGI]]/[[PAGE]]?user_info', null, process_menu);
 EOT_UNIQKI
 	)
 }
