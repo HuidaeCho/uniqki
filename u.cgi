@@ -124,6 +124,18 @@ $CONTENT_LENGTH = $ENV{CONTENT_LENGTH};
 
 ################################################################################
 # Useful variables
+# Supported URLs:
+# u.cgi outside cgi-bin: $doc_root = ""
+# * https?://host/~user/dir/u.cgi/page/path/to/file?query
+#   * CGI: u.cgi
+#   * DOC_BASE: https?://host/~user/dir
+# u.cgi inside cgi-bin: $doc_root != ""
+# * https?://host/~user/cgi-bin/u.cgi/page/path/to/file?query
+#   * CGI: /~user/cgi-bin/u.cgi
+#   * DOC_BASE: https?://host/~user/doc_root
+# * HTTP_BASE: https?://host
+# * PAGE: page
+# * FILE: path/to/file
 $CGI = $SCRIPT_NAME;
 $HTTP_BASE = ($HTTPS eq "on" ? "https" : "http")."://$HTTP_HOST";
 $DOC_BASE = "$HTTP_BASE$CGI"; $DOC_BASE =~ s#/[^/]*$##;
@@ -674,8 +686,7 @@ sub process_msg{
 ################################################################################
 # Template messages: These messages don't support printf format specifiers such
 # as %s because there is no way to pass arguments to these messages from the
-# template.  However, [[DOC_BASE]] and [[PAGE]] tags can be used to generate
-# dynamic text.
+# template.  However, the [[PAGE]] tag can be used to generate dynamic text.
 powered_by_uniqki => q(Powered by <a href="http://uniqki.isnew.info">Uniqki</a>!),
 
 username => q(Username),
@@ -735,7 +746,7 @@ upload => q(Upload),
 cancel => q(Cancel),
 
 page_updated => q([[PAGE]] updated!),
-save_your_changes_and_read_latest_version => q(Please save your changes and read <a href="[[DOC_BASE]]/[[PAGE]].html">the latest version</a>!),
+save_your_changes_and_read_latest_version => q(Please save your changes and read <a href="[[PAGE]].html">the latest version</a>!),
 
 edit_page => q(Edit [[PAGE]]),
 wikiedit_page => q(WikiEdit [[PAGE]]),
@@ -911,7 +922,7 @@ sub process_tpl_tag{
 		$txt = $$tag if(exists $hash{$tag});
 	}elsif($tag =~ m/^[a-z_]+$/){
 		$txt = get_msg($tag);
-		$txt =~ s/\[\[(DOC_BASE|PAGE)\]\]/@{[process_tpl_tag($1)]}/g;
+		$txt =~ s/\[\[PAGE\]\]/$PAGE/g;
 	}
 	close FH; select $fh;
 	chomp $txt;
@@ -1014,8 +1025,8 @@ sub print_login{
 </div>
 <hr />
 <div id="menu">
-<span class="read-access"><a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .</span>
-<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a>
+<span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
+<a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 </div>
 [[FOOTER]]
 EOT_UNIQKI
@@ -1039,8 +1050,8 @@ sub print_manage_pages{
 </div>
 <hr />
 <div id="menu">
-<span class="read-access"><a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .</span>
-<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a> .
+<span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
+<a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
 </div>
 [[FOOTER]]
@@ -1121,8 +1132,8 @@ sub print_manage_users{
 </div>
 <hr />
 <div id="menu">
-<span class="read-access"><a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .</span>
-<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a> .
+<span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
+<a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
 </div>
 [[FOOTER]]
@@ -1158,8 +1169,8 @@ sub print_manage_myself{
 </div>
 <hr />
 <div id="menu">
-<span class="read-access"><a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .</span>
-<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a> .
+<span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
+<a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
 </div>
 [[FOOTER]]
@@ -1183,8 +1194,8 @@ sub print_forgot_password{
 </div>
 <hr />
 <div id="menu">
-<span class="read-access"><a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .</span>
-<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a>
+<span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
+<a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 </div>
 [[FOOTER]]
 EOT_UNIQKI
@@ -1209,8 +1220,8 @@ sub print_reset_password{
 </div>
 <hr />
 <div id="menu">
-<span class="read-access"><a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .</span>
-<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a>
+<span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
+<a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 </div>
 [[FOOTER]]
 EOT_UNIQKI
@@ -1225,7 +1236,7 @@ sub print_message{
 </div>
 <hr />
 <div id="menu">
-<span class="read-access"><a accesskey="v" href="[[DOC_BASE]]/[[PAGE]].html">[[view]]</a> .</span>
+<span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a class="visitor" accesskey="l" href="[[PAGE]]?login">[[login]]</a>
 <a class="user" accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
@@ -1277,8 +1288,8 @@ sub print_edit{
 <input accesskey="p" type="submit" id="preview" name="preview" value="[[preview]]" />
 <input accesskey="s" type="submit" id="save" name="save" value="[[save]]" /> .
 [[upload]] <input accesskey="u" type="file" id="file" name="file" /> .
-<a accesskey="c" href="[[DOC_BASE]]/[[PAGE]].html">[[cancel]]</a> .
-<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a>
+<a accesskey="c" href="[[PAGE]].html">[[cancel]]</a> .
+<a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 </div>
 </form>
 </div>
@@ -1354,8 +1365,8 @@ sub print_wikiedit{
 <input accesskey="p" type="submit" id="preview" name="preview" value="[[preview]]" />
 <input accesskey="s" type="submit" id="save" name="save" value="[[save]]" /> .
 [[upload]] <input accesskey="u" type="file" id="file" name="file" /> .
-<a accesskey="c" href="[[DOC_BASE]]/[[PAGE]].html">[[cancel]]</a> .
-<a accesskey="i" href="[[DOC_BASE]]/[[INDEX_PAGE]].html">[[index]]</a>
+<a accesskey="c" href="[[PAGE]].html">[[cancel]]</a> .
+<a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 </div>
 </form>
 </div>
