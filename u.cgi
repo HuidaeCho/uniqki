@@ -2790,7 +2790,7 @@ sub parse_line{
 		}
 		if(m/\n/){
 			local $re_i_start = $re_i;
-			my @lines = split /\n/, $_, -1; $#lines--;
+			my @lines = split /\n/, $_, -1;
 			$parse_line->($_) foreach(@lines);
 			return;
 		}
