@@ -194,7 +194,7 @@ process_msg();
 ################################################################################
 # Initialization
 $USER = "";
-my $is_admin = 0;
+my $admin = 0;
 my $header_printed = 0;
 my $footer_printed = 0;
 my $rebuild = 0;
@@ -469,7 +469,7 @@ sub is_logged_in{
 }
 
 sub has_read_access{
-	return 1 if($is_admin);
+	return 1 if($admin);
 	if($wiki){
 		return 1 if($wiki_read_access eq "open");
 		return 1 if($wiki_read_access eq "closed" && is_logged_in());
@@ -481,7 +481,7 @@ sub has_read_access{
 }
 
 sub has_write_access{
-	return 1 if($is_admin);
+	return 1 if($admin);
 	return 0 unless($wiki);
 	return 1 if($wiki_write_access eq "open");
 	return 1 if($wiki_write_access eq "closed" && is_logged_in());
@@ -1640,7 +1640,7 @@ function ajax_responseXML(xml_request){
 function process_menu(xml_request){
 	var items = xml_request.responseText.split(':');
 	var user = items[0];
-	var is_admin = items[1];
+	var admin = items[1];
 	var has_read_access = items[2];
 	var has_write_access = items[3];
 
@@ -1649,7 +1649,7 @@ function process_menu(xml_request){
 		function(el){
 			el.parentNode.removeChild(el);
 		});
-	if(is_admin == 0)
+	if(admin == 0)
 		[].forEach.call(document.getElementsByClassName('admin'),
 			function(el){
 				el.parentNode.removeChild(el);
@@ -2271,7 +2271,7 @@ sub authenticate_user{
 	clear_password_reset_token($reset_token);
 
 	$USER = $user;
-	$is_admin = 1 if($group eq "admin");
+	$admin = 1 if($group eq "admin");
 }
 
 sub find_session_info{
@@ -2422,7 +2422,7 @@ sub handle_session{
 	$insecure_pw = 0 if($userpw ne substr $tmp_adminpw, 0, length($userpw));
 
 	$USER = $user;
-	$is_admin = 1 if($group eq "admin");
+	$admin = 1 if($group eq "admin");
 }
 
 sub clear_password_reset_token{
@@ -3302,7 +3302,7 @@ if($QUERY_STRING eq "css"){
 }elsif($QUERY_STRING eq "user_info"){
 #-------------------------------------------------------------------------------
 # u.cgi?user_info		Print user information
-	exit_text("$USER:$is_admin:".has_read_access().":".has_write_access());
+	exit_text("$USER:$admin:".has_read_access().":".has_write_access());
 }elsif($QUERY_STRING eq "forgot_password"){
 #-------------------------------------------------------------------------------
 # u.cgi?forgot_password		Forgot password
@@ -3536,14 +3536,14 @@ if($QUERY_STRING eq "css"){
 # u.cgi/PAGE?delete_myself	Delete myself
 	my $new_pw = "";
 	my $deleted = 0;
-	my $admin = 0;
+	my $nadmins = 0;
 
 	lock_file($PASSWORD_FILE);
 	if(-f $PASSWORD_FILE){
 		local *FH;
 		open FH, $PASSWORD_FILE;
 		while(<FH>){
-			$admin++ if($is_admin && m/^[^:]*:[^:]*:admin:/);
+			$nadmins++ if($admin && m/^[^:]*:[^:]*:admin:/);
 			if(m/^$USER:/){
 				$deleted = 1;
 				next;
@@ -3556,7 +3556,7 @@ if($QUERY_STRING eq "css"){
 	exit_message("internal_errors") unless($deleted);
 
 	# You cannot delete yourself when you are the only admin.
-	exit_message("cannot_delete_only_admin") if($admin == 1);
+	exit_message("cannot_delete_only_admin") if($nadmins == 1);
 
 	clear_sessions($USER);
 
@@ -4292,7 +4292,7 @@ EOT
 	lock_file("$PAGE.txt");
 	save($PAGE, "#!wiki\n$TEXT\n");
 	unlock_file("$PAGE.txt");
-}elsif(!$is_admin){
+}elsif(!$admin){
 ################################################################################
 # Admin actions
 	exit_message("admin_actions_not_allowed");
