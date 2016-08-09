@@ -362,9 +362,8 @@ sub escape_comment{
 
 sub escape_inline_syntax{
 	my $code = shift;
-	$code =~ s#([{"/*'-_|\[])\1#$1\x00$1#g;
+	$code =~ s#([{"/*'_!\[-]|$protocol)#\x00$1#ogi;
 	$code =~ s/\x00([&<>])/$1/g;
-	$code =~ s/($protocol)/\x00$1/ogi;
 	return $code;
 }
 
@@ -1235,21 +1234,23 @@ sub print_view{
 	process_tpl("view.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
 <div id="view">
+<!-- start text -->
 [[TEXT]]
+<!-- end text -->
 </div>
-<!-- # --><hr />
-<!-- # --><div id="menu">
-<!-- # --><a accesskey="r" href="[[CGI]]/[[PAGE]]?refresh">[[refresh]]</a> .
-<!-- # --><span class="write-access"><a accesskey="e" href="[[CGI]]/[[PAGE]]?edit">[[edit]]</a> .</span>
-<!-- # --><a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
-<!-- # --><a class="visitor" accesskey="l" href="[[CGI]]/[[PAGE]]?login">[[login]]</a>
-<!-- # --><a class="user" accesskey="l" href="[[CGI]]/[[PAGE]]?logout">[[logout]]</a>
-<!-- # --></div>
-<!-- # --><div id="timestamp">
-<!-- # -->[[TIME]] .
-<!-- # --><a href="https://validator.w3.org/check?uri=referer">[[xhtml]]</a> .
-<!-- # --><a href="https://jigsaw.w3.org/css-validator/check/referer">[[css]]</a>
-<!-- # --></div>
+<hr />
+<div id="menu">
+<a accesskey="r" href="[[CGI]]/[[PAGE]]?refresh">[[refresh]]</a> .
+<span class="write-access"><a accesskey="e" href="[[CGI]]/[[PAGE]]?edit">[[edit]]</a> .</span>
+<a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
+<a class="visitor" accesskey="l" href="[[CGI]]/[[PAGE]]?login">[[login]]</a>
+<a class="user" accesskey="l" href="[[CGI]]/[[PAGE]]?logout">[[logout]]</a>
+</div>
+<div id="timestamp">
+[[TIME]] .
+<a href="https://validator.w3.org/check?uri=referer">[[xhtml]]</a> .
+<a href="https://jigsaw.w3.org/css-validator/check/referer">[[css]]</a>
+</div>
 [[FOOTER]]
 EOT_UNIQKI
 	)
@@ -1311,21 +1312,23 @@ sub print_wikiview{
 	process_tpl("wikiview.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
 <div id="wikiview">
+<!-- start text -->
 [[TEXT]]
+<!-- end text -->
 </div>
-<!-- # --><div id="wikimenu">
-<!-- # --><span class="write-access"><a accesskey="e" href="[[CGI]]/[[PAGE]]?wikiedit">[[edit]]</a> .</span>
-<!-- # --><span class="read-access"><a accesskey="d" href="[[CGI]]/[[PAGE]]?diff=-1">[[diff]]</a> .
-<!-- # --><a accesskey="l" href="[[CGI]]?search=[[PAGE]]%5C.html&amp;link=1">[[backlinks]]</a> .</span>
-<!-- # --><a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
-<!-- # --><a class="visitor" accesskey="l" href="[[CGI]]/[[PAGE]]?login">[[login]]</a>
-<!-- # --><a class="user" accesskey="l" href="[[CGI]]/[[PAGE]]?logout">[[logout]]</a>
-<!-- # --></div>
-<!-- # --><div id="timestamp">
-<!-- # -->[[TIME]] .
-<!-- # --><a href="https://validator.w3.org/check?uri=referer">[[xhtml]]</a> .
-<!-- # --><a href="https://jigsaw.w3.org/css-validator/check/referer">[[css]]</a>
-<!-- # --></div>
+<div id="wikimenu">
+<span class="write-access"><a accesskey="e" href="[[CGI]]/[[PAGE]]?wikiedit">[[edit]]</a> .</span>
+<span class="read-access"><a accesskey="d" href="[[CGI]]/[[PAGE]]?diff=-1">[[diff]]</a> .
+<a accesskey="l" href="[[CGI]]?search=[[PAGE]]%5C.html&amp;link=1">[[backlinks]]</a> .</span>
+<a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
+<a class="visitor" accesskey="l" href="[[CGI]]/[[PAGE]]?login">[[login]]</a>
+<a class="user" accesskey="l" href="[[CGI]]/[[PAGE]]?logout">[[logout]]</a>
+</div>
+<div id="timestamp">
+[[TIME]] .
+<a href="https://validator.w3.org/check?uri=referer">[[xhtml]]</a> .
+<a href="https://jigsaw.w3.org/css-validator/check/referer">[[css]]</a>
+</div>
 [[FOOTER]]
 EOT_UNIQKI
 	)
@@ -1724,8 +1727,8 @@ sub lcs{
 }
 
 sub diff{
-	my @line0 = split /\n/, $_[0], -1;
-	my @line1 = split /\n/, $_[1], -1;
+	my @line0 = split /\n/, $_[0], -1; $#line0--;
+	my @line1 = split /\n/, $_[1], -1; $#line1--;
 	my ($s, @delta) = lcs(\@line0, \@line1);
 	my ($m, $n) = ($s, $s);
 	my $diff = "";
@@ -1746,7 +1749,7 @@ sub diff{
 }
 
 sub patch{
-	my @line0 = split /\n/, $_[0], -1;
+	my @line0 = split /\n/, $_[0], -1; $#line0--;
 	my @lined = split /\n/, $_[1];
 	my $line0p = "";
 	for(my $i=0; $i<=$#lined; $i++){
@@ -1771,35 +1774,47 @@ sub patch{
 }
 
 sub save{
-	local *FH;
 	my ($PAGE, $TEXT) = @_;
+
+	my $version = 1;
+	my $txtv;
+	local *FH;
+
 	if(-f "$PAGE.txt"){
-		my $version = 0;
-		my $txtv = "";
 		if(open FH, "$PAGE.txt.v"){
 			my $line = <FH>;
-			{
-				local $/ = undef;
-				$txtv = $line.<FH>;
-			}
+			local $/ = undef;
+			$txtv = $line.<FH>;
 			close FH;
 			my @items = split /:/, $line;
 			$version = $items[0];
+		}else{
+			my $time = (stat "$PAGE.txt")[9];
+			$txtv = "$version:?:$time\n";
 		}
-		local $/ = undef;
 		open FH, "$PAGE.txt";
+		local $/ = undef;
 		my $text = <FH>;
 		close FH;
+
 		my $diff = diff($TEXT, $text);
-		if($diff ne ""){
-			$version++;
-			my $time = time;
-			$txtv = "$version:$USER:$time\n$diff\x00\n$txtv";
-			open FH, ">$PAGE.txt.v";
-			print FH $txtv;
-			close FH;
+		if($diff eq ""){
+			$rebuild = 1;
+			return;
 		}
+
+		$version++;
+		my $time = time;
+		$txtv = "$version:$USER:$time\n$diff\x00\n$txtv";
+	}else{
+		my $time = time;
+		$txtv = "$version:$USER:$time\n";
 	}
+
+	open FH, ">$PAGE.txt.v";
+	print FH $txtv;
+	close FH;
+
 	if(open FH, ">$PAGE.txt"){
 		print FH $TEXT;
 		close FH;
@@ -1814,7 +1829,7 @@ sub get_version{
 	if(open FH, "$PAGE.txt.v"){
 		my @items = split /:/, <FH>;
 		close FH;
-		$version = $items[0] + 1;
+		$version = $items[0];
 		exit_message("internal_errors") unless(-f "$PAGE.txt");
 	}elsif(-f "$PAGE.txt"){
 		$version = 1;
@@ -2702,9 +2717,10 @@ sub parse_text{
 		$parse_line->($_) while(<UNIQKI_FH>);
 		close UNIQKI_FH;
 	}
-	foreach my $line (split /\n/, $txt){
-		$parse_line->($line);
-	}
+
+	my @lines = split /\n/, $txt, -1; $#lines--;
+	$parse_line->($_) foreach(@lines);
+
 	if($footer_file ne "" && open UNIQKI_FH, "<", $footer_file){
 		$parse_line->($_) while(<UNIQKI_FH>);
 		close UNIQKI_FH;
@@ -2721,9 +2737,8 @@ sub parse_block{
 
 	$parse_line = \&parse_line unless(defined($parse_line));
 
-	foreach my $line (split /\n/, $txt){
-		$parse_line->($line);
-	}
+	my @lines = split /\n/, $txt, -1; $#lines--;
+	$parse_line->($_) foreach(@lines);
 
 	return $text;
 }
@@ -2775,8 +2790,8 @@ sub parse_line{
 		}
 		if(m/\n/){
 			local $re_i_start = $re_i;
-			my @i = split /\n/, $_, -1;
-			$parse_line->($_) foreach(@i);
+			my @lines = split /\n/, $_, -1; $#lines--;
+			$parse_line->($_) foreach(@lines);
 			return;
 		}
 	}
@@ -2960,7 +2975,7 @@ sub parse_line{
 	s#''(.*?)''#<code>$1</code>#g;
 	s#--(.*?)--#<s>$1</s>#g;
 	s#__(.*?)__#<u>$1</u>#g;
-	s#\|\|(.*?)\|\|#<mark>$1</mark>#g;
+	s#\!\!(.*?)\!\!#<mark>$1</mark>#g;
 	# Percent-encode links inside tags
 	s#(<[^>]*)(.)((?:$protocol)[^\2]*?)(\2[^>]*>)#$1$2@{[encode_url($3)]}$4#ogi;
 	# Protect protocols inside a tag
@@ -3631,15 +3646,15 @@ if($QUERY_STRING eq "css"){
 	while(<FH>){
 		m/^([0-9]+):.*?\n(.*)\x00\n$/s;
 		$text = patch($text, $2);
-		last if($version == $1);
+		last if($version == $1 - 1);
 	}
 	close FH;
 
 	print_header();
 	print qq(<div id="diff">\n<h1>$title</h1>\n);
 
-	my @line0 = split /\n/, $text, -1;
-	my @line1 = split /\n/, $current_text, -1;
+	my @line0 = split /\n/, $text, -1; $#line0--;
+	my @line1 = split /\n/, $current_text, -1; $#line1--;
 	my ($s, @delta) = lcs(\@line0, \@line1);
 	my $m = $s;
 	my $n;
@@ -3661,8 +3676,8 @@ if($QUERY_STRING eq "css"){
 					$l0 = decode($CHARSET, $l0);
 					$l1 = decode($CHARSET, $l1);
 				}
-				my @l0 = split //, $l0, -1;
-				my @l1 = split //, $l1, -1;
+				my @l0 = split //, $l0, -1; $#l0--;
+				my @l1 = split //, $l1, -1; $#l1--;
 				my ($is, @idelta) = lcs(\@l0, \@l1);
 				my $im = $is;
 				my $in;
@@ -3889,10 +3904,8 @@ EOT
 		my $txt = <FH>;
 		close FH;
 		$txt =~ s/\r//g;
-		$txt =~ s#^.*<body[^>]*>##si;
-		$txt =~ s#</body>.*$##si;
-		my $has_more = ($txt =~ s/<!-- #more -->.*$//s);
-		$txt =~ s/<!-- # -->.*//g;
+		$txt =~ s/^.*<!-- start text -->|<!-- end text -->.*$//si;
+		my $has_more = ($txt =~ s/<!-- more -->.*$//s);
 		my $title;
 		if($txt =~ m#<h1[^>]*>(.+?)</h1>(.*)$#si){
 			$title = $1;
@@ -4188,7 +4201,7 @@ EOT
 			while(<FH>){
 				m/^([0-9]+):.*?\n(.*)\x00\n$/s;
 				$TEXT = patch($TEXT, $2);
-				last if($backversion == $1);
+				last if($backversion == $1 - 1);
 			}
 			close FH;
 			if("#!wiki\n" ne substr $TEXT, 0, 7){
@@ -4822,7 +4835,7 @@ EOT
 				while(<FH>){
 					m/^([0-9]+):.*?\n(.*)\x00\n$/s;
 					$TEXT = patch($TEXT, $2);
-					last if($version == $1);
+					last if($version == $1 - 1);
 				}
 				close FH;
 			}
@@ -4889,25 +4902,30 @@ EOT
 		while(<FH>){
 			m/^([0-9]+):.*?\n(.*)\x00\n$/s;
 			$text = patch($text, $2);
-			if($version == $1){
+			if($version == $1 - 1){
 				$rebuild = 1;
 				last;
 			}
 		}
 		if($rebuild){
+			local $/ = "\n";
+			my $line = <FH>;
 			local $/ = undef;
-			my $txtv = <FH>;
+			my $txtv = $line.<FH>;
 			close FH;
+
+			open FH, ">$PAGE.txt.v";
+			print FH $txtv;
+			close FH;
+
+			my @items = split /:/, $line;
+			my $time = $items[2];
+
 			open FH, ">$PAGE.txt";
 			print FH $text;
 			close FH;
-			if($txtv eq ""){
-				unlink "$PAGE.txt.v";
-			}else{
-				open FH, ">$PAGE.txt.v";
-				print FH $txtv;
-				close FH;
-			}
+
+			utime $time, $time, "$PAGE.txt";
 		}else{
 			close FH;
 		}
