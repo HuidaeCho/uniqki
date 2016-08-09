@@ -1652,12 +1652,12 @@ function process_menu(xml_request){
 				el.parentNode.removeChild(el);
 			});
 	if(has_read_access == 0)
-		[].forEach.call(document.getElementsByClassName('read_access'),
+		[].forEach.call(document.getElementsByClassName('read-access'),
 			function(el){
 				el.parentNode.removeChild(el);
 			});
 	if(has_write_access == 0)
-		[].forEach.call(document.getElementsByClassName('write_access'),
+		[].forEach.call(document.getElementsByClassName('write-access'),
 			function(el){
 				el.parentNode.removeChild(el);
 			});
