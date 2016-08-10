@@ -2879,7 +2879,7 @@ sub parse_line{
 		return;
 	}
 	# Register regular expressions
-	if(m/^#regex (.)([^\1]+)(?<!\\)\1([^\1]*)(?<!\\)\1$/){
+	if(m/^#regex (.)(.+)(?<!\\)\1(.*)(?<!\\)\1$/){
 		# In regex, \x00 can be used as an escape character.
 		# \x00& => &, \x00< => <, \x00> => >
 
@@ -2903,7 +2903,7 @@ sub parse_line{
 		return;
 	}
 	# Clear regular expressions
-	if(m/^#noregex(?:| (.)([^\1]+)\1)$/){
+	if(m/^#noregex(?:| (.)(.+)(?<!\\)\1)$/){
 		if($2 eq ""){
 			$re_i = 0;
 			$#re = $#re_sub = -1;
@@ -2996,7 +2996,7 @@ sub parse_line{
 	s#__(.*?)__#<u>$1</u>#g;
 	s#\!\!(.*?)\!\!#<mark>$1</mark>#g;
 	# Percent-encode links inside tags
-	s#(<[^>]*)(.)((?:$protocol)[^\2]*?)(\2[^>]*>)#$1$2@{[encode_url($3)]}$4#ogi;
+	s#(<[^>]*)(.)((?:$protocol).*?)(\2[^>]*>)#$1$2@{[encode_url($3)]}$4#ogi;
 	# Protect protocols inside a tag
 	s#(<[^>]*)((?:$protocol)[^>]*>)#$1\x00$2#ogi;
 	# Protect protocols outside a tag
