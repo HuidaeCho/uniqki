@@ -76,7 +76,7 @@ use vars qw(
 use vars qw(
 	$SITE_TITLE $SITE_DESCRIPTION $INDEX_PAGE $LANG $CHARSET $LOCALE
 	$TIME_ZONE $TIME_FORMAT
-	$LOGIN_TO_SUBDOMAINS $LOGIN_PATHS
+	$SHARE_COOKIES
 	$PASSWORD_FILE $SESSIONS_FILE $MESSAGES_FILE $TEMPLATE_DIRECTORY
 	$PAGE_NAME_STYLE
 	$INACTIVE_TIMEOUT $SET_PASSWORD_TIMEOUT $RESET_PASSWORD_TIMEOUT
@@ -216,11 +216,7 @@ my $sessions_file = $SESSIONS_FILE eq "" ? ".sessions" : $SESSIONS_FILE;
 my $debug_started = 0;
 my $html_started = 0;
 my %locked_files = ();
-(my $script_dir = $SCRIPT_NAME) =~ s#[^/]*$##;
-my $cookie_domain_path = ($LOGIN_TO_SUBDOMAINS ? "domain=$HTTP_HOST; " : "");
-$cookie_domain_path .= ($LOGIN_PATHS eq "all" ? "path=/" :
-	($LOGIN_PATHS eq "subpaths" && $doc_root eq "" ?
-		"path=$script_dir" : "path=$SCRIPT_NAME"));
+my $cookie_domain_path = get_cookie_domain_path();
 
 ################################################################################
 # Non-user-replaceable subroutines
@@ -553,15 +549,30 @@ $TIME_ZONE = '';
 # Time format interpreted by the POSIX::strftime function
 $TIME_FORMAT = '%a %b %e %H:%M:%S %Y';
 
-# Login to subdomains: Subdomains have to use the password and sessions files
-# in the parent domain to share login sessions.
-$LOGIN_TO_SUBDOMAINS = 0;
-
-# Login paths: exact, subpaths, all.  Specified paths have to use the password
-# and sessions files in the current path to share login sessions.  Subpaths
-# does not work with $doc_root because the script and document directories are
-# different.
-$LOGIN_PATHS = 'exact';
+# Share cookies: [subdomains:][EMPTY|subpaths|all_paths]
+# * subdomains: http://example.com/u.cgi shares cookies with
+# 		http://www.example.com.
+# * EMPTY: http://example.com/path1/u.cgi does not share cookies with
+#	   http://example.com/u.cgi, http://example.com/path2/u.cgi, nor
+#	   http://example.com/path1/subpath1/u.cgi.
+# * subpaths: http://example.com/path1/u.cgi shares cookies with
+# 	      http://example.com/path1/subpath1/u.cgi, but not with
+# 	      http://example.com/u.cgi nor http://example.com/path2/u.cgi.
+# * all_paths: http://example.com/path1/u.cgi shares cookies with
+#	       http://example.com/u.cgi, http://example.com/path2/u.cgi, and
+#	       http://example.com/path1/subpath1/u.cgi.
+#
+# It is possible to combine subdomains and one of EMPTY, subpaths, and
+# all_paths.  For example,
+# * subdomains:all_paths: http://example.com/path1/u.cgi shares cookies with
+#			  http://www.example.com/u.cgi.
+#
+# An empty setting '' means that cookies are not shared with other subdomains
+# nor paths.  Subdomains and specified paths have to use the password and
+# sessions files in the current domain and path to share login sessions.
+# Subpaths does not work with $doc_root because the script and document
+# directories are different.
+$SHARE_COOKIES = '';
 
 # WARNING: Make sure to protect these files and directories from the user using
 # the following directives in .htaccess:
@@ -582,19 +593,19 @@ $MESSAGES_FILE = 'u.msg';
 $TEMPLATE_DIRECTORY = 'u.tpl';
 
 # Page name style: case[:hyphens|:underscores|:no_spaces]
-# lower_case (default): All lower case (e.g., page in a uniqki site)
-# upper_case: All upper case (e.g., PAGE IN A UNIQKI SITE)
-# mixed_case: No special handling of letter case (e.g., Page in a Uniqki site)
-# start_case: Start case (e.g., Page In A Uniqki Site)
-# lower_camel_case: Lower camel case (e.g., pageInAUniqkiSite)
-# upper_camel_case: Upper camel case (e.g., PageInAUniqkiSite)
+# * lower_case (default): All lower case (e.g., page in a uniqki site)
+# * upper_case: All upper case (e.g., PAGE IN A UNIQKI SITE)
+# * mixed_case: No special handling of letter case (e.g., Page in a Uniqki site)
+# * start_case: Start case (e.g., Page In A Uniqki Site)
+# * lower_camel_case: Lower camel case (e.g., pageInAUniqkiSite)
+# * upper_camel_case: Upper camel case (e.g., PageInAUniqkiSite)
 #
 # Optionally
-# hyphens (default): Replace a series of whitespaces with a hyphen
-# underscores: Replace a series of whitespaces with an underscore
-# no_spaces: Remove whitespaces.  The lower_camel_case and upper_camel_case
-# 	     styles imply this option.  For example, upper_camel_case is the
-# 	     same as start_case:no_spaces.
+# * hyphens (default): Replace a series of whitespaces with a hyphen
+# * underscores: Replace a series of whitespaces with an underscore
+# * no_spaces: Remove whitespaces.  The lower_camel_case and upper_camel_case
+# 	       styles imply this option.  For example, upper_camel_case is the
+# 	       same as start_case:no_spaces.
 #
 # The following special characters will be removed before a case conversion.
 # Forbidden characters in file names: `~!@#$%^&*+=\|;:'",/?()[]{}<>
@@ -628,14 +639,14 @@ $EMAIL_ADDRESS = '';
 $SMTP = '';
 
 # Read access control
-# open: Opens both non-wiki and wiki pages to the public and anyone will be
-# 	able to read those pages with or without a login.
-# closed: Requires a login to perform any read actions including search, diff,
-# 	  etc.  In addition, the following directives in .htaccess will prevent
-# 	  direct access to *.html files, effectively making the entire site
-# 	  read-secured.
-# admin: Allows only admin users access to non-wiki and wiki pages.  The
-# 	 .htaccess directives are required.
+# * open: Opens both non-wiki and wiki pages to the public and anyone will be
+# 	  able to read those pages with or without a login.
+# * closed: Requires a login to perform any read actions including search, diff,
+#	    etc.  In addition, the following directives in .htaccess will
+#	    prevent direct access to *.html files, effectively making the
+#	    entire site read-secured.
+# * admin: Allows only admin users access to non-wiki and wiki pages.  The
+#	   .htaccess directives are required.
 #
 # Non-wiki and wiki pages can have different settings separated by a colon.
 # For example, closed:open means closed non-wiki and open wiki pages.  One
@@ -652,9 +663,9 @@ $SMTP = '';
 $READ_ACCESS = 'open';
 
 # Write access control
-# open: Allows anyone to edit or create wiki pages with or without a login.
-# closed: Requires a login to edit or create wiki pages.
-# admin: Requires admin rights to edit or create wiki pages.
+# * open: Allows anyone to edit or create wiki pages with or without a login.
+# * closed: Requires a login to edit or create wiki pages.
+# * admin: Requires admin rights to edit or create wiki pages.
 #
 # Creating new wiki pages also depends on $WIKI_ALLOWED_PAGES.  For security
 # reasons, non-wiki pages are writable only by admin users and this variable
@@ -2037,6 +2048,23 @@ sub get_var{
 		}
 	}
 	return %var;
+}
+
+sub get_cookie_domain_path{
+	(my $script_dir = $SCRIPT_NAME) =~ s#[^/]*$##;
+	my $subdomains = 0;
+	my $paths = "";
+	foreach my $item (split /:/, $SHARE_COOKIES){
+		if($item eq "subdomains"){
+			$subdomains = 1;
+		}elsif($item eq "subpaths" || $item eq "all_paths"){
+			$paths = $item;
+		}
+	}
+	return ($subdomains ? "domain=$HTTP_HOST; " : "").
+		($paths eq "all_paths" ? "path=/" :
+			($paths eq "subpaths" && $doc_root eq "" ?
+				"path=$script_dir" : "path=$SCRIPT_NAME"));
 }
 
 sub set_cookie{
