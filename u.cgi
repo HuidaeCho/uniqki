@@ -2880,12 +2880,6 @@ sub parse_line{
 	}
 	# Register regular expressions
 	if(m/^#regex (.)(.+)(?<!\\)\1(.*)(?<!\\)\1$/){
-		# In regex, \x00 can be used as an escape character.
-		# \x00& => &, \x00< => <, \x00> => >
-
-		# Don't allow delimiters
-		return if(index($2, "\x1e") != -1 || index($3, "\x1e") != -1);
-
 		# Don't allow code embedding in a wiki page
 		return if($wiki && (index($2, '(?{') != -1 ||
 			  	    index($2, '(??{') != -1 ||
@@ -2897,7 +2891,9 @@ sub parse_line{
 		}
 		$re[$re_i++] = $2 if($i == $re_i);
 		$_ = $3;
-		# Don't allow access to variables in a wiki page
+		# Treat a single backslash as an escape character.
+		s/\\(?![a-z\\])/\x00/g;
+		# Don't allow access to variables in a wiki page.
 		s/\$/\\\$/g if($wiki);
 		$re_sub[$i] = $_;
 		return;
