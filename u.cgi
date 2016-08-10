@@ -76,6 +76,7 @@ use vars qw(
 use vars qw(
 	$SITE_TITLE $SITE_DESCRIPTION $INDEX_PAGE $LANG $CHARSET $LOCALE
 	$TIME_ZONE $TIME_FORMAT
+	$LOGIN_TO_SUBDOMAINS $LOGIN_PATHS
 	$PASSWORD_FILE $SESSIONS_FILE $MESSAGES_FILE $TEMPLATE_DIRECTORY
 	$PAGE_NAME_STYLE
 	$INACTIVE_TIMEOUT $SET_PASSWORD_TIMEOUT $RESET_PASSWORD_TIMEOUT
@@ -215,6 +216,11 @@ my $sessions_file = $SESSIONS_FILE eq "" ? ".sessions" : $SESSIONS_FILE;
 my $debug_started = 0;
 my $html_started = 0;
 my %locked_files = ();
+(my $script_dir = $SCRIPT_NAME) =~ s#[^/]*$##;
+my $cookie_domain_path = ($LOGIN_TO_SUBDOMAINS ? "domain=$HTTP_HOST; " : "");
+$cookie_domain_path .= ($LOGIN_PATHS eq "all" ? "path=/" :
+	($LOGIN_PATHS eq "subpaths" && $doc_root eq "" ?
+		"path=$script_dir" : "path=$SCRIPT_NAME"));
 
 ################################################################################
 # Non-user-replaceable subroutines
@@ -533,7 +539,7 @@ $SITE_DESCRIPTION = 'A <a href="http://uniqki.isnew.info">Uniqki</a> site';
 $INDEX_PAGE = 'index';
 
 # Language
-$LANG = "en";
+$LANG = 'en';
 
 # Character set
 $CHARSET = 'utf-8';
@@ -545,7 +551,17 @@ $LOCALE = '';
 $TIME_ZONE = '';
 
 # Time format interpreted by the POSIX::strftime function
-$TIME_FORMAT = "%a %b %e %H:%M:%S %Y";
+$TIME_FORMAT = '%a %b %e %H:%M:%S %Y';
+
+# Login to subdomains: Subdomains have to use the password and sessions files
+# in the parent domain to share login sessions.
+$LOGIN_TO_SUBDOMAINS = 0;
+
+# Login paths: exact, subpaths, all.  Specified paths have to use the password
+# and sessions files in the current path to share login sessions.  Subpaths
+# does not work with $doc_root because the script and document directories are
+# different.
+$LOGIN_PATHS = 'exact';
 
 # WARNING: Make sure to protect these files and directories from the user using
 # the following directives in .htaccess:
@@ -2032,12 +2048,12 @@ sub set_cookie{
 	my $expires = sprintf "%s, %02d-%s-%d %02d:%02d:%02d GMT",
 		$w[$t[6]], $t[3], $m[$t[4]], $t[5]+1900, $t[2], $t[1], $t[0];
 
-	print "Set-Cookie: uniqki=$session_id; domain=$HTTP_HOST; ".
-		"path=$SCRIPT_NAME; expires=$expires; secure; httponly\n";
+	print "Set-Cookie: uniqki=$session_id; $cookie_domain_path; ".
+		"expires=$expires; secure; httponly\n";
 }
 
 sub clear_cookie{
-	print "Set-Cookie: uniqki=; domain=$HTTP_HOST; path=$SCRIPT_NAME; ".
+	print "Set-Cookie: uniqki=; $cookie_domain_path; ".
 		"expires=Tue, 01-Jan-1980 00:00:00 GMT; secure; httponly\n";
 }
 
