@@ -2892,7 +2892,7 @@ sub parse_line{
 		$re[$re_i++] = $2 if($i == $re_i);
 		$_ = $3;
 		# Treat a single backslash as an escape character.
-		s/\\(?![a-z\\])/\x00/g;
+		s/\\(?![\\a-zA-Z0-9])/\x00/g;
 		# Don't allow access to variables in a wiki page.
 		s/\$/\\\$/g if($wiki);
 		$re_sub[$i] = $_;
