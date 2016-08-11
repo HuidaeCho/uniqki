@@ -2319,7 +2319,7 @@ sub authenticate_user{
 	clear_sessions($user) if($logout_others eq "1");
 	start_session($user);
 
-	if($method == 1){
+	if($insecure_pw){
 		# Force to change the password
 		exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_myself");
 	}
