@@ -116,7 +116,7 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 
 ################################################################################
 # CGI variables
-$CFG = $ENV{HTTP_U_CFG};
+$CFG = $ENV{HTTP_UNIQKI_CONFIG};
 $HTTPS = $ENV{HTTPS};
 $HTTP_COOKIE = $ENV{HTTP_COOKIE};
 $HTTP_HOST = $ENV{HTTP_HOST};
