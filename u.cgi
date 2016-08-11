@@ -36,7 +36,7 @@
 my $doc_root = "";
 
 # Temporary admin user: admin, password: admin.  DO NOT CHANGE THIS VARIABLE.
-my $tmp_adminpw = 'admin:wpmTmn6p2d18b7b0f03e204f1321983cfe7fd6cd53d78765:admin:@:';
+my $tmp_adminpw = 'admin:7352327a53727a65613d7a4cb055d722c21f1a0f17ad676daccd4ad8bf728134c9ee739e5f51c9af822da15b69985908148c55b6fdea4bc0bcd5aff660a53db428a9898c12743c7d:admin:@:';
 # Running u.cgi for the first time will create the password file u.pw using the
 # $adminpw credential, which is set to $temporary_adminpw by default.  Since
 # this password is public, make sure to change the admin password after the
@@ -102,6 +102,10 @@ use vars qw(
 );
 
 umask 022;
+
+# hmac_sha1 routine for password hashing
+eval "use Digest::HMAC_SHA1 qw(hmac_sha1);";
+exit_message("perl_module_not_installed", "Digest::HMAC_SHA1") if($@);
 
 if(!defined $ENV{GATEWAY_INTERFACE}){
 	print "Please run this script from a web browser!\n";
@@ -220,17 +224,6 @@ my $cookie_domain_path = get_cookie_domain_path();
 
 ################################################################################
 # Non-user-replaceable subroutines
-#-------------------------------------------------------------------------------
-# sha1_hex routine for password hashing
-eval "use Digest::SHA qw(sha1_hex);";
-if($@){
-	sub sha1_hex{
-		my $str = shift;
-		$str =~ s/'/'"'"'/g;
-		return substr `printf '%s' '$str' | sha1sum`, 0, 40;
-	}
-}
-
 sub debug{
 	my $msg = shift;
 	unless($debug_started){
@@ -785,7 +778,7 @@ internal_errors => q(Internal errors),
 session_errors => q(Session errors),
 perl_module_not_installed => q(%s: Perl module not installed.),
 
-change_admin_password => q(The admin password cannot be the same as the temporary password. Please use a different password. Go to <a href="?manage_users">the user management page</a>.),
+change_admin_password => q(The admin password cannot be the same as the temporary password. <a href="?manage_myself">Change your password.</a>),
 
 read_secured => q(You are not allowed to read this page.),
 login_not_allowed => q(Login is not allowed.),
@@ -2313,7 +2306,7 @@ sub authenticate_user{
 		exit_message("login_failed");
 	}
 
-	my $salt = substr $saved_pw, 0, 8;
+	my $salt = pack("H*", substr $saved_pw, 0, 16);
 	if($saved_pw ne hash_password($user, $pw, $salt)){
 		close_session();
 		exit_message("login_failed");
@@ -2328,7 +2321,7 @@ sub authenticate_user{
 
 	if($method == 1){
 		# Force to change the password
-		exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
+		exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_myself");
 	}
 
 	clear_password_reset_token($reset_token);
@@ -2557,31 +2550,55 @@ sub generate_session_id{
 	return ($session_id, $expires);
 }
 
-sub generate_tmp_password{
-	# temporary password length: 40+1=41
-	# SHA1 + !.../
-	return sha1_hex(generate_salt()).chr(33+int(rand(15)));
+# PBKDF2 for password hashing
+# http://www.ict.griffith.edu.au/anthony/software/pbkdf2.pl
+# Anthony Thyssen
+sub get_pbkdf2_key{
+	# key length: 128
+	my ($password, $salt) = @_;
+	my $prf = \&hmac_sha1;
+	my $iter = 8192;
+	my $keylen = 64;
+	return unpack("H*", pbkdf2($prf, $password, $salt, $iter, $keylen));
+}
+
+# http://www.perlmonks.org/?node_id=631963
+# Thanks to Jochen Hoenicke <hoenicke@gmail.com>
+# (one of the authors of Palm Keyring)
+sub pbkdf2{
+	my ($prf, $password, $salt, $iter, $keylen) = @_;
+	my ($k, $t, $u, $ui, $i);
+	$t = "";
+	for($k = 1; length($t) < $keylen; $k++){
+		$u = $ui = hmac_sha1($salt.pack('N', $k), $password);
+		for($i = 1; $i < $iter; $i++){
+			$ui = hmac_sha1($ui, $password);
+			$u ^= $ui;
+		}
+		$t .= $u;
+	}
+	return substr $t, 0, $keylen;
 }
 
 sub hash_password{
-	# hashed password length: 8+40=48
+	# hashed password length: 2*8+128=144
 	my ($user, $pw, $salt) = @_;
 	$salt = generate_salt() unless(defined $salt);
-	return $salt.sha1_hex("$user:$salt:$pw");
+	return unpack("H*", $salt).get_pbkdf2_key("$user:$salt:$pw", $salt);
 
 }
 
 sub generate_password_set_token{
-	# password set token length: 48+1+...
+	# password set token length: 64+1+...
 	my $user = shift;
-	return hash_password($user, generate_tmp_password()).".".
+	return generate_random_string(64).".".
 		(time + $SET_PASSWORD_TIMEOUT * 60);
 }
 
 sub generate_password_reset_token{
-	# password reset token length: 48+1+...
+	# password reset token length: 64+1+...
 	my $user = shift;
-	return hash_password($user, generate_tmp_password()).".".
+	return generate_random_string(64).".".
 		(time + $RESET_PASSWORD_TIMEOUT * 60);
 }
 
