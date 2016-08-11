@@ -1,4 +1,4 @@
-# uniqki
+# Uniqki
 Uniqki: A Personal Wiki Builder http://uniqki.isnew.info
 
 Uniqki is a simple yet powerful Perl script that can build a website with static HTML files. Its name originated from Unique Wiki. There are two types of pages including non-wiki and wiki pages. Only admins can create or edit non-wiki pages while visitors or non-admin users can contriute their contents to wiki pages depending on write access control settings. The key difference between the two types of pages is that non-wiki pages can embed Perl code in page source while wiki pages cannot.
