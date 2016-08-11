@@ -1591,9 +1591,6 @@ textarea {
 
 /******************************************************************************/
 .comment_input {
-	border-top:		1px solid #aaaaaa;
-	margin-top:		10px;
-	padding-top:		10px;
 }
 EOT_UNIQKI
 	)
