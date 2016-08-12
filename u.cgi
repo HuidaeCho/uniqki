@@ -1424,6 +1424,13 @@ pre {
 	border:			1px solid #dddddd;
 	overflow:		auto;
 }
+a {
+	color:			green;
+	text-decoration:	none;
+}
+a[href*="://"] {
+	color:			blue;
+}
 textarea {
 	width:			100%;
 }
