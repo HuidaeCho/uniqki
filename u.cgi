@@ -313,7 +313,7 @@ sub start_html{
 
 sub convert_page_name{
 	my $page_name = shift;
-	my $forbidden_chars = q(`~!@#\$%^&*=+\\|;:'",.\/?()\[\]{}<>);
+	my $forbidden_chars = q(`~!@#\$%^&*=+\\|;:'",\/?()\[\]{}<>);
 
 	# from parse_line
 	$page_name =~ y/\x01/&/;
@@ -323,6 +323,9 @@ sub convert_page_name{
 	$page_name =~ s/[$forbidden_chars]//g;
 	$page_name =~ s/([ \t_-])+/ /g;
 	$page_name =~ s/^ | $//g;
+	$page_name =~ s/\.+/./g;
+	# Allow page names starting with a dot.
+	$page_name =~ s/\.$//;
 	return "" if($page_name eq "");
 
 	if($page_name_case eq "mixed_case"){
@@ -330,10 +333,10 @@ sub convert_page_name{
 	}elsif($page_name_case eq "upper_case"){
 		$page_name = uc $page_name;
 	}elsif($page_name_case eq "start_case"){
-		$page_name =~ s/(?:^|(?<= ))([^ ])([^ ]*)/@{[(uc $1).(lc $2)]}/g;
+		$page_name =~ s/(?:^|(?<=[ .]))([^ .])([^ .]*)/@{[(uc $1).(lc $2)]}/g;
 	}elsif($page_name_case eq "lower_camel_case"){
-		$page_name =~ s/^([^ ]*)/@{[lc $1]}/;
-		$page_name =~ s/(?<= )([^ ])([^ ]*)/@{[(uc $1).(lc $2)]}/g;
+		$page_name =~ s/^([^ .]*)/@{[lc $1]}/;
+		$page_name =~ s/(?<=[ .])([^ .])([^ .]*)/@{[(uc $1).(lc $2)]}/g;
 	}else{
 		# default: lower_case
 		$page_name = lc $page_name;
