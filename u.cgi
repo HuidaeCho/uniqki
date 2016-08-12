@@ -3068,8 +3068,8 @@ sub parse_line{
 	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+\x01[a-z]+;)(?=(?:[ \t]|$))#<a href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
 	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+)(?=[$protocol_punct](?:[ \t]|$))#<a href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
 	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+)#<a href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
-	# Convert protected image links to image tags
-	s#<a href="\x00([^"]+\.(?:$image_ext))">([^<]+)</a>#<img src="$1" alt="$2" title="$2" />#ogi;
+	# Convert image links to image tags
+	s#<a href="([^"]+\.(?:$image_ext))">([^<]+)</a>#<img src="$1" alt="$2" title="$2" />#ogi;
 	s/\x01/&amp;/g; s/\x02/&lt;/g; s/\x03/&gt;/g;
 	# Start list
 	if(m/^( *)([*+-]|:(.*?):) (.*)$/ && length($1)%2 == 0){
