@@ -1921,7 +1921,13 @@ sub preview{
 	$PREVIEW = parse_file(\$txt);
 	chomp $PREVIEW;
 
-	$TITLE = $PAGE if($TITLE eq "");
+	if($TITLE eq ""){
+		if($PAGE eq $INDEX_PAGE){
+			($TITLE = $SITE_TITLE) =~ s/<[^>]*>//g;
+		}else{
+			$TITLE = $PAGE;
+		}
+	}
 	$PREVIEW = $uploaded.$PREVIEW;
 	$TEXT =~ s/&/&amp;/g; $TEXT =~ s/</&lt;/g; $TEXT =~ s/>/&gt;/g;
 
@@ -1945,7 +1951,13 @@ sub make_html{
 	$TEXT = parse_file($txt);
 	chomp $TEXT;
 
-	$TITLE = $PAGE if($TITLE eq "");
+	if($TITLE eq ""){
+		if($PAGE eq $INDEX_PAGE){
+			($TITLE = $SITE_TITLE) =~ s/<[^>]*>//g;
+		}else{
+			$TITLE = $PAGE;
+		}
+	}
 	local $TIME = format_time((stat "$PAGE.txt")[9]);
 
 	my $html;
