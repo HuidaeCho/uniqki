@@ -3663,7 +3663,7 @@ if($QUERY_STRING eq "css"){
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE") if($PAGE eq "");
 	unless(-f "$PAGE.txt"){
 		my $path = substr $PATH_INFO, 1;
-		exit_redirect("$HTTP_BASE$PATH_INFO") if(-d $path || -f $path);
+		exit_redirect("$DOC_BASE$PATH_INFO") if(-d $path || -f $path);
 
 		my $msg_id = has_write_access() ?
 			"create_page" : "page_not_found";
