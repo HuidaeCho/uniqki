@@ -521,7 +521,7 @@ sub process_cfg{
 	my $mode = shift;
 	my $cfg = <<'EOT_UNIQKI';
 # Site information: HTML tags are allowed.
-$SITE_TITLE = '<a href="http://uniqki.isnew.info">Uniqki: A Personal Wiki Builder</a>';
+$SITE_TITLE = 'Uniqki: A Personal Wiki Builder';
 $SITE_DESCRIPTION = 'A <a href="http://uniqki.isnew.info">Uniqki</a> site';
 
 # Index page
@@ -1004,7 +1004,7 @@ sub print_header{
 <body>
 <div id="container">
 <div id="top">
-<div id="site-title">[[SITE_TITLE]]</div>
+<div id="site-title"><a href="[[DOC_BASE]]">[[SITE_TITLE]]</a></div>
 <div id="site-description">[[SITE_DESCRIPTION]]</div>
 </div>
 <div id="main">
