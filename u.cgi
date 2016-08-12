@@ -1444,6 +1444,7 @@ textarea {
 	text-decoration:	none;
 }
 #site-description {
+	font-size:		smaller;
 }
 #main {
 	background-color:	white;
