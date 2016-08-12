@@ -320,11 +320,11 @@ sub convert_page_name{
 	$page_name =~ y/\x02/</;
 	$page_name =~ y/\x03/>/;
 
-	$page_name =~ s/[.$forbidden_chars]+/./og;
-	$page_name =~ s/[ \t_-]+/ /g;
-	$page_name =~ s/(?: ?\. ?)+/./g;
+	$page_name =~ s/[$forbidden_chars \t_-]+/ /og;
+	$page_name =~ s/\.+/./g;
+	$page_name =~ s/(?:\.? \.?)+/ /g;
 	# Allow page names starting with a dot.
-	$page_name =~ s/^ |[. ]$//g;
+	$page_name =~ s/^ | $//g;
 	return "" if($page_name eq "");
 
 	if($page_name_case eq "mixed_case"){
