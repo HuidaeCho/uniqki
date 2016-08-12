@@ -1360,8 +1360,8 @@ sub print_wikiview{
 </div>
 <div id="wikimenu">
 <span class="write-access"><a accesskey="e" href="[[CGI]]/[[PAGE]]?wikiedit">[[edit]]</a> .</span>
-<span class="read-access"><a accesskey="d" href="[[CGI]]/[[PAGE]]?diff=-1">[[diff]]</a> .
-<a accesskey="l" href="[[CGI]]?search=[[PAGE]]%5C.html&amp;link=1">[[backlinks]]</a> .</span>
+<a accesskey="d" href="[[CGI]]/[[PAGE]]?diff=-1">[[diff]]</a> .
+<a accesskey="l" href="[[CGI]]?search=[[PAGE]]%5C.html&amp;link=1">[[backlinks]]</a> .
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a class="visitor" accesskey="l" href="[[CGI]]/[[PAGE]]?login">[[login]]</a>
 <a class="user" accesskey="l" href="[[CGI]]/[[PAGE]]?logout">[[logout]]</a>
