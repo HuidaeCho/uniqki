@@ -3039,6 +3039,7 @@ sub parse_line{
 	s#\[\[\[(.*?)(?:\|(.*?))?\]\]\]#@{[link_path($1, $2)]}#g;
 	# Page links
 	s#\[\[(.*?)(?:\#(.*?))?(?:\|(.*?))?\]\]#@{[link_page($1, $2, $3)]}#g;
+	# URL links
 	s#\x02\x02(.*?)(?:\|(.*?))?\x03\x03#@{[link_url($1, $2)]}#g;
 	# Text styles
 	# Avoid conflicts with //italic//
