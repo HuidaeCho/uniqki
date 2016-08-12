@@ -324,7 +324,7 @@ sub convert_page_name{
 	$page_name =~ s/\.+/./g;
 	$page_name =~ s/(?:\.? \.?)+/ /g;
 	# Allow page names starting with a dot.
-	$page_name =~ s/^ | $//g;
+	$page_name =~ s/^ |[. ]$//g;
 	return "" if($page_name eq "");
 
 	if($page_name_case eq "mixed_case"){
