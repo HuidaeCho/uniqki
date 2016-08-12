@@ -1259,6 +1259,7 @@ sub print_message{
 <hr />
 <div id="menu">
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
+<span class="write-access"><a accesskey="v" href="[[PAGE]]?edit">[[edit]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a class="visitor" accesskey="l" href="[[PAGE]]?login">[[login]]</a>
 <a class="user" accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
@@ -3397,8 +3398,11 @@ if($QUERY_STRING eq "css"){
 	exit;
 }elsif($QUERY_STRING eq "user_info"){
 #-------------------------------------------------------------------------------
-# u.cgi?user_info		Print user information
-	exit_text("$USER:$admin:".has_read_access().":".has_write_access());
+# u.cgi/PAGE?user_info		Print user information
+	my $page_exists = page_exists();
+	my $has_read_access = $page_exists && has_read_access() ? 1 : 0;
+	my $has_write_access = $page_exists && has_write_access() ? 1 : 0;
+	exit_text("$USER:$admin:$has_read_access:$has_write_access");
 }elsif($QUERY_STRING eq "forgot_password"){
 #-------------------------------------------------------------------------------
 # u.cgi?forgot_password		Forgot password
