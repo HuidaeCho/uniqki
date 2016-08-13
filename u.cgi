@@ -2908,7 +2908,9 @@ sub parse_line{
 	# Apply regular expressions where needed
 	if(!$pre && m/^(?!#(?:no)?regex)/){
 		for(my $i=$re_i_start; $i<$re_i; $i++){
-			eval "s\x1e$re[$i]\x1e$re_sub[$i]\x1eg;";
+			if(m/^(?!#(?:no)?regex)/){
+				eval "s\x1e$re[$i]\x1e$re_sub[$i]\x1eg;";
+			}
 		}
 		if(m/\n/){
 			local $re_i_start = $re_i;
