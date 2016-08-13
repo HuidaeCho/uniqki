@@ -2998,8 +2998,8 @@ sub parse_line{
 		$_ = $3;
 		# Treat a single backslash as an escape character.
 		s/\\(?![\\a-zA-Z0-9])/\x00/g;
-		# Don't allow access to variables in a wiki page.
-		s/\$/\\\$/g if($wiki);
+		# Don't allow access to variables.
+		s/\$/\\\$/g;
 		$re_sub[$i] = $_;
 		return;
 	}
