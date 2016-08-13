@@ -2929,10 +2929,10 @@ sub parse_line{
 	# Process block admin code
 	if($block ne ""){
 		if($_ eq "##}"){
-			my $i = "$block}";
+			my $code = "$block}";
 			undef $block;
-			$i =~ s/^(##[{}]_*)_$/$1/mg;
-			eval $i;
+			$code =~ s/^(##[{}]_*)_$/$1/mg;
+			eval $code;
 			return;
 		}
 		$block .= "$_\n";
