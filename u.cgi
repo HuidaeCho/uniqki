@@ -200,7 +200,8 @@ if($SMTP =~ m/^([a-z0-9.-]+\.[a-z]{2,}):([0-9]*):([^:]*):(.*)$/i){
 	$smtp_password = $4;
 }
 
-my ($page_name_case, $page_name_spaces) = config_page_name_style();
+my ($page_name_case, $page_name_dots, $page_name_spaces) =
+	config_page_name_style();
 my ($nonwiki_read_access, $wiki_read_access, $wiki_write_access) =
 	config_read_write_access();
 
@@ -245,33 +246,42 @@ sub format_time{
 }
 
 sub config_page_name_style{
-	my ($case, $spaces);
+	my ($case, $dots, $spaces);
 
 	foreach my $item (split /:/, $PAGE_NAME_STYLE){
 		if("_case" eq substr $item, -5){
 			$case = $item;
+			if($case eq "lower_camel_case"){
+				$dots = "no_dots";
+				$spaces = "no_spaces";
+			}elsif($case eq "upper_camel_case"){
+				$case = "start_case";
+				$dots = "no_dots";
+				$spaces = "no_spaces";
+			}
+		}elsif("dots" eq substr $item, -4){
+			$dots = $item;
 		}else{
 			$spaces = $item;
 		}
 	}
 
-	if($case eq "lower_camel_case"){
-		$spaces = "no_spaces";
-	}elsif($case eq "upper_camel_case"){
-		$case = "start_case";
-		$spaces = "no_spaces";
-	}elsif($case ne "mixed_case" &&
-		$case ne "upper_case" &&
-		$case ne "start_case"){
+	if($case ne "upper_case" && $case ne "mixed_case" &&
+		$case ne "start_case" && $case ne "lower_camel_case" &&
+		$case ne "upper_camel_case"){
 		# default lower_case
 		$case = "lower_case";
 	}
 
+	if($dots ne "no_dots"){
+		# default dots
+		$dots = "dots";
+	}
 	if($spaces ne "no_spaces" && $spaces ne "underscores"){
 		# default hyphens
 		$spaces = "hyphens";
 	}
-	return ($case, $spaces);
+	return ($case, $dots, $spaces);
 }
 
 sub config_read_write_access{
@@ -321,8 +331,13 @@ sub convert_page_name{
 	$page_name =~ y/\x03/>/;
 
 	$page_name =~ s/[$forbidden_chars \t_-]+/ /og;
-	$page_name =~ s/\.+/./g;
-	$page_name =~ s/(?:\.? \.?)+/ /g;
+	if($page_name_dots eq "dots"){
+		$page_name =~ s/\.+/./g;
+		$page_name =~ s/(?:\.? \.?)+/ /g;
+	}else{
+		$page_name =~ y/.//d;
+		$page_name =~ s/ +/ /g;
+	}
 	# Allow page names starting with a dot.
 	$page_name =~ s/^ |[. ]$//g;
 	return "" if($page_name eq "");
@@ -587,7 +602,7 @@ $MESSAGES_FILE = 'u.msg';
 # Template directory: The default template will be served by u.cgi if missing.
 $TEMPLATE_DIRECTORY = 'u.tpl';
 
-# Page name style: case[:hyphens|:underscores|:no_spaces]
+# Page name style: case[:dots|:no_dots][:hyphens|:underscores|:no_spaces]
 # * lower_case (default): All lower case (e.g., page in a uniqki site)
 # * upper_case: All upper case (e.g., PAGE IN A UNIQKI SITE)
 # * mixed_case: No special handling of letter case (e.g., Page in a Uniqki site)
@@ -595,23 +610,30 @@ $TEMPLATE_DIRECTORY = 'u.tpl';
 # * lower_camel_case: Lower camel case (e.g., pageInAUniqkiSite)
 # * upper_camel_case: Upper camel case (e.g., PageInAUniqkiSite)
 #
-# Optionally
+# Dots
+# * dots (default): Replace a series of dots with a dot.  Dots separate words
+#		    for a case conversion.
+# * no_dots: Remove dots.  The lower_camel_case and upper_camel_case styles
+#	     imply this option.  For example, upper_camel_case is the same as
+#	     start_case:no_dots:no_spaces.
+#
+# Spaces
 # * hyphens (default): Replace a series of whitespaces with a hyphen
 # * underscores: Replace a series of whitespaces with an underscore
 # * no_spaces: Remove whitespaces.  The lower_camel_case and upper_camel_case
-# 	       styles imply this option.  For example, upper_camel_case is the
-# 	       same as start_case:no_spaces.
+# 	       styles imply this option.  For example, lower_camel_case is the
+# 	       same as lower_camel_case:no_dots:no_spaces.
 #
-# The following special characters will be removed before a case conversion.
-# Forbidden characters in file names: `~!@#$%^&*+=\|;:'",/?()[]{}<>
+# The following special characters will be replaced with spaces and separate
+# words before a case conversion: `~!@#$%^&*=+\|;:'",/?()[]{}<>
 #
 # Hyphens (-) and underscores (_) will be converted to spaces and may be
 # converted back to hyphens or underscores depending on the page name style.
 #
 # For example, "'page' in a uniqki site!!!" excluding double quotes in the
-# start_case style will create and link to Page_In_A_Uniqki_Site.html.  The
+# start_case style will create and link to Page-In-A-Uniqki-Site.html.  The
 # same page name in the upper_camel_case style will use PageInAUniqkiSite.html.
-$PAGE_NAME_STYLE = 'lower_case:hyphens';
+$PAGE_NAME_STYLE = 'lower_case:dots:hyphens';
 
 # Login session will be extended by this number of minutes whenever any action
 # is taken by the user.
