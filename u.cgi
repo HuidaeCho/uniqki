@@ -3694,17 +3694,15 @@ if($QUERY_STRING eq "css"){
 	exit_message("read_secured");
 }elsif($QUERY_STRING eq "login" || $QUERY_STRING eq ""){
 #-------------------------------------------------------------------------------
-# u.cgi?ACTION			User has to login to perform ACTION
-# u.cgi/PAGE?ACTION		User has to login to perform ACTION
 # u.cgi?login			After a successful login
 # u.cgi/PAGE?login		After a successful login
+# u.cgi/PAGE/FILE?login		After a successful login
 # u.cgi				No action specified
 # u.cgi/PAGE			No action specified
+# u.cgi/PAGE/FILE		No action specified
+	exit_redirect("$DOC_BASE/$PAGE/$FILE") if($FILE ne "");
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE") if($PAGE eq "");
 	unless(-f "$PAGE.txt"){
-		my $path = substr $PATH_INFO, 1;
-		exit_redirect("$DOC_BASE$PATH_INFO") if(-d $path || -f $path);
-
 		my $msg_id = has_write_access() ?
 			"create_page" : "page_not_found";
 		exit_message($msg_id, $PAGE);
