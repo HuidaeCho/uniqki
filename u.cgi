@@ -392,32 +392,50 @@ sub escape_inline_syntax{
 }
 
 sub link_path{
+	# .: current page's directory
+	# ./: current page's directory
+	# file: current page's file
+	# ./file: current page's file
+	# page/: page's directory
+	# page/file: page's file
+	# /: DOC_BASE
+	# /file: DOC_BASE's file
 	my ($path, $title) = @_;
 
 	$path =~ s/^[ \t]+|[ \t]+$//g;
 	$title =~ s/^[ \t]+|[ \t]+$//g;
 
-	my ($page, $file);
+	my $page = $PAGE;
+	my $file = "";
 
 	my $i = rindex($path, "/");
 	if($i >= 0){
-		$page = substr $path, 0, $i;
+		my $p = substr $path, 0, $i;
+		if($p eq ""){
+			# /, /file
+			$page = ".";
+		}elsif($p ne "."){
+			# page/, page/file
+			$page = convert_page_name($p);
+			return "" if($page eq "");
+		}
+		# else ./, ./file
 		$file = substr $path, $i + 1;
-	}else{
-		$page = $path;
+	}elsif($path eq "."){
+		# .
 		$file = "";
+	}else{
+		# file
+		$file = $path;
 	}
-
-	my $enc_page = convert_page_name($page);
-	return "" if($enc_page eq "");
 
 	if($file eq ""){
-		return qq(<a href="$enc_page/">$page</a>) if($title eq "");
-		return qq(<a href="$enc_page/">$title</a>);
+		return qq(<a href="$page/">$page/</a>) if($title eq "");
+		return qq(<a href="$page/">$title</a>);
 	}
 
-	return qq(<a href="$enc_page/$file">$page/$file</a>) if($title eq "");
-	return qq(<a href="$enc_page/$file">$title</a>);
+	return qq(<a href="$page/$file">$file</a>) if($title eq "");
+	return qq(<a href="$page/$file">$title</a>);
 }
 
 sub link_page{
@@ -3702,7 +3720,8 @@ if($QUERY_STRING eq "css"){
 # u.cgi				No action specified
 # u.cgi/PAGE			No action specified
 # u.cgi/PAGE/FILE		No action specified
-	exit_redirect("$DOC_BASE/$PAGE/$FILE") if($FILE ne "");
+	exit_redirect("$DOC_BASE/$PAGE/$FILE")
+		if($FILE ne "" || "/" eq substr $PATH_INFO, -1);
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE") if($PAGE eq "");
 	unless(-f "$PAGE.txt"){
 		my $msg_id = has_write_access() ?
