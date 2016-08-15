@@ -302,6 +302,67 @@ sub exit_redirect{
 	exit;
 }
 
+sub run_file_mimetype{
+	my $file = shift;
+	return "" unless(-f $file);
+	(my $mimetype = `file --brief --mime-type $file`) =~ y/[\r\n]//d;
+	return $mimetype;
+}
+
+sub get_mimetype{
+	my $file = shift;
+	return "" unless(-f $file);
+	my $mimetype;
+	eval "use MIME::Types;";
+	if($@){
+		$mimetype = run_file_mimetype($file);
+	}else{
+		$mimetype = MIME::Types->new(only_iana=>1)->mimeTypeOf($file);
+		$mimetype = run_file_mimetype($file) if($mimetype eq "");
+	}
+	$mimetype = "application/octet-stream" if($mimetype eq "");
+	return $mimetype;
+}
+
+sub exit_path{
+	my $path = shift;
+	exit_message("path_not_found", $path) unless(-e $path);
+
+	if(-d $path){
+		$path =~ s#/+$##;
+		local $TITLE = get_msg("page_files", $path);
+		print_header();
+		print qq(<div id="ls">\n<h1>$TITLE</h1>\n);
+		foreach(<$path/*>){
+			my $file = $_;
+			s#^[^/]*/##;
+			my $url = encode_url($_);
+			s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
+			my $name = $_;
+			my @t = localtime((stat $file)[9]);
+			my $time = sprintf "%d-%02d-%02d %02d:%02d:%02d",
+				$t[5]+1900, $t[4]+1, $t[3], $t[2], $t[1], $t[0];
+			print qq(<div><a href="$url">$name</a> <span class="ls_time">$time</span></div>\n);
+		}
+		print qq(</div>\n);
+		print_footer();
+		exit;
+	}
+
+	my $mimetype = get_mimetype($path);
+	(my $file = $path) =~ s#^.*/##;
+	print <<EOT;
+Content-Type: $mimetype
+Content-Disposition: inline; filename="$file"
+
+EOT
+	local *FH;
+	open FH, $path;
+	print <FH>;
+	close FH;
+	exit;
+}
+
 sub exit_message{
 	local $MESSAGE = get_msg(@_);
 	(local $TITLE = $MESSAGE) =~ s/<[^>]*>//g;
@@ -862,6 +923,7 @@ not_wiki_page => q(%s: This page is not a wiki page.),
 not_allowed_to_create_nonwiki_page => q(%s: You are not allowed to create this non-wiki page.),
 not_allowed_to_edit_wiki_page => q(%s: You are not allowed to edit this wiki page.),
 not_allowed_to_edit_wiki_page => q(%s: You are not allowed to edit this wiki page.),
+path_not_found => q(%s: Path not found.),
 
 recent_changes => q(Recent changes),
 recent_changes_matching => q(Recent changes matching %s pattern),
@@ -892,8 +954,9 @@ specify_comment_page => q(Please specify a comment page.),
 comment_tag_not_found => q(%s: Comment tag not found.),
 invalid_comment_tag => q(%s: Invalid comment tag.),
 
-current_version => q(The current version of page %s is %d.),
-file_uploaded => q(%s: File uploaded. Copy and paste the link below:<pre id="file_link_example">[[%s|%1$s]]</pre>),
+current_version => q(The current version of %s is %d.),
+file_uploaded => q(%s: File uploaded. Copy and paste the link below:<pre id="file_link_example">[[[%s]]]</pre>),
+page_files => q(Files belonging to %s),
 
 table_of_contents => q(Table of contents),
 );
@@ -3712,6 +3775,8 @@ if($QUERY_STRING eq "css"){
 #-------------------------------------------------------------------------------
 # Read-secured
 	exit_message("read_secured");
+################################################################################
+# User actions
 }elsif($QUERY_STRING eq "login" || $QUERY_STRING eq ""){
 #-------------------------------------------------------------------------------
 # u.cgi?login			After a successful login
@@ -3720,16 +3785,17 @@ if($QUERY_STRING eq "css"){
 # u.cgi				No action specified
 # u.cgi/PAGE			No action specified
 # u.cgi/PAGE/FILE		No action specified
-	exit_redirect("$DOC_BASE/$PAGE/$FILE")
-		if($FILE ne "" || "/" eq substr $PATH_INFO, -1);
+	exit_path("$PAGE/$FILE") if($FILE ne "" || "/" eq substr $PATH_INFO,-1);
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE") if($PAGE eq "");
 	unless(-f "$PAGE.txt"){
 		my $msg_id = has_write_access() ?
 			"create_page" : "page_not_found";
 		exit_message($msg_id, $PAGE);
 	}
-################################################################################
-# User actions
+}elsif($QUERY_STRING ne "delete" && $FILE ne ""){
+#-------------------------------------------------------------------------------
+# u.cgi/PAGE/FILE		Show/download PAGE/FILE
+	exit_path("$PAGE/$FILE");
 }elsif($QUERY_STRING =~ m/^goto(?:[&=].+)?$/){
 #-------------------------------------------------------------------------------
 # u.cgi?goto			Create the goto form
@@ -3989,7 +4055,7 @@ if($QUERY_STRING eq "css"){
 			}
 			$time = $3;
 		}
-		print qq(<div><a href="$DOC_BASE/$page.html">$title</a> <span class="ls_time">$time</span></div>\n);
+		print qq(<div><a href="$page.html">$title</a> <span class="ls_time">$time</span></div>\n);
 		last if(++$i == $n);
 	}
 
@@ -4195,13 +4261,13 @@ EOT
 		}
 		next if($i <= $#search);
 		if($var{nomatch} eq "1"){
-			print qq(<div><a href="$DOC_BASE/$page.html">$query</a></div>\n);
+			print qq(<div><a href="$page.html">$query</a></div>\n);
 			next;
 		}
 		foreach(@result){
 			s#\x01#<span class="search_highlight">#g;
 			s#\x02#</span>#g;
-			print qq(<div><a href="$DOC_BASE/$page.html">$query</a>: $_</div>\n);
+			print qq(<div><a href="$page.html">$query</a>: $_</div>\n);
 		}
 	}
 
@@ -4272,10 +4338,6 @@ EOT
 	exit_message("comment_tag_not_found", "#%$var{comment}") unless($added);
 	save($PAGE, $TEXT);
 	unlock_file("$PAGE.txt");
-}elsif($QUERY_STRING ne "delete" && $FILE ne ""){
-#-------------------------------------------------------------------------------
-# u.cgi/PAGE/FILE		Show/download PAGE/FILE
-	exit_redirect("$DOC_BASE/$PAGE/$FILE?$QUERY_STRING");
 }elsif($QUERY_STRING =~ m/^wiki/){
 #-------------------------------------------------------------------------------
 # uniqkiwiki
