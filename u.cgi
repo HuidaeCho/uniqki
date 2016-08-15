@@ -1009,7 +1009,7 @@ invalid_comment_tag => q(%s: Invalid comment tag.),
 current_version => q(The current version of <a href="%s">%1$s</a> is %d.),
 wiki_file_uploaded => q(%s: File uploaded. Copy and paste the link below:<pre id="file_link_example">{{%s|%1$s}}</pre>),
 file_uploaded => q(%s: File uploaded. Copy and paste the link below:<pre id="file_link_example">{{%1$s}}</pre>),
-page_files => q(Files belonging to <a href="%s">%1$s</a>),
+page_files => q(Files belonging to <a href="../%s">%1$s</a>),
 
 table_of_contents => q(Table of contents),
 );
