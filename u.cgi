@@ -817,11 +817,11 @@ $SMTP = '';
 # required to secure *.html files:
 # RewriteEngine On
 # RewriteBase /
-# RewriteCond %{REQUEST_URI} !/u\.cgi($|[/?])
-# RewriteRule .* "-" [F]
 # RewriteRule ^$ u.cgi [R,L]
 # RewriteRule ^([^/]*)\.html$ u.cgi/$1 [R,L]
 # RewriteRule ^(u\.cgi/[^/]*)\.html$ $1 [R,L]
+# RewriteCond %{REQUEST_URI} !/u\.cgi($|[/?])
+# RewriteRule .* "-" [F]
 $READ_ACCESS = 'open';
 
 # Write access control
