@@ -332,7 +332,7 @@ sub exit_path{
 		$path =~ s#/+$##;
 		local $TITLE = get_msg("page_files", $path);
 		print_header();
-		print qq(<div id="ls">\n<h1>$TITLE</h1>\n);
+		print qq(<div id="ls">\n<h1>$TITLE</h1>\n<ul>\n);
 		foreach(<$path/*>){
 			my $file = $_;
 			s#^[^/]*/##;
@@ -342,9 +342,9 @@ sub exit_path{
 			my @t = localtime((stat $file)[9]);
 			my $time = sprintf "%d-%02d-%02d %02d:%02d:%02d",
 				$t[5]+1900, $t[4]+1, $t[3], $t[2], $t[1], $t[0];
-			print qq(<div><a href="$url">$name</a> <span class="ls_time">$time</span></div>\n);
+			print qq(<li><a href="$url">$name</a> <span class="ls_time">$time</span></li>\n);
 		}
-		print qq(</div>\n);
+		print qq(</ul></div>\n);
 		print_footer();
 		exit;
 	}
@@ -4056,7 +4056,7 @@ if($QUERY_STRING eq "css"){
 
 	local $TITLE = $title;
 	print_header();
-	print qq(<div id="ls">\n<h1>$title</h1>\n);
+	print qq(<div id="ls">\n<h1>$title</h1>\n<ul>\n);
 
 	my $tls = $var{ls} eq "taz" || $var{ls} eq "tza" ? 1 : 0;
 	my $roc = $var{ls} eq "rc" || $var{ls} eq "oc" ? 1 : 0;
@@ -4124,11 +4124,11 @@ if($QUERY_STRING eq "css"){
 			}
 			$time = $3;
 		}
-		print qq(<div><a href="$page.html">$title</a> <span class="ls_time">$time</span></div>\n);
+		print qq(<li><a href="$page.html">$title</a> <span class="ls_time">$time</span></li>\n);
 		last if(++$i == $n);
 	}
 
-	print qq(</div>\n);
+	print qq(</ul>\n</div>\n);
 	print_footer();
 	exit;
 }elsif($QUERY_STRING =~ m/^rss(?:[&=].+)?$/){
@@ -4659,7 +4659,7 @@ EOT
 
 	local $TITLE = $title;
 	print_header();
-	print qq(<div id="ls">\n<h1>$title</h1>\n);
+	print qq(<div id="ls">\n<h1>$title</h1>\n<ul>\n);
 	foreach($glob eq "" ? (<.*.txt>, <*.txt>) : <$glob.txt>){
 		next if(index($_, "/") >= 0 || !-f $_);
 		s/\.txt$//;
@@ -4668,9 +4668,9 @@ EOT
 		$parse_line = $_parse_line;
 		$end_parsing = $_end_parsing;
 		make_html($PAGE);
-		print qq(<div><a href="$PAGE.html">$PAGE</a></div>\n);
+		print qq(<li><a href="$PAGE.html">$PAGE</a></li>\n);
 	}
-	print qq(</div>\n);
+	print qq(</ul>\n</div>\n);
 	print_footer();
 	exit;
 }elsif($QUERY_STRING eq "manage_users"){
