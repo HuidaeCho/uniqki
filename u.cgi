@@ -819,7 +819,7 @@ $SMTP = '';
 # RewriteBase /
 # RewriteRule ^$ u.cgi [R,L]
 # RewriteRule ^([^/]*)\.html$ u.cgi/$1 [R,L]
-# RewriteRule ^(u\.cgi/.*)\.html$ $1 [R,L]
+# RewriteRule ^(u\.cgi/[^/]*)\.html$ $1 [R,L]
 $READ_ACCESS = 'open';
 
 # Write access control
