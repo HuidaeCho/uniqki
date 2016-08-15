@@ -438,7 +438,7 @@ sub unescape_comment{
 sub escape_comment{
 	my $text = shift;
 	$text =~ s/^([#%])/\x00$1/mg;
-	$text =~ s/{{(.*?)}}(?!})/{\x00{$1}\x00}/g;
+	$text =~ s/``(.*?)``(?!`)/`\x00`$1`\x00`/g;
 	$text =~ s/^(---+)$/\x00$1/mg;
 	$text =~ s/^\x00(---+)\n(.*?)\n\x00\1$/$1\n@{[unescape_comment($2)]}\n$1/smg;
 	$text =~ s/\x00/''''/g;
@@ -446,13 +446,76 @@ sub escape_comment{
 }
 
 sub escape_inline_syntax{
-	my $code = shift;
-	$code =~ s#([{"/*'_!\[-]|$protocol)#\x00$1#ogi;
-	$code =~ s/\x00([&<>])/$1/g;
-	return $code;
+	my $text = shift;
+	$text =~ s#([`"/*'_!\[{-]|$protocol)#\x00$1#ogi;
+	$text =~ s/\x00([&<>])/$1/g;
+	return $text;
 }
 
-sub link_path{
+sub link_page{
+	my ($page, $section, $title) = @_;
+
+	$page =~ s/^[ \t]+|[ \t]+$//g;
+	$section =~ s/^[ \t]+|[ \t]+$//g;
+	$title =~ s/^[ \t]+|[ \t]+$//g;
+
+	my $enc_page = convert_page_name($page);
+	my $enc_section = convert_page_name($section);
+
+	if($enc_page eq ""){
+		return "" if($enc_section eq "");
+		return qq(<a href="#$enc_section">#$section</a>) if($title eq "");
+		return qq(<a href="#$enc_section">$title</a>);
+	}
+	if($enc_section eq ""){
+		return qq(<a href="$enc_page.html">$page</a>) if($title eq "");
+		return qq(<a href="$enc_page.html">$title</a>);
+	}
+	return qq(<a href="$enc_page.html#$enc_section">$page#$section</a>) if($title eq "");
+	return qq(<a href="$enc_page.html#$enc_section">$title</a>);
+}
+
+sub link_image{
+	# file: current page's file
+	# ./file: current page's file
+	# page/file: page's file
+	# /file: DOC_BASE's file
+	my ($path, $title, $style) = @_;
+
+	$path =~ s/^[ \t]+|[ \t]+$//g;
+	$title =~ s/^[ \t]+|[ \t]+$//g;
+	$style =~ s/^[ \t]+|[ \t]+$//g;
+	return "" if($path eq "." || $path eq "");
+
+	$style = qq( style="$style") if($style ne "");
+
+	my $page = $PAGE;
+	my $file = "";
+
+	my $i = rindex($path, "/");
+	if($i >= 0){
+		my $p = substr $path, 0, $i;
+		if($p eq ""){
+			# /file
+			$page = ".";
+		}elsif($p ne "."){
+			# page/file
+			$page = convert_page_name($p);
+			return "" if($page eq "");
+		}
+		# else ./file
+		$file = substr $path, $i + 1;
+		return "" if($file eq "");
+	}else{
+		# file
+		$file = $path;
+	}
+
+	return qq(<img src="$page/$file" alt="$file" title="$file"$style />) if($title eq "");
+	return qq(<img src="$page/$file" alt="$title" title="$title"$style />);
+}
+
+sub link_file{
 	# .: current page's directory
 	# ./: current page's directory
 	# file: current page's file
@@ -499,27 +562,16 @@ sub link_path{
 	return qq(<a href="$page/$file">$title</a>);
 }
 
-sub link_page{
-	my ($page, $section, $title) = @_;
+sub link_url_image{
+	my ($url, $title, $style) = @_;
 
-	$page =~ s/^[ \t]+|[ \t]+$//g;
-	$section =~ s/^[ \t]+|[ \t]+$//g;
+	$url =~ s/^[ \t]+|[ \t]+$//g;
 	$title =~ s/^[ \t]+|[ \t]+$//g;
+	$style =~ s/^[ \t]+|[ \t]+$//g;
+	$style = qq( style="$style") if($style ne "");
 
-	my $enc_page = convert_page_name($page);
-	my $enc_section = convert_page_name($section);
-
-	if($enc_page eq ""){
-		return "" if($enc_section eq "");
-		return qq(<a href="#$enc_section">#$section</a>) if($title eq "");
-		return qq(<a href="#$enc_section">$title</a>);
-	}
-	if($enc_section eq ""){
-		return qq(<a href="$enc_page.html">$page</a>) if($title eq "");
-		return qq(<a href="$enc_page.html">$title</a>);
-	}
-	return qq(<a href="$enc_page.html#$enc_section">$page#$section</a>) if($title eq "");
-	return qq(<a href="$enc_page.html#$enc_section">$title</a>);
+	return qq(<img src="$url" alt="$url" title="$url"$style />) if($title eq "");
+	return qq(<img src="$url" alt="$title" title="$title"$style />);
 }
 
 sub link_url{
@@ -2981,7 +3033,7 @@ sub parse_line{
 	# \x1e: delimiter
 	# ##admin code
 	# #user code
-	# {{inline perl code}}
+	# ``inline perl code``
 	# %comment
 	local $_ = shift;
 	s/[\r\n]//g;
@@ -3005,7 +3057,7 @@ sub parse_line{
 		# Skip admin code
 		return if("##" eq substr $_, 0, 2);
 		# Ignore inline perl code
-		s/{{(.*?)}}(?!})/{\x00{$1}\x00}/g;
+		s/``(.*?)``(?!`)/`\x00`$1`\x00`/g;
 	}
 	# Process block admin code
 	if($block ne ""){
@@ -3019,8 +3071,9 @@ sub parse_line{
 		$block .= "$_\n";
 		return;
 	}
-	if(m/^(?![|#%]|{{.*?}}(?!}))/){
-		# Close all lists if line is not another list item
+	# Don't close list or table if line is a command or comment.
+	if(m/^(?![#%]|``.*?``(?!`))/){
+		# Close all lists if line is not another list item.
 		if($li_i > 0 && !(m/^(?:( *)[*+-]|:.*?:) / &&
 				length($1)%2 == 0)){
 			while(--$li_i>=0){
@@ -3034,7 +3087,7 @@ sub parse_line{
 			$li_i = 0;
 		}
 		# Close table
-		if($table){
+		if($table && !(m/^\|+[0-9]*[ \t].*[ \t]\|$/)){
 			$text .= "</table>\n";
 			$table = 0;
 		}
@@ -3162,11 +3215,15 @@ sub parse_line{
 	# from the #regex syntax to enter [&<>] as is without converting them
 	# to &amp, &lt, and &gt.
 	s/(?<!\x00)&/\x01/g; s/(?<!\x00)</\x02/g; s/(?<!\x00)>/\x03/g;
-	# Path links
-	s#\[\[\[(.*?)(?:\|(.*?))?\]\]\]#@{[link_path($1, $2)]}#g;
-	# Page links
+	# Pages
 	s#\[\[(.*?)(?:\#(.*?))?(?:\|(.*?))?\]\]#@{[link_page($1, $2, $3)]}#g;
-	# URL links
+	# Images
+	s#{{{(.*?)(?:\|(.*?))?}}(.*?)}#@{[link_image($1, $2, $3)]}#g;
+	# Files
+	s#{{(.*?)(?:\|(.*?))?}}#@{[link_file($1, $2)]}#g;
+	# URL images
+	s#\x02\x02\x02(.*?)(?:\|(.*?))?\x03\x03(.*?)\x03#@{[link_url_image($1, $2, $3)]}#g;
+	# URLs
 	s#\x02\x02(.*?)(?:\|(.*?))?\x03\x03#@{[link_url($1, $2)]}#g;
 	# Text styles
 	# Avoid conflicts with //italic//
@@ -3188,8 +3245,6 @@ sub parse_line{
 	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+\x01[a-z]+;)(?=(?:[ \t]|$))#<a href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
 	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+)(?=[$protocol_punct](?:[ \t]|$))#<a href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
 	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+)#<a href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
-	# Convert image links to image tags
-	s#<a href="([^"]+\.(?:$image_ext))">([^<]+)</a>#<img src="$1" alt="$2" title="$2" />#ogi;
 	s/\x01/&amp;/g; s/\x02/&lt;/g; s/\x03/&gt;/g;
 	# Start list
 	if(m/^( *)([*+-]|:(.*?):) (.*)$/ && length($1)%2 == 0){
@@ -3301,7 +3356,7 @@ sub parse_line{
 		$_ .= "</tr>";
 	}
 	# Inline perl code
-	s/{{(.*?)}}(?!})/$1/eeg;
+	s/``(.*?)``(?!`)/$1/eeg;
 	# Discard NONE characters
 	y/\x00//d;
 	# Heading
