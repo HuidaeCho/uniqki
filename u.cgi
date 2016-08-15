@@ -937,7 +937,7 @@ refresh_pages => q(Refresh pages),
 refresh_pages_matching => q(Refresh pages matching %s pattern),
 search => q(Search for %s),
 search_matching => q(Search %s for %s),
-differences => q(Differences of page <a href="%s">%1$s</a> between versions %d and %d),
+differences => q(Differences of <a href="%s">%1$s</a> between versions %d and %d),
 
 goto_form => q(Goto form),
 goto_form_goto => q(Go to),
@@ -954,9 +954,9 @@ specify_comment_page => q(Please specify a comment page.),
 comment_tag_not_found => q(%s: Comment tag not found.),
 invalid_comment_tag => q(%s: Invalid comment tag.),
 
-current_version => q(The current version of %s is %d.),
+current_version => q(The current version of <a href="%s">%1$s</a> is %d.),
 file_uploaded => q(%s: File uploaded. Copy and paste the link below:<pre id="file_link_example">[[[%s]]]</pre>),
-page_files => q(Files belonging to %s),
+page_files => q(Files belonging to <a href="%s">%1$s</a>),
 
 table_of_contents => q(Table of contents),
 );
