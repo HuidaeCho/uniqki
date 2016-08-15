@@ -459,8 +459,8 @@ sub link_page{
 	$section =~ s/^[ \t]+|[ \t]+$//g;
 	$title =~ s/^[ \t]+|[ \t]+$//g;
 
-	my $enc_page = convert_page_name($page);
-	my $enc_section = convert_page_name($section);
+	my $enc_page = encode_url(convert_page_name($page));
+	my $enc_section = encode_url(convert_page_name($section));
 
 	if($enc_page eq ""){
 		return "" if($enc_section eq "");
@@ -511,8 +511,9 @@ sub link_image{
 		$file = $path;
 	}
 
-	return qq(<img src="$page/$file" alt="$file" title="$file"$style />) if($title eq "");
-	return qq(<img src="$page/$file" alt="$title" title="$title"$style />);
+	my $enc_path = encode_url("$page/$file");
+	return qq(<img src="$enc_path" alt="$file" title="$file"$style />) if($title eq "");
+	return qq(<img src="$enc_path" alt="$title" title="$title"$style />);
 }
 
 sub link_file{
@@ -558,8 +559,9 @@ sub link_file{
 		return qq(<a href="$page/">$title</a>);
 	}
 
-	return qq(<a href="$page/$file">$file</a>) if($title eq "");
-	return qq(<a href="$page/$file">$title</a>);
+	my $enc_path = encode_url("$page/$file");
+	return qq(<a href="$enc_path">$file</a>) if($title eq "");
+	return qq(<a href="$enc_path">$title</a>);
 }
 
 sub link_url_image{
@@ -570,8 +572,9 @@ sub link_url_image{
 	$style =~ s/^[ \t]+|[ \t]+$//g;
 	$style = qq( style="$style") if($style ne "");
 
-	return qq(<img src="$url" alt="$url" title="$url"$style />) if($title eq "");
-	return qq(<img src="$url" alt="$title" title="$title"$style />);
+	my $enc_url = encode_url($url);
+	return qq(<img src="$enc_url" alt="$url" title="$url"$style />) if($title eq "");
+	return qq(<img src="$enc_url" alt="$title" title="$title"$style />);
 }
 
 sub link_url{
@@ -580,8 +583,9 @@ sub link_url{
 	$url =~ s/^[ \t]+|[ \t]+$//g;
 	$title =~ s/^[ \t]+|[ \t]+$//g;
 
-	return qq(<a href="$url">$url</a>) if($title eq "");
-	return qq(<a href="$url">$title</a>);
+	my $enc_url = encode_url($url);
+	return qq(<a href="$enc_url">$url</a>) if($title eq "");
+	return qq(<a href="$enc_url">$title</a>);
 }
 
 sub is_url{
@@ -3383,6 +3387,7 @@ sub parse_line{
 		my $id = $t;
 		$id =~ s/&amp;/&/g; $id =~ s/&lt;/</g; $id =~ s/&gt;/>/g;
 		$id = convert_page_name($id);
+		my $enc_id = encode_url($id);
 		my $j = $h_i{$id}++;
 		if($j > 0){
 			$id .= ".".($j+1);
@@ -3421,7 +3426,7 @@ sub parse_line{
 			$h_prev++;
 			$h_top = $i if($i < $h_top);
 		}
-		$toc .= "<li><a href=\"#$id\">$t</a></li>\n";
+		$toc .= "<li><a href=\"#$enc_id\">$t</a></li>\n";
 		return;
 	}
 	# Start a new paragraph
