@@ -591,7 +591,19 @@ sub is_url{
 	$url =~ y/\x01/&/;
 
 	# https://en.wikipedia.org/wiki/Percent-encoding
-	return $url =~ m/^(?:$protocol)[%!*'();:@&=+\$,\/?#\[\]a-zA-Z0-9_.~-]+$/o;
+	return $url =~ m/^(?:$protocol)[%!*'();:@&=+\$,\/?#\[\]a-z0-9_.~-]+$/oi;
+}
+
+sub protect_urls{
+	my $text = shift;
+	$text =~ s/($protocol)/\x00$1/ogi;
+	return $text;
+}
+
+sub encode_urls{
+	my $text = shift;
+	$text =~ s/(.*?)(.)((?:$protocol).*?)\2/$1$2@{[encode_url($3)]}$2/ogi;
+	return $text;
 }
 
 sub encode_url{
@@ -3236,12 +3248,10 @@ sub parse_line{
 	s#--(.*?)--#<s>$1</s>#g;
 	s#__(.*?)__#<u>$1</u>#g;
 	s#\!\!(.*?)\!\!#<mark>$1</mark>#g;
-	# Percent-encode links inside tags
-	s#(<[^>]*)(.)((?:$protocol).*?)(\2[^>]*>)#$1$2@{[encode_url($3)]}$4#ogi;
-	# Protect protocols inside a tag
-	s#(<[^>]*)((?:$protocol)[^>]*>)#$1\x00$2#ogi;
+	# Percent-encode and protect links inside tags
+	s#<([^>]*(?:$protocol)[^>]*)>#<@{[protect_urls(encode_urls($1))]}>#ogi;
 	# Protect protocols outside a tag
-	s#(<a [^>]*>[^<]*)((?:$protocol)[^<]*</a>)#$1\x00$2#ogi;
+	s#(<a [^>]*>)([^<]*(?:$protocol)[^<]*)(</a>)#$1@{[protect_urls($2)]}$3#ogi;
 	# Translate non-protected protocols to links
 	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+\x01[a-z]+;)(?=(?:[ \t]|$))#<a href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
 	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+)(?=[$protocol_punct](?:[ \t]|$))#<a href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
