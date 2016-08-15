@@ -1007,7 +1007,7 @@ comment_tag_not_found => q(%s: Comment tag not found.),
 invalid_comment_tag => q(%s: Invalid comment tag.),
 
 current_version => q(The current version of <a href="%s">%1$s</a> is %d.),
-file_uploaded => q(%s: File uploaded. Copy and paste the link below:<pre id="file_link_example">[[[%s]]]</pre>),
+file_uploaded => q(%s: File uploaded. Copy and paste the link below:<pre id="file_link_example">{{%s|%1$s}}</pre>),
 page_files => q(Files belonging to <a href="%s">%1$s</a>),
 
 table_of_contents => q(Table of contents),
@@ -4511,7 +4511,7 @@ EOT
 		chmod 0755, "$PAGE/$t.$var{file}" if($hosting eq "awardspace");
 
 		(my $f = $var{file}) =~ s/ /%20/g;
-		exit_message("file_uploaded", $var{file}, "$PAGE/$t.$f");
+		exit_message("file_uploaded", $var{file}, "$t.$f");
 	}
 	if(-f "$PAGE.txt"){
 		open FH, "$PAGE.txt";
@@ -4544,7 +4544,7 @@ EOT
 		if($var{file} ne "" && -f "$PAGE/$t.$var{file}"){
 			(my $f = $var{file}) =~ s/ /%20/g;
 			$uploaded = get_msg("file_uploaded", $var{file},
-				"$PAGE/$t.$f");
+				"$t.$f");
 		}
 
 		preview($PAGE, $TEXT, $uploaded, 1);
@@ -5133,8 +5133,7 @@ EOT
 		my $uploaded;
 		if($var{file} ne "" && -f "$PAGE/$var{file}"){
 			(my $f = $var{file}) =~ s/ /%20/g;
-			$uploaded = get_msg("file_uploaded", $var{file},
-				"$PAGE/$f");
+			$uploaded = get_msg("file_uploaded", $var{file}, $f);
 		}
 
 		preview($PAGE, $TEXT, $uploaded, 0);
