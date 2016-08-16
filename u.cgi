@@ -98,7 +98,7 @@ use vars qw(
 use vars qw(
 	$text $protocol $protocol_char $protocol_punct $image_ext $block
 	$re_i_start $re_i @re @re_sub $toc $notoc %h_i $h_top $h_prev $p
-	$li_i @li @li_attr $pre $table
+	$li_i @li @li_attr $pre $code $table
 );
 
 umask 022;
@@ -2940,8 +2940,9 @@ sub parse_file{
 	close UNIQKI_FH;
 
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
-		$block, $re_i_start, $re_i, @re, @re_sub, $toc, $notoc,
-		%h_i, $h_top, $h_prev, $p, $li_i, @li, @li_attr, $pre, $table);
+		$block, $re_i_start, $re_i, @re, @re_sub, $toc, $notoc, %h_i,
+		$h_top, $h_prev, $p, $li_i, @li, @li_attr, $pre, $code,
+		$table);
 	my ($header_file, $footer_file);
 
 	unless($wiki){
@@ -2972,8 +2973,9 @@ sub parse_text{
 	local *UNIQKI_FH;
 
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
-		$block, $re_i_start, $re_i, @re, @re_sub, $toc, $notoc,
-		%h_i, $h_top, $h_prev, $p, $li_i, @li, @li_attr, $pre, $table);
+		$block, $re_i_start, $re_i, @re, @re_sub, $toc, $notoc, %h_i,
+		$h_top, $h_prev, $p, $li_i, @li, @li_attr, $pre, $code,
+		$table);
 	my ($header_file, $footer_file);
 
 	unless($wiki){
@@ -3041,6 +3043,7 @@ sub begin_parsing{
 	@li = ();
 	@li_attr = ();
 	$pre = 0;
+	$code = "";
 	$table = 0;
 }
 
@@ -3113,17 +3116,28 @@ sub parse_line{
 		}
 	}
 	# Start or close pre
-	if(m/^---+$/ && (!$pre || $pre == length)){
+	if(m/^(---+)(?:\[(.*?)\])?$/ &&
+		(!$pre || ($pre == length($1) && ($2 eq "" || $code eq $2)))){
 		if($pre){
-			$text .= "</pre>\n";
+			if($code eq ""){
+				$text .= "</pre>\n";
+			}else{
+				$text .= "</code></pre>\n";
+				$code = "";
+			}
 			$pre = 0;
 		}else{
 			if($p){
 				$text .= "</p>\n";
 				$p = 0;
 			}
-			$text .= "<pre>\n";
-			$pre = length;
+			if($2 eq ""){
+				$text .= "<pre>\n";
+			}else{
+				$text .= qq(<pre><code class="language-$2">\n);
+				$code = $2;
+			}
+			$pre = length($1);
 		}
 		return;
 	}
@@ -3238,11 +3252,11 @@ sub parse_line{
 	# Pages
 	s#\[\[(.*?)(?:\#(.*?))?(?:\|(.*?))?\]\]#@{[link_page($1, $2, $3)]}#g;
 	# Images
-	s#{{{(.*?)(?:\|(.*?))?}}(.*?)}#@{[link_image($1, $2, $3)]}#g;
+	s#{{{(.*?)(?:\|(.*?))?}}}(?:\[(.*?)\])?#@{[link_image($1, $2, $3)]}#g;
 	# Files
 	s#{{(.*?)(?:\|(.*?))?}}#@{[link_file($1, $2)]}#g;
 	# URL images
-	s#\x02\x02\x02(.*?)(?:\|(.*?))?\x03\x03(.*?)\x03#@{[link_url_image($1, $2, $3)]}#g;
+	s#\x02\x02\x02(.*?)(?:\|(.*?))?\x03\x03\x03(?:\[(.*?)\])?#@{[link_url_image($1, $2, $3)]}#g;
 	# URLs
 	s#\x02\x02(.*?)(?:\|(.*?))?\x03\x03#@{[link_url($1, $2)]}#g;
 	# Text styles
@@ -3251,7 +3265,7 @@ sub parse_line{
 	s#//(?!\x00)(.*?)//(?!\x00)#<i>$1</i>#g;
 	s#($protocol)\x00#$1#ogi;
 	s#\*\*(.*?)\*\*#<b>$1</b>#g;
-	s#''(.*?)''#<code>$1</code>#g;
+	s#''(.*?)''(?:\[(.*?)\])?#@{[$2 eq "" ? "<code>$1</code>" : qq(<code class="language-$2">$1</code>)]}#g;
 	s#--(.*?)--#<s>$1</s>#g;
 	s#__(.*?)__#<u>$1</u>#g;
 	s#\!\!(.*?)\!\!#<mark>$1</mark>#g;
