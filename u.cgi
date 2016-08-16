@@ -2149,6 +2149,8 @@ sub make_html{
 	local $TIME = format_time((stat "$PAGE.txt")[9]);
 
 	$header_printed = 0;
+	$footer_printed = 0;
+
 	my $html;
 	open FH, ">", \$html; my $fh = select FH;
 	if($wiki){
