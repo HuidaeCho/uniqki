@@ -1000,7 +1000,7 @@ page_not_found => q(%s: Page not found.),
 create_page => q(%s: Page not found. <a href="?edit">Create this page.</a>),
 not_wiki_page => q(%s: This page is not a wiki page.),
 not_allowed_to_create_nonwiki_page => q(%s: You are not allowed to create this non-wiki page.),
-not_allowed_to_edit_wiki_page => q(%s: You are not allowed to edit this wiki page.),
+not_allowed_to_create_wiki_page => q(%s: You are not allowed to create this wiki page.),
 not_allowed_to_edit_wiki_page => q(%s: You are not allowed to edit this wiki page.),
 path_not_found => q(%s: Path not found.),
 
