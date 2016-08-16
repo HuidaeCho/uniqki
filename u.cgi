@@ -851,7 +851,7 @@ $WRITE_ACCESS = 'open';
 $HEADER_FILE = '';
 $FOOTER_FILE = '';
 
-# Header and footer files for the wiki parser (#!wiki as the first line)
+# Header and footer files for the wiki parser
 $WIKI_HEADER_FILE = '';
 $WIKI_FOOTER_FILE = '';
 
@@ -4449,7 +4449,7 @@ EOT
 	unlock_file("$PAGE.txt");
 }elsif($QUERY_STRING =~ m/^wiki_/){
 #-------------------------------------------------------------------------------
-# uniqkiwiki
+# Uniqki Wiki
 	unless(has_write_access()){
 		my $msg_id;
 		if($wiki){
