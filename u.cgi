@@ -297,11 +297,6 @@ sub config_read_write_access{
 	return ($nonwiki_read_access, $wiki_read_access, $wiki_write_access);
 }
 
-sub exit_redirect{
-	printf "Location: %s\n\n", shift;
-	exit;
-}
-
 sub run_file_mimetype{
 	my $file = shift;
 	return "" unless(-f $file);
@@ -367,6 +362,20 @@ sub exit_message{
 	local $MESSAGE = get_msg(@_);
 	(local $TITLE = $MESSAGE) =~ s/<[^>]*>//g;
 	print_message();
+	exit;
+}
+
+sub exit_rebuild{
+	my $page = shift;
+	if(-f "$page.txt"){
+		make_html($page);
+		exit_redirect("$HTTP_BASE$SCRIPT_NAME/$page");
+	}
+	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE");
+}
+
+sub exit_redirect{
+	printf "Location: %s\n\n", shift;
 	exit;
 }
 
@@ -4402,10 +4411,9 @@ EOT
 		print_footer();
 		exit;
 	}
-	$PAGE = $var{page};
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE")
-		unless(verify_input("comment", \%var));
+	exit_rebuild($var{page}) unless(verify_input("comment", \%var));
 
+	$PAGE = $var{page};
 	exit_message("page_not_found", $PAGE) unless(-f "$PAGE.txt");
 
 	exit_message("invalid_comment_tag", $var{comment})
@@ -4526,8 +4534,7 @@ EOT
 	}
 
 	my %var = get_var();
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE")
-		unless(verify_input($QUERY_STRING, \%var));
+	exit_rebuild($PAGE) unless(verify_input($QUERY_STRING, \%var));
 
 	local *FH;
 	my $t = time;
@@ -5085,8 +5092,7 @@ EOT
 #-------------------------------------------------------------------------------
 # u.cgi/PAGE?upload		Upload PAGE/FILE
 	my %var = get_var();
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE")
-		unless(verify_input("upload", \%var));
+	exit_rebuild($PAGE) unless(verify_input("upload", \%var));
 
 	if($var{file} ne ""){
 		local *FH;
@@ -5153,8 +5159,7 @@ EOT
 	}
 
 	my %var = get_var();
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE")
-		unless(verify_input("edit", \%var));
+	exit_rebuild($PAGE) unless(verify_input("edit", \%var));
 
 	$VERSION = $var{version};
 	$TEXT = $var{text};
