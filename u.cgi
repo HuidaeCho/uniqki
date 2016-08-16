@@ -342,7 +342,7 @@ sub exit_path{
 			my @t = localtime((stat $file)[9]);
 			my $time = sprintf "%d-%02d-%02d %02d:%02d:%02d",
 				$t[5]+1900, $t[4]+1, $t[3], $t[2], $t[1], $t[0];
-			print qq(<li><a href="$url">$name</a> <span class="ls_time">$time</span></li>\n);
+			print qq(<li><a href="$url">$name</a> <span class="ls-time">$time</span></li>\n);
 		}
 		print qq(</ul></div>\n);
 		print_footer();
@@ -632,7 +632,7 @@ sub create_table_cell{
 	$rowspan = $rowspan == 1 ? "" : qq( rowspan="$rowspan");
 	$colspan = $colspan == 1 ? "" : qq( colspan="$colspan");
 	my $align = $left == 0 ? "left" : ($right == 0 ? "right" : "center");
-	return qq(<td$rowspan$colspan class="table_$align">$content</td>);
+	return qq(<td$rowspan$colspan class="table-$align">$content</td>);
 }
 
 sub is_logged_in{
@@ -942,7 +942,7 @@ page_updated => q([[PAGE]] updated!),
 save_your_changes_and_read_latest_version => q(Please save your changes and read <a href="[[PAGE]].html">the latest version</a>!),
 
 edit_page => q(Edit [[PAGE]]),
-wikiedit_page => q(WikiEdit [[PAGE]]),
+wiki_edit_page => q(WikiEdit [[PAGE]]),
 
 ################################################################################
 # Non-template messages: These messages support printf format specifiers such
@@ -1019,14 +1019,15 @@ search_form_ignore_case => q(Ignore case),
 search_form_print_title => q(Print title),
 search_form_no_match => q(No match),
 comment_form => q(Comment form),
+comment_form_leave_this_field_blank => q(Please leave this field blank: ),
 comment_form_write => q(Write),
 specify_comment_page => q(Please specify a comment page.),
 comment_tag_not_found => q(%s: Comment tag not found.),
 invalid_comment_tag => q(%s: Invalid comment tag.),
 
 current_version => q(The current version of <a href="%s">%1$s</a> is %d.),
-wiki_file_uploaded => q(%s: File uploaded. Copy and paste the link below:<pre id="file_link_example">{{%s|%1$s}}</pre>),
-file_uploaded => q(%s: File uploaded. Copy and paste the link below:<pre id="file_link_example">{{%1$s}}</pre>),
+wiki_file_uploaded => q(%s: File uploaded. Copy and paste the link below:<pre id="file-link-example">{{%s|%1$s}}</pre>),
+file_uploaded => q(%s: File uploaded. Copy and paste the link below:<pre id="file-link-example">{{%1$s}}</pre>),
 page_files => q(Files belonging to <a href="../%s">%1$s</a>),
 
 table_of_contents => q(Table of contents),
@@ -1104,7 +1105,7 @@ sub process_tpl_tag{
 	}elsif($tag eq "EDIT"){
 		print_edit();
 	}elsif($tag eq "WIKIEDIT"){
-		print_wikiedit();
+		print_wiki_edit();
 	}elsif($tag =~ m/^[A-Z_]+$/){
 		my @tags = qw(
 			SITE_TITLE SITE_DESCRIPTION INDEX_PAGE TITLE LANG
@@ -1232,7 +1233,7 @@ EOT_UNIQKI
 sub print_manage_pages{
 	process_tpl("manage_pages.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
-<div id="manage_pages">
+<div id="manage-pages">
 <h1>[[manage_pages]]</h1>
 <form action="?restore" method="post" enctype="multipart/form-data">
 <div>
@@ -1258,7 +1259,7 @@ EOT_UNIQKI
 sub print_manage_users{
 	process_tpl("manage_users.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
-<div id="manage_users">
+<div id="manage-users">
 <h1>[[manage_users]]</h1>
 <p>[[username_requirements]]</p>
 <p>[[password_requirements]] [[leave_password_blank_for_email_notification]]</p>
@@ -1340,7 +1341,7 @@ EOT_UNIQKI
 sub print_manage_myself{
 	process_tpl("manage_myself.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
-<div id="manage_myself">
+<div id="manage-myself">
 <h1>[[manage_myself]]</h1>
 
 <h2>[[update_myself]]</h2>
@@ -1377,7 +1378,7 @@ EOT_UNIQKI
 sub print_forgot_password{
 	process_tpl("forgot_password.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
-<div id="forgot_password">
+<div id="forgot-password">
 <h1>[[forgot_password]]</h1>
 <form action="?forgot_password" method="post">
 <div>
@@ -1401,7 +1402,7 @@ EOT_UNIQKI
 sub print_reset_password{
 	process_tpl("reset_password.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
-<div id="reset_password">
+<div id="reset-password">
 <h1>[[reset_password]]</h1>
 <p>[[password_requirements]]</p>
 <form action="?reset_password" method="post">
@@ -1521,19 +1522,19 @@ EOT_UNIQKI
 	)
 }
 
-sub print_wikiview{
+sub print_wiki_view{
 	# View templates are never served dynamically, so don't print a
 	# content-type header
 	$html_started = 1;
-	process_tpl("wikiview.tpl", shift, <<'EOT_UNIQKI'
+	process_tpl("wiki_view.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
-<div id="wikiview">
+<div id="wiki-view">
 <!-- start text -->
 [[TEXT]]
 <!-- end text -->
 </div>
-<div id="wikimenu">
-<span class="write-access"><a accesskey="e" href="[[CGI]]/[[PAGE]]?wikiedit">[[edit]]</a> .</span>
+<div id="wiki-menu">
+<span class="write-access"><a accesskey="e" href="[[CGI]]/[[PAGE]]?wiki_edit">[[edit]]</a> .</span>
 <a accesskey="d" href="[[CGI]]/[[PAGE]]?diff=-1">[[diff]]</a> .
 <a accesskey="l" href="[[CGI]]?search=[[PAGE]]%5C.html&amp;link=1">[[backlinks]]</a> .
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
@@ -1550,12 +1551,12 @@ EOT_UNIQKI
 	)
 }
 
-sub print_wikiedit{
-	process_tpl("wikiedit.tpl", shift, <<'EOT_UNIQKI'
+sub print_wiki_edit{
+	process_tpl("wiki_edit.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
-<div id="wikiedit">
-<h1>[[wikiedit_page]]</h1>
-<form action="[[PAGE]]?wikiedit" method="post" enctype="multipart/form-data">
+<div id="wiki-edit">
+<h1>[[wiki_edit_page]]</h1>
+<form action="[[PAGE]]?wiki_edit" method="post" enctype="multipart/form-data">
 <div>
 <input type="hidden" id="version" name="version" value="[[VERSION]]" />
 <textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea><br />
@@ -1572,10 +1573,10 @@ EOT_UNIQKI
 	)
 }
 
-sub print_wikipreview{
-	process_tpl("wikipreview.tpl", shift, <<'EOT_UNIQKI'
+sub print_wiki_preview{
+	process_tpl("wiki_preview.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
-<div id="wikipreview">
+<div id="wiki-preview">
 [[PREVIEW]]
 </div>
 [[WIKIEDIT]]
@@ -1641,15 +1642,15 @@ textarea {
 }
 #login {
 }
-#manage_pages {
+#manage-pages {
 }
-#manage_users {
+#manage-users {
 }
-#manage_myself {
+#manage-myself {
 }
-#forgot_password {
+#forgot-password {
 }
-#reset_password {
+#reset-password {
 }
 #message {
 }
@@ -1671,25 +1672,23 @@ textarea {
 }
 #updated {
 }
-#file_uploaded {
-}
-#file_link_example {
+#file-link-example {
 	border-bottom:		1px dashed #999999;
 	padding-bottom:		20px;
 }
 
 /******************************************************************************/
-#wikiview {
+#wiki-view {
 	background-color:	#eeeeee;
 	color:			#000000;
 	border:			1px solid #999999;
 	padding:		5px;
 }
-#wikiedit {
+#wiki-edit {
 }
-#wikipreview {
+#wiki-preview {
 }
-#wikimenu {
+#wiki-menu {
 	padding:		5px 5px 0px 5px;
 	display:		none;
 }
@@ -1697,10 +1696,10 @@ textarea {
 /******************************************************************************/
 #toc {
 }
-.toc_heading {
+.toc-heading {
 	font-weight:		bold;
 }
-.toc_list {
+.toc-list {
 }
 .table {
 	border-collapse:	collapse;
@@ -1709,44 +1708,44 @@ textarea {
 	border:			1px solid #999999;
 	padding:		3px;
 }
-.table_left {
+.table-left {
 	text-align:		left;
 }
-.table_center {
+.table-center {
 	text-align:		center;
 }
-.table_right {
+.table-right {
 	text-align:		right;
 }
 
 /******************************************************************************/
 #diff {
 }
-.diff_unchanged {
+.diff-unchanged {
 	font-family:		monospace;
 }
-.diff_added {
+.diff-added {
 	background-color:	#66cccc;
 	color:			#000000;
 	font-family:		monospace;
 }
-.diff_deleted {
+.diff-deleted {
 	background-color:	#ff99cc;
 	color:			#000000;
 	font-family:		monospace;
 	text-decoration:	line-through;
 }
-.diff_modified {
+.diff-modified {
 	background-color:	#cccccc;
 	color:			#000000;
 	font-family:		monospace;
 }
-.diff_modified_added {
+.diff-modified-added {
 	background-color:	#66cccc;
 	color:			#000000;
 	font-family:		monospace;
 }
-.diff_modified_deleted {
+.diff-modified-deleted {
 	background-color:	#ff99cc;
 	color:			#000000;
 	font-family:		monospace;
@@ -1756,26 +1755,29 @@ textarea {
 /******************************************************************************/
 #ls {
 }
-.ls_time {
+.ls-time {
 	font-size:		70%;
 	font-style:		italic;
 }
 
 /******************************************************************************/
-.goto_input {
+.goto-input {
 }
 
 /******************************************************************************/
 #search {
 }
-.search_highlight {
+.search-highlight {
 	font-weight:		bold;
 }
-.search_input {
+.search-input {
 }
 
 /******************************************************************************/
-.comment_input {
+.comment-website {
+	display:		none;
+}
+.comment-input {
 }
 EOT_UNIQKI
 	)
@@ -1887,11 +1889,11 @@ function process_menu(xml_request){
 			});
 
 	var menu = document.getElementById('menu');
-	var wikimenu = document.getElementById('wikimenu');
+	var wiki_menu = document.getElementById('wiki-menu');
 	if(menu != null)
 		menu.style.display = 'block';
-	if(wikimenu != null)
-		wikimenu.style.display = 'block';
+	if(wiki_menu != null)
+		wiki_menu.style.display = 'block';
 }
 
 ajax_request('[[CGI]]/[[PAGE]]?user_info', null, process_menu);
@@ -2082,7 +2084,7 @@ sub preview{
 	local $PAGE = shift;
 	local $TEXT = shift;
 	my $uploaded = shift;
-	my $wikiedit = shift;
+	my $wiki_edit = shift;
 
 	local *FH;
 	my $txt;
@@ -2092,7 +2094,7 @@ sub preview{
 	local $wiki;
 
 	open FH, ">", \$txt;
-	print FH ($wikiedit ? "#!wiki\n" : "")."$TEXT\n";
+	print FH ($wiki_edit ? "#!wiki\n" : "")."$TEXT\n";
 	close FH;
 
 	$PREVIEW = parse_file(\$txt);
@@ -2108,8 +2110,8 @@ sub preview{
 	$PREVIEW = $uploaded.$PREVIEW;
 	$TEXT =~ s/&/&amp;/g; $TEXT =~ s/</&lt;/g; $TEXT =~ s/>/&gt;/g;
 
-	if($wikiedit){
-		print_wikipreview();
+	if($wiki_edit){
+		print_wiki_preview();
 	}else{
 		print_preview();
 	}
@@ -2141,7 +2143,7 @@ sub make_html{
 	my $html;
 	open FH, ">", \$html; my $fh = select FH;
 	if($wiki){
-		print_wikiview();
+		print_wiki_view();
 	}else{
 		print_view();
 	}
@@ -2841,7 +2843,7 @@ sub create_goto_form{
 	my $mode = shift;
 	my $goto = get_msg("goto_form_goto");
 	my $form = <<EOT;
-<form class="goto_input" action="$SCRIPT_NAME" method="get">
+<form class="goto-input" action="$SCRIPT_NAME" method="get">
 <div>
 <input accesskey="g" id="goto" name="goto" />
 <input type="submit" value="$goto" />
@@ -2869,7 +2871,7 @@ sub create_search_form{
 	my $print_title = get_msg("search_form_print_title");
 	my $no_match = get_msg("search_form_no_match");
 	my $form = <<EOT;
-<form class="search_input" action="$CGI" method="get">
+<form class="search-input" action="$CGI" method="get">
 <div>
 <input accesskey="s" id="search" name="search" />
 <input type="submit" value="$search" />
@@ -2902,11 +2904,15 @@ sub create_comment_form{
 	$cols = "80" if($cols eq "");
 	exit_message("invalid_comment_tag", $comment)
 		unless($comment =~ m/^[a-zA-Z0-9_-]+$/);
+	my $id = time;
 
+	my $leave_this_field_blank = get_msg("comment_form_leave_this_field_blank");
 	my $write = get_msg("comment_form_write");
 	my $form = <<EOT;
-<form class="comment_input" action="$CGI?comment=$comment" method="post">
+<form class="comment-input" action="$CGI?comment=$comment" method="post">
 <div>
+<div class="comment-website">$leave_this_field_blank<input id="website" name="website" /></div>
+<input type="hidden" id="id" name="id" value="$id" />
 <input type="hidden" id="page" name="page" value="$page" />
 <input type="hidden" id="direction" name="direction" value="$direction" />
 <textarea accesskey="c" id="text" name="text" rows="$rows" cols="$cols"></textarea>
@@ -2927,6 +2933,10 @@ EOT
 #-------------------------------------------------------------------------------
 # User-replaceable subroutines
 sub verify_input{
+	my ($query, $var) = @_;
+	if($query eq "comment"){
+		return 0 if($$var{website} ne "" || $$var{id} >= time - 15);
+	}
 	return 1;
 }
 
@@ -3428,7 +3438,7 @@ sub parse_line{
 				$toc .= "<li><ul>" while($h_prev++<$i);
 				$h_prev--;
 			}else{
-				$toc .= "<ul class=\"toc_list\">";
+				$toc .= "<ul class=\"toc-list\">";
 				$toc .= "\n" if($i > 1);
 				$toc .= "<li><ul>" while(++$h_prev<$i);
 				$h_top = $i;
@@ -3491,7 +3501,7 @@ sub end_parsing{
 		$toc =~ s#\n+#\n#g;
 		my $heading = get_msg("table_of_contents");
 		$toc = "<div id=\"toc\">\n".
-			"<div class=\"toc_heading\">$heading</div>\n".
+			"<div class=\"toc-heading\">$heading</div>\n".
 			"$toc</div>\n";
 		$h_prev = 0;
 		$text =~ s/\x04/$toc/g;
@@ -3956,7 +3966,7 @@ if($QUERY_STRING eq "css"){
 	for($n=0; $n<$s; $n++){
 		$_ = $line1[$n];
 		s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
-		print qq(<div class="diff_unchanged">= $_</div>\n);
+		print qq(<div class="diff-unchanged">= $_</div>\n);
 	}
 	eval "use Encode qw(decode);";
 	my $encode = $@ ? 0 : 1;
@@ -3964,7 +3974,7 @@ if($QUERY_STRING eq "css"){
 		my ($x, $y) = split /,/, $delta[$i];
 		if($x > $m && $y > $n){
 			for(; $m<$x&&$n<$y; $m++,$n++){
-				print qq(<div class="diff_modified">* );
+				print qq(<div class="diff-modified">* );
 				my $l0 = $line0[$m];
 				my $l1 = $line1[$n];
 				if($encode){
@@ -3984,7 +3994,7 @@ if($QUERY_STRING eq "css"){
 				for(my $ii=0; $ii<=$#idelta; $ii++,$im++,$in++){
 					my ($ix, $iy) = split /,/, $idelta[$ii];
 					if($ix > $im){
-						print qq(<span class="diff_modified_deleted">);
+						print qq(<span class="diff-modified-deleted">);
 						$_ = "";
 						for(; $im<$ix; $im++){
 							$_ .= $l0[$im];
@@ -3993,7 +4003,7 @@ if($QUERY_STRING eq "css"){
 						print qq($_</span>);
 					}
 					if($iy > $in){
-						print qq(<span class="diff_modified_added">);
+						print qq(<span class="diff-modified-added">);
 						$_ = "";
 						for(; $in<$iy; $in++){
 							$_ .= $l1[$in];
@@ -4019,26 +4029,26 @@ if($QUERY_STRING eq "css"){
 			for(; $m<$x; $m++){
 				$_ = $line0[$m];
 				s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
-				print qq(<div class="diff_deleted">- $_</div>\n);
+				print qq(<div class="diff-deleted">- $_</div>\n);
 			}
 		}
 		if($y > $n){
 			for(; $n<$y; $n++){
 				$_ = $line1[$n];
 				s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
-				print qq(<div class="diff_added">+ $_</div>\n);
+				print qq(<div class="diff-added">+ $_</div>\n);
 			}
 		}
 		if($n <= $#line1){
 			$_ = $line1[$n];
 			s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
-			print qq(<div class="diff_unchanged">= $_</div>\n);
+			print qq(<div class="diff-unchanged">= $_</div>\n);
 		}
 	}
 	for(; $n<=$#line1; $n++){
 		$_ = $line1[$n];
 		s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
-		print qq(<div class="diff_unchanged">= $_</div>\n);
+		print qq(<div class="diff-unchanged">= $_</div>\n);
 	}
 
 	print qq(</div>\n);
@@ -4143,7 +4153,7 @@ if($QUERY_STRING eq "css"){
 			}
 			$time = $3;
 		}
-		print qq(<li><a href="$page.html">$title</a> <span class="ls_time">$time</span></li>\n);
+		print qq(<li><a href="$page.html">$title</a> <span class="ls-time">$time</span></li>\n);
 		last if(++$i == $n);
 	}
 
@@ -4353,7 +4363,7 @@ EOT
 			next;
 		}
 		foreach(@result){
-			s#\x01#<span class="search_highlight">#g;
+			s#\x01#<span class="search-highlight">#g;
 			s#\x02#</span>#g;
 			print qq(<div><a href="$page.html">$query</a>: $_</div>\n);
 		}
@@ -4392,9 +4402,10 @@ EOT
 		print_footer();
 		exit;
 	}
-	exit unless(verify_input("comment", \%var));
-
 	$PAGE = $var{page};
+	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE")
+		unless(verify_input("comment", \%var));
+
 	exit_message("page_not_found", $PAGE) unless(-f "$PAGE.txt");
 
 	exit_message("invalid_comment_tag", $var{comment})
@@ -4426,7 +4437,7 @@ EOT
 	exit_message("comment_tag_not_found", "#%$var{comment}") unless($added);
 	save($PAGE, $TEXT);
 	unlock_file("$PAGE.txt");
-}elsif($QUERY_STRING =~ m/^wiki/){
+}elsif($QUERY_STRING =~ m/^wiki_/){
 #-------------------------------------------------------------------------------
 # uniqkiwiki
 	unless(has_write_access()){
@@ -4447,14 +4458,21 @@ EOT
 		exit_message($msg_id, $PAGE);
 	}
 	if($REQUEST_METHOD eq "GET"){
-		local *FH;
-		local $TITLE = $PAGE;
-		local $TEXT;
-		if($QUERY_STRING eq "wikiedit"){
+		if($QUERY_STRING =~ m/^wiki_edit(?:=(-?[0-9]+))?$/){
 #-------------------------------------------------------------------------------
-# u.cgi/PAGE?wikiedit		Edit wiki PAGE
-			$TEXT = "";
-			if(-f "$PAGE.txt"){
+# u.cgi/PAGE?wiki_edit		Create/edit PAGE
+# u.cgi/PAGE?wiki_edit=([0-9]+)	Edit the version \1 of PAGE
+# u.cgi/PAGE?wiki_edit=-([0-9]+) Edit the current-\1 version of PAGE
+			if($1 ne "" && !-f "$PAGE.txt"){
+				exit_message("page_not_found", $PAGE);
+			}
+
+			local *FH;
+			local $TITLE = $PAGE;
+			local $TEXT = "";
+			local $VERSION = get_version($PAGE);
+
+			if($1 eq "" && -f "$PAGE.txt"){
 				open FH, "$PAGE.txt"; local $/ = undef;
 				$TEXT = <FH>;
 				close FH;
@@ -4467,63 +4485,53 @@ EOT
 				$TEXT =~ s/&/&amp;/g;
 				$TEXT =~ s/</&lt;/g;
 				$TEXT =~ s/>/&gt;/g;
-			}
-		}elsif($QUERY_STRING =~ m/^wikieditback(?:=([0-9]+))?$/){
-#-------------------------------------------------------------------------------
-# u.cgi/PAGE?wikieditback	Edit the current-1 version of wiki PAGE
-# u.cgi/PAGE?wikieditback=([0-9]+) Edit the current-\1 version of wiki PAGE
-			unless(-f "$PAGE.txt"){
-				exit_message("page_not_found", $PAGE);
-			}
+			}elsif($1 ne ""){
+				my $version = $1 > 0 ? $1 : $VERSION + $1;
 
-			my $version = get_version($PAGE);
-			my $backversion = $version - ($1 eq ""?1:$1);
-
-			open FH, "$PAGE.txt"; local $/ = undef;
-			$TEXT = <FH>;
-			close FH;
-			if("#!wiki\n" ne substr $TEXT, 0, 7){
-				exit_message("internal_errors");
-			}
-
-			if($backversion >= $version || $backversion <= 0){
+				open FH, "$PAGE.txt"; local $/ = undef;
+				$TEXT = <FH>;
 				close FH;
-				exit_message("current_version", $PAGE,
-					$version);
-			}
+				if("#!wiki\n" ne substr $TEXT, 0, 7){
+					exit_message("internal_errors");
+				}
 
-			open FH, "$PAGE.txt.v"; local $/ = "\x00\n";
-			while(<FH>){
-				m/^([0-9]+):.*?\n(.*)\x00\n$/s;
-				$TEXT = patch($TEXT, $2);
-				last if($backversion == $1 - 1);
-			}
-			close FH;
-			if("#!wiki\n" ne substr $TEXT, 0, 7){
-				# Previous version was not a wiki page
-				exit_message("not_wiki_page", $PAGE);
-			}
+				if($version >= $VERSION || $version <= 0){
+					close FH;
+					exit_message("current_version", $PAGE,
+						$version);
+				}
 
-			$TEXT = substr $TEXT, 7;
-			$TEXT =~ s/&/&amp;/g;
-			$TEXT =~ s/</&lt;/g;
-			$TEXT =~ s/>/&gt;/g;
-			chomp $TEXT;
-		}else{
-			exit;
+				open FH, "$PAGE.txt.v"; local $/ = "\x00\n";
+				while(<FH>){
+					m/^([0-9]+):.*?\n(.*)\x00\n$/s;
+					$TEXT = patch($TEXT, $2);
+					last if($version == $1 - 1);
+				}
+				close FH;
+				if("#!wiki\n" ne substr $TEXT, 0, 7){
+					# Previous version was not a wiki page
+					exit_message("not_wiki_page", $PAGE);
+				}
+
+				$TEXT = substr $TEXT, 7;
+				$TEXT =~ s/&/&amp;/g;
+				$TEXT =~ s/</&lt;/g;
+				$TEXT =~ s/>/&gt;/g;
+				chomp $TEXT;
+			}
+			$VERSION++;
+			print_wiki_edit();
 		}
-
-		local $VERSION = get_version($PAGE) + 1;
-		print_wikiedit();
 		exit;
 	}
 
 	my %var = get_var();
-	exit unless(verify_input($QUERY_STRING, \%var));
+	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE")
+		unless(verify_input($QUERY_STRING, \%var));
 
 	local *FH;
 	my $t = time;
-	if($QUERY_STRING eq "wikiupload"){
+	if($QUERY_STRING eq "wiki_upload"){
 #-------------------------------------------------------------------------------
 # Wiki upload
 		exit if($WIKI_ALLOWED_FILES eq "" || !-f "$PAGE.txt" ||
@@ -5062,9 +5070,9 @@ EOT
 		print_edit(1);
 		print_preview(1);
 		print_updated(1);
-		print_wikiview(1);
-		print_wikiedit(1);
-		print_wikipreview(1);
+		print_wiki_view(1);
+		print_wiki_edit(1);
+		print_wiki_preview(1);
 		print_css(1);
 		print_js(1);
 	}
@@ -5077,7 +5085,8 @@ EOT
 #-------------------------------------------------------------------------------
 # u.cgi/PAGE?upload		Upload PAGE/FILE
 	my %var = get_var();
-	exit unless(verify_input("upload", \%var));
+	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE")
+		unless(verify_input("upload", \%var));
 
 	if($var{file} ne ""){
 		local *FH;
@@ -5144,7 +5153,8 @@ EOT
 	}
 
 	my %var = get_var();
-	exit unless(verify_input("edit", \%var));
+	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE")
+		unless(verify_input("edit", \%var));
 
 	$VERSION = $var{version};
 	$TEXT = $var{text};
