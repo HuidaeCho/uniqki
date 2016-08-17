@@ -4687,9 +4687,6 @@ EOT
 # u.cgi?refresh&glob=GLOB	Refresh GLOB pages
 	my %var = get_var();
 	my $glob = $var{glob};
-	my $_begin_parsing = $begin_parsing;
-	my $_parse_line = $parse_line;
-	my $_end_parsing = $end_parsing;
 	my $title = $glob eq "" ? get_msg("refresh_pages") :
 		get_msg("refresh_pages_matching", $glob);
 
@@ -4700,10 +4697,10 @@ EOT
 		next if(index($_, "/") >= 0 || !-f $_);
 		s/\.txt$//;
 		$PAGE = $_;
-		$begin_parsing = $_begin_parsing;
-		$parse_line = $_parse_line;
-		$end_parsing = $_end_parsing;
 		make_html($PAGE);
+		undef $begin_parsing;
+		undef $parse_line;
+		undef $end_parsing;
 		print qq(<li><a href="$PAGE.html">$PAGE</a></li>\n);
 	}
 	print qq(</ul>\n</div>\n);
