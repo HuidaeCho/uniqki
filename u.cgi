@@ -2962,9 +2962,7 @@ sub parse_file{
 	close UNIQKI_FH;
 
 	$wiki = "#!wiki\n" eq substr $txt, 0, 7 ? 1 : 0;
-	parse_text($txt);
-
-	return $text;
+	return parse_text($txt);
 }
 
 sub parse_text{
