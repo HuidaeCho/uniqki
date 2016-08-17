@@ -89,6 +89,11 @@ use vars qw(
 	%MESSAGES
 );
 
+# verify_input()
+use vars qw(
+	$verify_input
+);
+
 # parse_file() global variables
 use vars qw(
 	$wiki $begin_parsing $parse_line $end_parsing
@@ -2941,50 +2946,23 @@ EOT
 	}
 }
 
-#-------------------------------------------------------------------------------
-# User-replaceable subroutines
-sub verify_input{
-	my ($query, $var) = @_;
-	if($query eq "comment"){
-		return 0 if($$var{website} ne "" || $$var{id} >= time - 15);
-	}
-	return 1;
+sub verify_input_data{
+	$verify_input = \&verify_input unless(defined($verify_input));
+	return $verify_input->(@_);
 }
 
 # Parsing subroutines
 sub parse_file{
 	my $file = shift;
-
 	local *UNIQKI_FH;
+
 	return unless(open UNIQKI_FH, "<", $file);
-	$wiki = <UNIQKI_FH> eq "#!wiki\n" ? 1 : 0;
+	local $/ = undef;
+	my $txt = <UNIQKI_FH>;
 	close UNIQKI_FH;
 
-	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
-		$block, $re_i_start, $re_i, @re, @re_sub, $toc, $notoc, %h_i,
-		$h_top, $h_prev, $p, $li_i, @li, @li_attr, $pre, $code,
-		$table);
-	my ($header_file, $footer_file);
-
-	unless($wiki){
-		($header_file, $footer_file) = ($HEADER_FILE, $FOOTER_FILE);
-	}else{
-		($header_file, $footer_file) =
-			($WIKI_HEADER_FILE, $WIKI_FOOTER_FILE);
-	}
-
-	$begin_parsing = \&begin_parsing unless(defined($begin_parsing));
-	$parse_line = \&parse_line unless(defined($parse_line));
-	$end_parsing = \&end_parsing unless(defined($end_parsing));
-
-	$begin_parsing->();
-	foreach my $f ($header_file, $file, $footer_file){
-		# "<" is required for the in-memory file
-		next if($f eq "" || !open UNIQKI_FH, "<", $f);
-		$parse_line->($_) while(<UNIQKI_FH>);
-		close UNIQKI_FH;
-	}
-	$end_parsing->();
+	$wiki = "#!wiki\n" eq substr $txt, 0, 7 ? 1 : 0;
+	parse_text($txt);
 
 	return $text;
 }
@@ -3011,7 +2989,7 @@ sub parse_text{
 	$end_parsing = \&end_parsing unless(defined($end_parsing));
 
 	$begin_parsing->();
-	if($header_file ne "" && open UNIQKI_FH, "<", $header_file){
+	if($header_file ne "" && open UNIQKI_FH, $header_file){
 		$parse_line->($_) while(<UNIQKI_FH>);
 		close UNIQKI_FH;
 	}
@@ -3019,7 +2997,7 @@ sub parse_text{
 	my @lines = split /\n/, $txt, -1; $#lines--;
 	$parse_line->($_) foreach(@lines);
 
-	if($footer_file ne "" && open UNIQKI_FH, "<", $footer_file){
+	if($footer_file ne "" && open UNIQKI_FH, $footer_file){
 		$parse_line->($_) while(<UNIQKI_FH>);
 		close UNIQKI_FH;
 	}
@@ -3030,17 +3008,26 @@ sub parse_text{
 
 sub parse_block{
 	my $txt = shift;
-
-	local ($text);
+	local $text;
 
 	$parse_line = \&parse_line unless(defined($parse_line));
-
 	my @lines = split /\n/, $txt, -1; $#lines--;
 	$parse_line->($_) foreach(@lines);
 
 	return $text;
 }
 
+################################################################################
+# User-replaceable subroutines
+sub verify_input{
+	# return 1 if OK
+	# return 0 otherwise
+	my ($query, $var) = @_;
+	if($query eq "comment"){
+		return 0 if($$var{website} ne "" || $$var{id} >= time - 15);
+	}
+	return 1;
+}
 
 sub begin_parsing{
 	$protocol = 'https?://|ftp://|news://|telnet://|gopher://|wais://|mailto:|file://';
@@ -3521,6 +3508,8 @@ sub end_parsing{
 	$text =~ s#(<(?:p|li|dd)>)\n+#$1#g; $text =~ s#\n+(</(?:p|li|dd)>)#$1#g;
 }
 
+################################################################################
+# Clean up
 END{
 	while(my $file = each %locked_files){
 		unlock_file($file);
@@ -4413,7 +4402,7 @@ EOT
 		print_footer();
 		exit;
 	}
-	exit_rebuild($var{page}) unless(verify_input("comment", \%var));
+	exit_rebuild($var{page}) unless(verify_input_data("comment", \%var));
 
 	$PAGE = $var{page};
 	exit_message("page_not_found", $PAGE) unless(-f "$PAGE.txt");
@@ -4536,7 +4525,7 @@ EOT
 	}
 
 	my %var = get_var();
-	exit_rebuild($PAGE) unless(verify_input($QUERY_STRING, \%var));
+	exit_rebuild($PAGE) unless(verify_input_data($QUERY_STRING, \%var));
 
 	local *FH;
 	my $t = time;
@@ -5091,7 +5080,7 @@ EOT
 #-------------------------------------------------------------------------------
 # u.cgi/PAGE?upload		Upload PAGE/FILE
 	my %var = get_var();
-	exit_rebuild($PAGE) unless(verify_input("upload", \%var));
+	exit_rebuild($PAGE) unless(verify_input_data("upload", \%var));
 
 	if($var{file} ne ""){
 		local *FH;
@@ -5158,7 +5147,7 @@ EOT
 	}
 
 	my %var = get_var();
-	exit_rebuild($PAGE) unless(verify_input("edit", \%var));
+	exit_rebuild($PAGE) unless(verify_input_data("edit", \%var));
 
 	$VERSION = $var{version};
 	$TEXT = $var{text};
