@@ -2954,12 +2954,15 @@ sub verify_input_data{
 # Parsing subroutines
 sub parse_file{
 	my $file = shift;
+	my $txt;
 	local *UNIQKI_FH;
 
-	return unless(open UNIQKI_FH, "<", $file);
-	local $/ = undef;
-	my $txt = <UNIQKI_FH>;
-	close UNIQKI_FH;
+	return "" unless(open UNIQKI_FH, "<", $file);
+	{
+		local $/ = undef;
+		$txt = <UNIQKI_FH>;
+		close UNIQKI_FH;
+	}
 
 	$wiki = "#!wiki\n" eq substr $txt, 0, 7 ? 1 : 0;
 	return parse_text($txt);
