@@ -2900,6 +2900,7 @@ sub read_file{
 
 	# "<" is required for the in-memory file
 	if(open FH, "<", $file){
+		# sysread is faster, but it doesn't work with in-memory files.
 		local $/ = undef;
 		$text = <FH>;
 		close FH;
