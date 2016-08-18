@@ -683,12 +683,7 @@ sub page_exists{
 # Password file
 sub write_pw{
 	my $file = $PASSWORD_FILE eq "" ? "u.pw" : $PASSWORD_FILE;
-	unless(-f $file){
-		local *FH;
-		open FH, ">$file";
-		print FH "$adminpw\n";
-		close FH;
-	}
+	write_file($file, "$adminpw\n") unless(-f $file);
 }
 
 #-------------------------------------------------------------------------------
@@ -870,12 +865,7 @@ $WIKI_ALLOWED_FILES = q(\.(png|gif|jpg|jpeg|txt|zip)$);
 EOT_UNIQKI
 	my $file = $CFG eq "" ? "u.cfg" : $CFG;
 	if($mode == 1){
-		unless(-f $file){
-			local *FH;
-			open FH, ">$file";
-			print FH $cfg;
-			close FH;
-		}
+		write_file($file, $cfg) unless(-f $file);
 	}else{
 		eval $cfg;
 		do $file if(-f $file);
@@ -1049,12 +1039,7 @@ table_of_contents => q(Table of contents),
 EOT_UNIQKI
 	my $file = $MESSAGES_FILE eq "" ? "u.msg" : $MESSAGES_FILE;
 	if($mode == 1){
-		unless(-f $file){
-			local *FH;
-			open FH, ">$file";
-			print FH $msg;
-			close FH;
-		}
+		write_file($file, $msg) unless(-f $file);
 	}else{
 		eval $msg;
 		do $file if(-f $file);
@@ -1158,18 +1143,10 @@ sub process_tpl{
 	}
 
 	if($mode == 1){
-		if(-d $TEMPLATE_DIRECTORY && !-f $path){
-			local *FH;
-			open FH, ">$path";
-			print FH $tpl;
-			close FH;
-		}
+		write_file($path, $tpl) if(-d $TEMPLATE_DIRECTORY && !-f $path);
 		return;
 	}elsif(-f $path){
-		local *FH;
-		open FH, $path; local $/ = undef;
-		$tpl = <FH>;
-		close FH;
+		$tpl = read_file($path);
 	}
 
 	$tpl =~ s/\[\[([A-Za-z_]*)\]\]/@{[process_tpl_tag($1)]}/g;
@@ -2015,9 +1992,9 @@ sub save{
 
 	my $version = 1;
 	my $txtv;
-	local *FH;
 
 	if(-f "$PAGE.txt"){
+		local *FH;
 		if(open FH, "$PAGE.txt.v"){
 			my $line = <FH>;
 			local $/ = undef;
@@ -2029,10 +2006,7 @@ sub save{
 			my $time = (stat "$PAGE.txt")[9];
 			$txtv = "$version:?:$time\n";
 		}
-		open FH, "$PAGE.txt";
-		local $/ = undef;
-		my $text = <FH>;
-		close FH;
+		my $text = read_file("$PAGE.txt");
 
 		my $diff = diff($TEXT, $text);
 		if($diff eq ""){
@@ -2048,15 +2022,8 @@ sub save{
 		$txtv = "$version:$USER:$time\n";
 	}
 
-	open FH, ">$PAGE.txt.v";
-	print FH $txtv;
-	close FH;
-
-	if(open FH, ">$PAGE.txt"){
-		print FH $TEXT;
-		close FH;
-		$rebuild = 1;
-	}
+	write_file("$PAGE.txt.v", $txtv);
+	$rebuild = 1 if(write_file("$PAGE.txt", $TEXT));
 }
 
 sub get_version{
@@ -2083,9 +2050,7 @@ sub lock_file{
 		sleep 1;
 	}
 	$locked_files{$file} = 1;
-	local *FH;
-	exit_message("internal_errors") unless(open FH, ">$file.lock");
-	close FH;
+	exit_message("internal_errors") unless(write_file("$file.lock"));
 }
 
 sub unlock_file{
@@ -2099,17 +2064,13 @@ sub preview{
 	local $TEXT = shift;
 	my $uploaded = shift;
 	my $wiki_edit = shift;
-
-	local *FH;
 	my $txt;
 
 	local $TITLE = "";
 	local $PREVIEW;
 	local $wiki;
 
-	open FH, ">", \$txt;
-	print FH ($wiki_edit ? "#!wiki\n" : "")."$TEXT\n";
-	close FH;
+	write_file(\$txt, ($wiki_edit ? "#!wiki\n" : "")."$TEXT\n");
 
 	$PREVIEW = parse_file(\$txt);
 	chomp $PREVIEW;
@@ -2167,9 +2128,7 @@ sub make_html{
 	$html =~ s/\r//g;
 
 	lock_file("$PAGE.html");
-	open FH, ">$PAGE.html";
-	print FH $html;
-	close FH;
+	write_file("$PAGE.html", $html);
 	chmod 0755, "$PAGE.html" if($hosting eq "awardspace");
 	unlock_file("$PAGE.html");
 }
@@ -2468,7 +2427,6 @@ sub find_user_info_by_password_reset_token{
 
 sub authenticate_user{
 	my ($user, $pw, $logout_others) = @_;
-	local *FH;
 
 	my $method = 0;
 	# $method=0: Login not allowed
@@ -2500,9 +2458,7 @@ sub authenticate_user{
 		# credentials against the temporary password to avoid timing
 		# attacks.
 		if($QUERY_STRING eq "login"){
-			open FH, ">$PASSWORD_FILE";
-			print FH "$adminpw\n";
-			close FH;
+			write_file($PASSWORD_FILE, "$adminpw\n");
 			$method = 1;
 		}
 	}else{
@@ -2584,9 +2540,7 @@ sub renew_session{
 	close FH;
 
 	if($renewed){
-		open FH, ">$sessions_file";
-		print FH $new_sessions;
-		close FH;
+		write_file($sessions_file, $new_sessions);
 		set_cookie($session_id, $expires);
 	}
 	unlock_file($sessions_file);
@@ -2616,11 +2570,7 @@ sub close_session{
 	}
 	close FH;
 
-	if($deleted){
-		open FH, ">$sessions_file";
-		print FH $new_sessions;
-		close FH;
-	}
+	write_file($sessions_file, $new_sessions) if($deleted);
 	unlock_file($sessions_file);
 }
 
@@ -2651,11 +2601,7 @@ sub clear_sessions{
 	}
 	close FH;
 
-	if($deleted){
-		open FH, ">$sessions_file";
-		print FH $new_sessions;
-		close FH;
-	}
+	write_file($sessions_file, $new_sessions) if($deleted);
 	unlock_file($sessions_file);
 }
 
@@ -2715,11 +2661,7 @@ sub clear_password_reset_token{
 	}
 	close FH;
 
-	if($cleared){
-		open FH, ">$PASSWORD_FILE";
-		print FH $new_pw;
-		close FH;
-	}
+	write_file($PASSWORD_FILE, $new_pw) if($cleared);
 	unlock_file($PASSWORD_FILE);
 }
 
@@ -2951,21 +2893,44 @@ sub verify_input_data{
 	return $verify_input->(@_);
 }
 
+sub read_file{
+	my $file = shift;
+	my $text = "";
+	local *FH;
+
+	# "<" is required for the in-memory file
+	if(open FH, "<", $file){
+		local $/ = undef;
+		$text = <FH>;
+		close FH;
+	}
+
+	return $text;
+}
+
+sub write_file{
+	# return 1 if successful
+	# return 0 otherwise
+	my ($file, $text) = @_;
+	local *FH;
+
+	# ">" is required for the in-memory file
+	if(open FH, ">", $file){
+		print FH $text;
+		close FH;
+		return 1;
+	}
+	return 0;
+}
+
 # Parsing subroutines
 sub parse_file{
 	my $file = shift;
-	my $txt;
-	local *UNIQKI_FH;
 
-	return "" unless(open UNIQKI_FH, "<", $file);
-	{
-		local $/ = undef;
-		$txt = <UNIQKI_FH>;
-		close UNIQKI_FH;
-	}
+	my $text = read_file($file);
+	$wiki = "#!wiki\n" eq substr $text, 0, 7 ? 1 : 0;
 
-	$wiki = "#!wiki\n" eq substr $txt, 0, 7 ? 1 : 0;
-	return parse_text($txt);
+	return parse_text($text);
 }
 
 sub parse_text{
@@ -3684,9 +3649,7 @@ if($QUERY_STRING eq "css"){
 			$email_address);
 	}
 
-	open FH, ">$PASSWORD_FILE";
-	print FH $new_pw;
-	close FH;
+	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
 
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
@@ -3730,9 +3693,7 @@ if($QUERY_STRING eq "css"){
 	# Password reset token cannot be found this time?
 	exit_message("internal_errors") unless($reset);
 
-	open FH, ">$PASSWORD_FILE";
-	print FH $new_pw;
-	close FH;
+	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
 
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
@@ -3828,9 +3789,7 @@ if($QUERY_STRING eq "css"){
 	# How did you login when your username is not found?
 	exit_message("internal_errors") unless($updated);
 
-	open FH, ">$PASSWORD_FILE";
-	print FH $new_pw;
-	close FH;
+	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
 
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_myself");
@@ -3864,9 +3823,7 @@ if($QUERY_STRING eq "css"){
 
 	clear_sessions($USER);
 
-	open FH, ">$PASSWORD_FILE";
-	print FH $new_pw;
-	close FH;
+	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
 
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
@@ -3942,10 +3899,7 @@ if($QUERY_STRING eq "css"){
 	my $title = get_msg("differences", $PAGE, $version, $current_version);
 	local $TITLE = $title;
 
-	local *FH;
-	open FH, "$PAGE.txt"; local $/ = undef;
-	my $current_text = <FH>;
-	close FH;
+	my $current_text = read_file("$PAGE.txt");
 
 	my $text = $current_text;
 	open FH, "$PAGE.txt.v"; local $/ = "\x00\n";
@@ -4102,11 +4056,8 @@ if($QUERY_STRING eq "css"){
 		my $time = sprintf "%d-%02d-%02d %02d:%02d:%02d",
 			$t[5]+1900, $t[4]+1, $t[3], $t[2], $t[1], $t[0];
 		if($tls || $var{title} eq "1"){
-			local *FH;
-			if(open FH, "$page.html"){
-				local $/ = undef;
-				my $text = <FH>;
-				close FH;
+			my $text = read_file("$page.html");
+			if($text ne ""){
 				$text =~ s#<(script|style).*?</\1>##sgi;
 				if($text =~ m#<h1[^>]*>(.+?)</h1>#si){
 					$_ = $1;
@@ -4301,12 +4252,9 @@ EOT
 		next if(substr($_,0,1) eq "." || index($_,"/") >= 0 || !-f $_);
 		s/\.html$//;
 		my $page = $query = $_;
-		local *FH;
-		next unless(open FH, "$page.html");
 
-		local $/ = undef;
-		my $text = <FH>;
-		close FH;
+		my $text = read_file("$page.html");
+		next if($text eq "");
 
 		$text =~ s/^.*<!-- start text -->|<!-- end text -->.*$//sgi;
 		$text =~ s#<(script|style).*?</\1>##sgi;
@@ -4467,15 +4415,12 @@ EOT
 				exit_message("page_not_found", $PAGE);
 			}
 
-			local *FH;
 			local $TITLE = $PAGE;
 			local $TEXT = "";
 			local $VERSION = get_version($PAGE);
 
 			if($1 eq "" && -f "$PAGE.txt"){
-				open FH, "$PAGE.txt"; local $/ = undef;
-				$TEXT = <FH>;
-				close FH;
+				$TEXT = read_file("$PAGE.txt");
 				chomp $TEXT;
 				if("#!wiki\n" ne substr $TEXT, 0, 7){
 					exit_message("internal_errors");
@@ -4486,17 +4431,16 @@ EOT
 				$TEXT =~ s/</&lt;/g;
 				$TEXT =~ s/>/&gt;/g;
 			}elsif($1 ne ""){
+				local *FH;
+
 				my $version = $1 > 0 ? $1 : $VERSION + $1;
 
-				open FH, "$PAGE.txt"; local $/ = undef;
-				$TEXT = <FH>;
-				close FH;
+				$TEXT = read_file("$PAGE.txt");
 				if("#!wiki\n" ne substr $TEXT, 0, 7){
 					exit_message("internal_errors");
 				}
 
 				if($version >= $VERSION || $version <= 0){
-					close FH;
 					exit_message("current_version", $PAGE,
 						$version);
 				}
@@ -4545,9 +4489,7 @@ EOT
 		close FH;
 
 		mkdir $PAGE, 0755 if(!-d $PAGE);
-		open FH, ">$PAGE/$t.$var{file}";
-		print FH $var{"file="};
-		close FH;
+		write_file("$PAGE/$t.$var{file}", $var{"file="});
 		chmod 0755, "$PAGE/$t.$var{file}" if($hosting eq "awardspace");
 		exit_message("wiki_file_uploaded", $var{file}, "$t.$var{file}");
 	}
@@ -4568,9 +4510,7 @@ EOT
 	}
 	if($var{file} ne "" && $var{file} =~ m/$WIKI_ALLOWED_FILES/oi){
 		mkdir $PAGE, 0755 if(!-d $PAGE);
-		open FH, ">$PAGE/$t.$var{file}";
-		print FH $var{"file="};
-		close FH;
+		write_file("$PAGE/$t.$var{file}", $var{"file="});
 		chmod 0755, "$PAGE/$t.$var{file}" if($hosting eq "awardspace");
 		if($var{preview} eq ""){
 			(my $f = $var{file}) =~ s/ /%20/g;
@@ -4778,9 +4718,7 @@ EOT
 	}
 	$new_pw .= "$var{user}:$pw:$group:$var{email_address}:$reset_token\n";
 
-	open FH, ">$PASSWORD_FILE";
-	print FH $new_pw;
-	close FH;
+	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
 
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
@@ -4863,9 +4801,7 @@ EOT
 	}
 	exit_message("user_not_found", $var{user}) unless($updated);
 
-	open FH, ">$PASSWORD_FILE";
-	print FH $new_pw;
-	close FH;
+	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
 
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
@@ -4909,9 +4845,7 @@ EOT
 	}
 	exit_message("user_not_found", $var{user}) unless($blocked);
 
-	open FH, ">$PASSWORD_FILE";
-	print FH $new_pw;
-	close FH;
+	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
 
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
@@ -4983,9 +4917,7 @@ EOT
 		}
 	}
 
-	open FH, ">$PASSWORD_FILE";
-	print FH $new_pw;
-	close FH;
+	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
 
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
@@ -5023,9 +4955,7 @@ EOT
 	}
 	exit_message("user_not_found", $var{user}) unless($deleted);
 
-	open FH, ">$PASSWORD_FILE";
-	print FH $new_pw;
-	close FH;
+	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
 
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
@@ -5084,11 +5014,8 @@ EOT
 	exit_rebuild($PAGE) unless(verify_input_data("upload", \%var));
 
 	if($var{file} ne ""){
-		local *FH;
 		mkdir $PAGE, 0755 if(!-d $PAGE);
-		open FH, ">$PAGE/$var{file}";
-		print FH $var{"file="};
-		close FH;
+		write_file("$PAGE/$var{file}", $var{"file="});
 		chmod 0755, "$PAGE/$var{file}" if($hosting eq "awardspace");
 		$rebuild = 1;
 	}
@@ -5114,19 +5041,15 @@ EOT
 # u.cgi/PAGE?edit		Create/edit PAGE
 # u.cgi/PAGE?edit=([0-9]+)	Edit the version \1 of PAGE
 # u.cgi/PAGE?edit=-([0-9]+)	Edit the current-\1 version of PAGE
-	local *FH;
 	local $TITLE = $PAGE;
 	local ($VERSION, $TEXT);
 	if($REQUEST_METHOD eq "GET"){
 		$VERSION = get_version($PAGE);
 		my $version = $1 > 0 ? $1 : $VERSION + $1;
-		$TEXT = "";
-		if(open FH, "$PAGE.txt"){
-			local $/ = undef;
-			$TEXT = <FH>;
-			close FH;
-
+		$TEXT = read_file("$PAGE.txt");
+		if($TEXT ne ""){
 			if($version > 0 && $version < $VERSION){
+				local *FH;
 				open FH, "$PAGE.txt.v"; local $/ = "\x00\n";
 				while(<FH>){
 					m/^([0-9]+):.*?\n(.*)\x00\n$/s;
@@ -5158,9 +5081,7 @@ EOT
 	}
 	if($var{file} ne ""){
 		mkdir $PAGE, 0755 if(!-d $PAGE);
-		open FH, ">$PAGE/$var{file}";
-		print FH $var{"file="};
-		close FH;
+		write_file("$PAGE/$var{file}", $var{"file="});
 		chmod 0755, "$PAGE/$var{file}" if($hosting eq "awardspace");
 	}
 	if($var{preview} ne ""){
@@ -5189,9 +5110,7 @@ EOT
 	my $version = $1 > 0 ? $1 : $current_version + ($1 < 0 ? $1 : -1);
 	if($version > 0 && $version < $current_version){
 		local *FH;
-		open FH, "$PAGE.txt"; local $/ = undef;
-		my $text = <FH>;
-		close FH;
+		my $text = read_file("$PAGE.txt");
 		open FH, "$PAGE.txt.v"; local $/ = "\x00\n";
 		while(<FH>){
 			m/^([0-9]+):.*?\n(.*)\x00\n$/s;
@@ -5204,21 +5123,15 @@ EOT
 		if($rebuild){
 			local $/ = "\n";
 			my $line = <FH>;
+			my @items = split /:/, $line;
+			my $time = $items[2];
+
 			local $/ = undef;
 			my $txtv = $line.<FH>;
 			close FH;
 
-			open FH, ">$PAGE.txt.v";
-			print FH $txtv;
-			close FH;
-
-			my @items = split /:/, $line;
-			my $time = $items[2];
-
-			open FH, ">$PAGE.txt";
-			print FH $text;
-			close FH;
-
+			write_file("$PAGE.txt.v", $txtv);
+			write_file("$PAGE.txt", $text);
 			utime $time, $time, "$PAGE.txt";
 		}else{
 			close FH;
