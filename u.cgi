@@ -3537,7 +3537,7 @@ sub parse_line{
 		return;
 	}
 	# Start a new paragraph
-	if(!$li_i && !$pre && $table eq "" && !$p){
+	if(!$p && !$pre && !$li_i && $table eq ""){
 		$text .= "<p>\n";
 		$p = 1;
 	}
