@@ -3345,7 +3345,7 @@ sub parse_line{
 		}
 	}
 	# Start table
-	if(m/^\|+[0-9]*[ \t].*[ \t]\|$/){
+	if(m/^\|+_*[ \t].*[ \t]\|$/){
 		unless($table){
 			if($p){
 				$text .= "</p>\n";
