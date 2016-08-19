@@ -854,7 +854,7 @@ sub update_table_rowspan{
 	my $rows = shift;
 
 	(my $rowspan = $rows) =~ s#</?tr>##g;
-	$rowspan =~ s#<(t[hd]) [^>]+>:::</\1>#+#g;
+	$rowspan =~ s#<(t[hd]) [^>]+>\.\.\.</\1>#+#g;
 	$rowspan =~ s#<(t[hd]) [^>]+>.*?</\1>#1#g;
 	# $rowspan example:
 	# 111
