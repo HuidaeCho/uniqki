@@ -3476,11 +3476,9 @@ sub parse_line{
 	}
 	# Collect table lines
 	if(m/^![ \t].*[ \t]!$|^[|^][ \t].*[ \t][|^!]+$/){
-		if($table eq ""){
-			if($p){
-				$text .= "</p>\n";
-				$p = 0;
-			}
+		if($p){
+			$text .= "</p>\n";
+			$p = 0;
 		}
 		$table .= "$_\n";
 		return;
