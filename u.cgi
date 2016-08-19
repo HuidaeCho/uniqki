@@ -102,8 +102,8 @@ use vars qw(
 # parse_file() local variables
 use vars qw(
 	$text $protocol $protocol_char $protocol_punct $image_ext $block
-	$re_i_start $re_i @re @re_sub $toc $notoc %h_i $h_top $h_prev $p
-	$li_i @li @li_attr $pre $code $table
+	$re_i_start $re_i @re @re_sub $toc $notoc %h_i $h_top $h_prev $p $pre
+	$code $list $table
 );
 
 umask 022;
@@ -635,6 +635,113 @@ sub encode_url{
 	return $url;
 }
 
+sub create_list{
+	my @lines = split /\n/, shift;
+	my $list = "";
+	my $li_i = 0;
+	my @li = ();
+	my @li_attr = ();
+
+	foreach(@lines){
+		next unless(m/^( *)([*+-]|:(.*?):) (.*)$/ && length($1)%2 == 0);
+		my $i = length($1)/2+1;
+		my $tag = substr $2, 0, 1;
+		my $term = $3;
+		my $item = $4;
+		my $attr = "";
+		if($tag eq "*"){
+			$tag = "ul";
+		}elsif($tag eq "+"){
+			$tag = "ol";
+		}elsif($tag eq "-"){
+			$tag = "ol";
+			$attr = q( reversed="reversed");
+		}else{
+			$tag = "dl";
+		}
+		if($i > $li_i){
+			for(; $li_i<$i-1; $li_i++){
+				$list .= "<$tag>\n";
+				if($tag eq "dl"){
+					$list .= "<dd>";
+				}else{
+					$list .= "<li>";
+				}
+				$li[$li_i] = $tag;
+				$li_attr[$li_i] = "";
+			}
+			$list .= "<$tag$attr>\n";
+			$li[$li_i] = $tag;
+			$li_attr[$li_i++] = $attr;
+		}elsif($i < $li_i){
+			while(--$li_i>=$i){
+				if($li[$li_i] eq "dl"){
+					$list .= "</dd>\n";
+				}else{
+					$list .= "</li>\n";
+				}
+				$list .= "</$li[$li_i]>\n";
+			}
+			if($li[$li_i] eq $tag && $li_attr[$li_i] eq $attr){
+				if($li[$li_i] eq "dl"){
+					$list .= "</dd>\n";
+				}else{
+					$list .= "</li>\n";
+				}
+				$li_i++;
+			}else{
+				for(; $li_i>=0 && ($li[$li_i] ne $tag ||
+					$li_attr[$li_i] ne $attr); $li_i--){
+					if($li[$li_i] eq "dl"){
+						$list .= "</dd>\n";
+					}else{
+						$list .= "</li>\n";
+					}
+					$list .= "</$li[$li_i]>\n";
+				}
+				while(++$li_i<$i-1){
+					$list .= "<$tag>\n";
+					$li[$li_i] = $tag;
+					$li_attr[$li_i] = "";
+				}
+				$list .= "<$tag$attr>\n";
+				$li[$li_i] = $tag;
+				$li_attr[$li_i++] = $attr;
+			}
+		}elsif($li[$li_i-1] ne $tag || $li_attr[$li_i-1] ne $attr){
+			if($li[$li_i-1] eq "dl"){
+				$list .= "</dd>\n";
+			}else{
+				$list .= "</li>\n";
+			}
+			$list .= "</$li[$li_i-1]>\n<$tag$attr>\n";
+			$li[$li_i-1] = $tag;
+			$li_attr[$li_i-1] = $attr;
+		}elsif($tag eq "dl"){
+			$list .= "</dd>\n";
+		}else{
+			$list .= "</li>\n";
+		}
+
+		if($tag eq "dl"){
+			$list .= "<dt>$term</dt>\n<dd>$item";
+		}else{
+			$list .= "<li>$item";
+		}
+	}
+
+	while(--$li_i>=0){
+		if($li[$li_i] eq "dl"){
+			$list .= "</dd>\n";
+		}else{
+			$list .= "</li>\n";
+		}
+		$list .= "</$li[$li_i]>\n";
+	}
+
+	return $list;
+}
+
 sub create_table{
 	my @lines = split /\n/, shift;
 	my $caption = "";
@@ -664,7 +771,7 @@ sub create_table{
 	$tbody = update_table_rowspan($tbody);
 	$tfoot = update_table_rowspan($tfoot);
 
-	$table = qq(<table class="table">\n);
+	$table = "<table class=\"table\">\n";
 	$table .= "<caption>$caption</caption>\n" if($caption ne "");
 	$table .= "<thead>\n$thead</thead>\n" if($thead ne "");
 	$table .= "<tbody>\n$tbody</tbody>\n" if($tbody ne "");
@@ -3065,8 +3172,7 @@ sub parse_text{
 
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
 		$block, $re_i_start, $re_i, @re, @re_sub, $toc, $notoc, %h_i,
-		$h_top, $h_prev, $p, $li_i, @li, @li_attr, $pre, $code,
-		$table);
+		$h_top, $h_prev, $p, $pre, $code, $list, $table);
 	my ($header_file, $footer_file);
 
 	unless($wiki){
@@ -3139,11 +3245,9 @@ sub begin_parsing{
 	$h_top = 0;
 	$h_prev = 0;
 	$p = 0;
-	$li_i = 0;
-	@li = ();
-	@li_attr = ();
 	$pre = 0;
 	$code = "";
+	$list = "";
 	$table = "";
 }
 
@@ -3198,18 +3302,13 @@ sub parse_line{
 	}
 	# Don't close list or table if line is a command or comment.
 	if(m/^(?![#%]|``.*?``(?!`))/){
-		# Close all lists if line is not another list item.
-		if($li_i > 0 && !(m/^(?:( *)[*+-]|:.*?:) / &&
-				length($1)%2 == 0)){
-			while(--$li_i>=0){
-				if($li[$li_i] eq "dl"){
-					$text .= "</dd>\n";
-				}else{
-					$text .= "</li>\n";
-				}
-				$text .= "</$li[$li_i]>\n";
-			}
-			$li_i = 0;
+		# Close list
+		if($list ne "" &&
+			!(m/^( *)[*+-]|:(.*?): .*$/ && length($1)%2 == 0)){
+			$list = create_list($list);
+			$list =~ y/\x00//d;
+			$text .= $list;
+			$list = "";
 		}
 		# Close table
 		if($table ne "" &&
@@ -3383,96 +3482,14 @@ sub parse_line{
 	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+)(?=[$protocol_punct](?:[ \t]|$))#<a href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
 	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+)#<a href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
 	s/\x01/&amp;/g; s/\x02/&lt;/g; s/\x03/&gt;/g;
-	# Start list
-	if(m/^( *)([*+-]|:(.*?):) (.*)$/ && length($1)%2 == 0){
-		my $i = length($1)/2+1;
-		my $tag = substr $2, 0, 1;
-		my $term = $3;
-		my $item = $4;
-		my $attr = "";
-		if($tag eq "*"){
-			$tag = "ul";
-		}elsif($tag eq "+"){
-			$tag = "ol";
-		}elsif($tag eq "-"){
-			$tag = "ol";
-			$attr = q( reversed="reversed");
-		}else{
-			$tag = "dl";
-		}
+	# Collect list lines
+	if(m/^( *)[*+-]|:(.*?): .*$/ && length($1)%2 == 0){
 		if($p){
 			$text .= "</p>\n";
 			$p = 0;
 		}
-		if($i > $li_i){
-			for(; $li_i<$i-1; $li_i++){
-				$text .= "<$tag>\n";
-				if($tag eq "dl"){
-					$text .= "<dd>";
-				}else{
-					$text .= "<li>";
-				}
-				$li[$li_i] = $tag;
-				$li_attr[$li_i] = "";
-			}
-			$text .= "<$tag$attr>\n";
-			$li[$li_i] = $tag;
-			$li_attr[$li_i++] = $attr;
-		}elsif($i < $li_i){
-			while(--$li_i>=$i){
-				if($li[$li_i] eq "dl"){
-					$text .= "</dd>\n";
-				}else{
-					$text .= "</li>\n";
-				}
-				$text .= "</$li[$li_i]>\n";
-			}
-			if($li[$li_i] eq $tag && $li_attr[$li_i] eq $attr){
-				if($li[$li_i] eq "dl"){
-					$text .= "</dd>\n";
-				}else{
-					$text .= "</li>\n";
-				}
-				$li_i++;
-			}else{
-				for(; $li_i>=0 && ($li[$li_i] ne $tag ||
-					$li_attr[$li_i] ne $attr); $li_i--){
-					if($li[$li_i] eq "dl"){
-						$text .= "</dd>\n";
-					}else{
-						$text .= "</li>\n";
-					}
-					$text .= "</$li[$li_i]>\n";
-				}
-				while(++$li_i<$i-1){
-					$text .= "<$tag>\n";
-					$li[$li_i] = $tag;
-					$li_attr[$li_i] = "";
-				}
-				$text .= "<$tag$attr>\n";
-				$li[$li_i] = $tag;
-				$li_attr[$li_i++] = $attr;
-			}
-		}elsif($li[$li_i-1] ne $tag || $li_attr[$li_i-1] ne $attr){
-			if($li[$li_i-1] eq "dl"){
-				$text .= "</dd>\n";
-			}else{
-				$text .= "</li>\n";
-			}
-			$text .= "</$li[$li_i-1]>\n<$tag$attr>\n";
-			$li[$li_i-1] = $tag;
-			$li_attr[$li_i-1] = $attr;
-		}elsif($tag eq "dl"){
-			$text .= "</dd>\n";
-		}else{
-			$text .= "</li>\n";
-		}
-
-		if($tag eq "dl"){
-			$_ = "<dt>$term</dt>\n<dd>$item";
-		}else{
-			$_ = "<li>$item";
-		}
+		$list .= "$_\n";
+		return;
 	}
 	# Collect table lines
 	if(m/^![ \t].*[ \t]!$|^[|^][ \t].*[ \t][|^!]+$/){
@@ -3537,7 +3554,7 @@ sub parse_line{
 		return;
 	}
 	# Start a new paragraph
-	if(!$p && !$pre && !$li_i && $table eq ""){
+	if(!$p && !$pre && $list eq "" && $table eq ""){
 		$text .= "<p>\n";
 		$p = 1;
 	}
@@ -3547,18 +3564,11 @@ sub parse_line{
 }
 
 sub end_parsing{
-	if($li_i){
-		while(--$li_i>=0){
-			my $i = $li_i + 1;
-			if($li[$li_i] eq "dl"){
-				$text .= "</dd>\n";
-			}else{
-				$text .= "</li>\n";
-			}
-			$text .= "</$li[$li_i]>\n";
-		}
-		$text .= "<p>";
-		$li_i = 0;
+	if($list ne ""){
+		$list = create_list($list);
+		$list =~ y/\x00//d;
+		$text .= $list;
+		$list = "";
 	}
 	if($table ne ""){
 		$table = create_table($table);
