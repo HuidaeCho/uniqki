@@ -641,6 +641,7 @@ sub create_list{
 	my $li_i = 0;
 	my @li = ();
 	my @li_attr = ();
+	my $use_p = 0;
 	my $p = 0;
 
 	foreach(@lines){
@@ -663,21 +664,23 @@ sub create_list{
 				$li_i++;
 			}
 			if($4 eq "" || $4 eq "..."){
+				$use_p = 1;
 				if($p){
 					$list .= "</p>\n";
 					$p = 0;
 				}
-				if(!$p){
-					$list .= "<p>\n";
-					$p = 1;
-				}
 				next;
+			}
+			if($use_p && !$p){
+				$list .= "<p>\n";
+				$p = 1;
 			}
 			$list .= "$4\n";
 			next;
 		}
+		$use_p = 0;
 		if($p){
-			$list .= "</p>\n";
+			$list .= "4</p>\n";
 			$p = 0;
 		}
 		my $tag = substr $2, 0, 1;
