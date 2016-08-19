@@ -641,12 +641,17 @@ sub create_list{
 	my $li_i = 0;
 	my @li = ();
 	my @li_attr = ();
+	my $p = 0;
 
 	foreach(@lines){
 		m/^( *)(?:([*+-]|:(.*?):) )?(.*)$/;
 		my $i = length($1)/2+1;
 		if($2 eq ""){
 			if(--$i < $li_i){
+				if($p){
+					$list .= "</p>\n";
+					$p = 0;
+				}
 				while(--$li_i>=$i){
 					if($li[$li_i] eq "dl"){
 						$list .= "</dd>\n";
@@ -657,8 +662,23 @@ sub create_list{
 				}
 				$li_i++;
 			}
+			if($4 eq "" || $4 eq "..."){
+				if($p){
+					$list .= "</p>\n";
+					$p = 0;
+				}
+				if(!$p){
+					$list .= "<p>\n";
+					$p = 1;
+				}
+				next;
+			}
 			$list .= "$4\n";
 			next;
+		}
+		if($p){
+			$list .= "</p>\n";
+			$p = 0;
 		}
 		my $tag = substr $2, 0, 1;
 		my $term = $3;
@@ -743,6 +763,10 @@ sub create_list{
 		}else{
 			$list .= "<li>$item\n";
 		}
+	}
+	if($p){
+		$list .= "</p>\n";
+		$p = 0;
 	}
 
 	while(--$li_i>=0){
