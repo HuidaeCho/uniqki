@@ -680,9 +680,9 @@ sub create_table_row{
 	$row =~ s/(!+)$/@{["|" x length($1)]}/;
 
 	# Empty cells
-	$row =~ s#([|^])[ \t]+([|^]*)(?=[|^])#@{[create_table_cell($1, $2)]}#g;
+	$row =~ s#([|^])[ \t]+([|^]*)(?=[|^](?:[ \t]|$))#@{[create_table_cell($1, $2)]}#g;
 	# Non-empty cells
-	$row =~ s#([|^])[ \t]([ \t]*)([^ \t].*?)([ \t]*)[ \t]([|^]*)(?=[|^]|<t[hd])#@{[create_table_cell($1, $5, $2, $3, $4)]}#g;
+	$row =~ s#([|^])[ \t]([ \t]*)([^ \t].*?)([ \t]*)[ \t]([|^]*)(?=[|^](?:[ \t]|$)|<t[hd] )#@{[create_table_cell($1, $5, $2, $3, $4)]}#g;
 	$row =~ s/[|^]$//;
 
 	return "<tr>$row</tr>\n";
