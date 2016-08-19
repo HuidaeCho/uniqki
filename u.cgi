@@ -3182,6 +3182,8 @@ sub parse_line{
 		# Ignore inline perl code
 		s/``(.*?)``(?!`)/`\x00`$1`\x00`/g;
 	}
+	# Inline perl code
+	s/``(.*?)``(?!`)/$1/eeg;
 	# Process block admin code
 	if($block ne ""){
 		if($_ eq "##}"){
@@ -3212,7 +3214,9 @@ sub parse_line{
 		# Close table
 		if($table ne "" &&
 			!(m/^![ \t].*[ \t]!$|^[|^][ \t].*[ \t][|^!]+$/)){
-			$text .= create_table($table);
+			$table = create_table($table);
+			$table =~ y/\x00//d;
+			$text .= $table;
 			$table = "";
 		}
 	}
@@ -3470,10 +3474,6 @@ sub parse_line{
 			$_ = "<li>$item";
 		}
 	}
-	# Inline perl code
-	s/``(.*?)``(?!`)/$1/eeg;
-	# Discard NONE characters
-	y/\x00//d;
 	# Collect table lines
 	if(m/^![ \t].*[ \t]!$|^[|^][ \t].*[ \t][|^!]+$/){
 		if($table eq ""){
@@ -3490,6 +3490,7 @@ sub parse_line{
 		my $i = length($1);
 		my $inc_toc = "!" ne substr $_, $i, 1 ? 1 : 0;
 		$_ = $2;
+		y/\x00//d;
 		(my $t = $_) =~ s/<[^>]*>//g;
 		$t =~ s/^ *//; $t =~ s/ *$//;
 		my $id = $t;
@@ -3542,6 +3543,8 @@ sub parse_line{
 		$text .= "<p>\n";
 		$p = 1;
 	}
+	# Discard NONE characters
+	y/\x00//d;
 	$text .= "$_\n";
 }
 
@@ -3560,7 +3563,9 @@ sub end_parsing{
 		$li_i = 0;
 	}
 	if($table ne ""){
-		$text .= create_table($table);
+		$table = create_table($table);
+		$table =~ y/\x00//d;
+		$text .= $table;
 		$table = "";
 	}
 	if($pre){
