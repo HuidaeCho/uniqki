@@ -635,18 +635,138 @@ sub encode_url{
 	return $url;
 }
 
-sub create_table_cell{
-	my ($colspan, $rowspan, $left, $content, $right) = @_;
+sub create_table{
+	my @lines = split /\n/, shift;
+	my $caption = "";
+	my $thead = "";
+	my $tbody = "";
+	my $tfoot = "";
 
-	$colspan = length($colspan);
-	$rowspan = length($rowspan) + 1;
+	foreach(@lines){
+		if(m/^![ \t](.+)[ \t]!$/){
+			$caption .= " " if($caption ne "");
+			$caption .= $1;
+			$caption =~ s/^[ \t]+|[ \t]+$//g;
+		}elsif(m/\^$/){
+			$thead .= create_table_row($_);
+		}elsif(m/!$/){
+			$tfoot .= create_table_row($_);
+		}else{
+			$tbody .= create_table_row($_);
+		}
+	}
+
+	my $table = "";
+	return $table if($caption eq "" && $thead eq "" && $tbody eq "" &&
+		$tfoot eq "");
+
+	$thead = update_table_rowspan($thead);
+	$tbody = update_table_rowspan($tbody);
+	$tfoot = update_table_rowspan($tfoot);
+
+	$table = qq(<table class="table">\n);
+	$table .= "<caption>$caption</caption>\n" if($caption ne "");
+	$table .= "<thead>\n$thead</thead>\n" if($thead ne "");
+	$table .= "<tbody>\n$tbody</tbody>\n" if($tbody ne "");
+	$table .= "<tfoot>\n$tfoot</tfoot>\n" if($tfoot ne "");
+	$table .= "</table>\n";
+
+	return $table;
+}
+
+sub create_table_row{
+	my $row = shift;
+
+	$row =~ s/(!+)$/@{["|" x length($1)]}/;
+
+	# Empty cells
+	$row =~ s#([|^])[ \t]+([|^]*)(?=[|^])#@{[create_table_cell($1, $2)]}#g;
+	# Non-empty cells
+	$row =~ s#([|^])[ \t]([ \t]*)([^ \t].*?)([ \t]*)[ \t]([|^]*)(?=[|^]|<t[hd])#@{[create_table_cell($1, $5, $2, $3, $4)]}#g;
+	$row =~ s/[|^]$//;
+
+	return "<tr>$row</tr>\n";
+}
+
+sub create_table_cell{
+	my ($type, $colspan, $left, $content, $right) = @_;
+
+	$type = $type eq "^" ? "th" : "td";
+	$colspan = length($colspan) + 1;
 	$left = length($left);
 	$right = length($right);
 
-	$rowspan = $rowspan == 1 ? "" : qq( rowspan="$rowspan");
 	$colspan = $colspan == 1 ? "" : qq( colspan="$colspan");
 	my $align = $left == 0 ? "left" : ($right == 0 ? "right" : "center");
-	return qq(<td$rowspan$colspan class="table-$align">$content</td>);
+	return qq(<$type$colspan class="table-$align">$content</$type>);
+}
+
+sub update_table_rowspan{
+	my $rows = shift;
+
+	(my $rowspan = $rows) =~ s#</?tr>##g;
+	$rowspan =~ s#<(t[hd]) [^>]+>:::</\1>#+#g;
+	$rowspan =~ s#<(t[hd]) [^>]+>.*?</\1>#1#g;
+	# $rowspan example:
+	# 111
+	# 1++
+	# 11+
+
+	my @rs = split /\n/, $rowspan;
+	# Only one row
+	return $rows if($#rs == 0);
+
+	# The first row cannot be spanned from above.
+	$rs[0] = "1" x length($rs[0]);
+	# No row spans
+	return $rows if(index(join("\n", @rs), "+") == -1);
+
+	my @counts;
+	for my $i (0..$#rs){
+		my $c = 0;
+		$counts[$i][$c++] = $_ foreach(split //, $rs[$i]);
+	}
+	# Count the number of row spans.
+	for my $i (0..($#rs-1)){
+		for my $c (0..$#{$counts[$i]}){
+			last if($counts[$i][$c] eq "+");
+			for my $j (($i+1)..$#rs){
+				last if($counts[$j][$c] ne "+");
+				$counts[$i][$c]++;
+			}
+		}
+	}
+
+	# Make it easy to replace back </th> and </td> later.
+	# \x01-\x03 have already been converted to &amp;, &lt;, and &gt;.
+	$rows =~ s#</th>#\x01\x03#g;
+	$rows =~ s#</td>#\x02\x03#g;
+
+	my @cells;
+	my @rows = split /\n/, $rows;
+	for my $i (0..$#rows){
+		my $c = 0;
+		$cells[$i][$c++] = $_ foreach(split /\x03/, $rows[$i]);
+	}
+
+	for my $i (0..$#rs){
+		for my $c (0..$#{$counts[$i]}){
+			if($counts[$i][$c] > 1){
+				$cells[$i][$c] =~ s/(<t[hd])(?=[> ])/$1 rowspan="$counts[$i][$c]"/;
+			}elsif($counts[$i][$c] eq "+"){
+				$cells[$i][$c] =~ s/<t[hd][> ].*[\x01\x02]//;
+			}
+		}
+	}
+
+	$rows = "";
+	for my $i (0..$#rs){
+		$rows .= join("", @{$cells[$i]})."\n";
+	}
+	$rows =~ s#\x01#</th>#g;
+	$rows =~ s#\x02#</td>#g;
+
+	return $rows;
 }
 
 sub is_logged_in{
@@ -1694,6 +1814,11 @@ textarea {
 }
 .table {
 	border-collapse:	collapse;
+}
+.table th {
+	border:			1px solid #999999;
+	padding:		3px;
+	background-color:	#eeeeee;
 }
 .table td {
 	border:			1px solid #999999;
@@ -3019,7 +3144,7 @@ sub begin_parsing{
 	@li_attr = ();
 	$pre = 0;
 	$code = "";
-	$table = 0;
+	$table = "";
 }
 
 sub parse_line{
@@ -3085,9 +3210,10 @@ sub parse_line{
 			$li_i = 0;
 		}
 		# Close table
-		if($table && !(m/^\|+[0-9]*[ \t].*[ \t]\|$/)){
-			$text .= "</table>\n";
-			$table = 0;
+		if($table ne "" &&
+			!(m/^![ \t].*[ \t]!$|^[|^][ \t].*[ \t][|^!]+$/)){
+			$text .= create_table($table);
+			$table = "";
 		}
 	}
 	# Start or close pre
@@ -3344,28 +3470,21 @@ sub parse_line{
 			$_ = "<li>$item";
 		}
 	}
-	# Start table
-	if(m/^\|+_*[ \t].*[ \t]\|$/){
-		unless($table){
-			if($p){
-				$text .= "</p>\n";
-				$p = 0;
-			}
-			$text .= "<table class=\"table\">\n";
-			$table = 1;
-		}
-		$text .= "<tr>";
-		# Empty cells
-		s#(\|+)(_*)[ \t][ \t]*[ \t](?=\|)#@{[create_table_cell($1, $2)]}#g;
-		# Non-empty cells
-		s#(\|+)(_*)[ \t]([ \t]*)([^ \t].*?)([ \t]*)[ \t](?=\||<td)#@{[create_table_cell($1, $2, $3, $4, $5)]}#g;
-		s/\|$//;
-		$_ .= "</tr>";
-	}
 	# Inline perl code
 	s/``(.*?)``(?!`)/$1/eeg;
 	# Discard NONE characters
 	y/\x00//d;
+	# Collect table lines
+	if(m/^![ \t].*[ \t]!$|^[|^][ \t].*[ \t][|^!]+$/){
+		if($table eq ""){
+			if($p){
+				$text .= "</p>\n";
+				$p = 0;
+			}
+		}
+		$table .= "$_\n";
+		return;
+	}
 	# Heading
 	if(m/^(=+)!? (.*)$/ && length($1) <= 6){
 		my $i = length($1);
@@ -3419,7 +3538,7 @@ sub parse_line{
 		return;
 	}
 	# Start a new paragraph
-	if(!$li_i && !$pre && !$table && !$p){
+	if(!$li_i && !$pre && $table eq "" && !$p){
 		$text .= "<p>\n";
 		$p = 1;
 	}
@@ -3440,9 +3559,9 @@ sub end_parsing{
 		$text .= "<p>";
 		$li_i = 0;
 	}
-	if($table){
-		$text .= "</table>\n";
-		$table = 0;
+	if($table ne ""){
+		$text .= create_table($table);
+		$table = "";
 	}
 	if($pre){
 		$text .= "</pre>\n";
