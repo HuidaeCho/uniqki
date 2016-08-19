@@ -643,8 +643,23 @@ sub create_list{
 	my @li_attr = ();
 
 	foreach(@lines){
-		next unless(m/^( *)([*+-]|:(.*?):) (.*)$/ && length($1)%2 == 0);
+		m/^( *)(?:([*+-]|:(.*?):) )?(.*)$/;
 		my $i = length($1)/2+1;
+		if($2 eq ""){
+			if(--$i < $li_i){
+				while(--$li_i>=$i){
+					if($li[$li_i] eq "dl"){
+						$list .= "</dd>\n";
+					}else{
+						$list .= "</li>\n";
+					}
+					$list .= "</$li[$li_i]>\n";
+				}
+				$li_i++;
+			}
+			$list .= "$4\n";
+			next;
+		}
 		my $tag = substr $2, 0, 1;
 		my $term = $3;
 		my $item = $4;
@@ -724,9 +739,9 @@ sub create_list{
 		}
 
 		if($tag eq "dl"){
-			$list .= "<dt>$term</dt>\n<dd>$item";
+			$list .= "<dt>$term</dt>\n<dd>$item\n";
 		}else{
-			$list .= "<li>$item";
+			$list .= "<li>$item\n";
 		}
 	}
 
@@ -3301,10 +3316,11 @@ sub parse_line{
 		return;
 	}
 	# Don't close list or table if line is a command or comment.
-	if(m/^(?![#%]|``.*?``(?!`))/){
+	if(m/^(?![#%])/){
 		# Close list
 		if($list ne "" &&
-			!(m/^( *)[*+-]|:(.*?): / && length($1)%2 == 0)){
+			!(m/^( *)([*+-]|:.*?: )?/ && length($1)%2 == 0 &&
+				"$1$2" ne "")){
 			$list = create_list($list);
 			$list =~ y/\x00//d;
 			$text .= $list;
@@ -3483,7 +3499,8 @@ sub parse_line{
 	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+)#<a href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
 	s/\x01/&amp;/g; s/\x02/&lt;/g; s/\x03/&gt;/g;
 	# Collect list lines
-	if(m/^( *)[*+-]|:(.*?): / && length($1)%2 == 0){
+	if(m/^( *)([*+-]|:.*?: )?/ && length($1)%2 == 0 && "$1$2" ne "" &&
+		($list ne "" || $2 ne "")){
 		if($p){
 			$text .= "</p>\n";
 			$p = 0;
