@@ -101,9 +101,9 @@ use vars qw(
 
 # parse_file() local variables
 use vars qw(
-	$text $protocol $protocol_char $protocol_punct $image_ext $block
+	$text $protocol $protocol_char $protocol_punct $image_ext $code_block
 	$re_i_start $re_i @re @re_sub $toc $notoc %h_i $h_top $h_prev $p $pre
-	$code $list $table
+	$pre_code $list $table
 );
 
 umask 022;
@@ -3228,8 +3228,8 @@ sub parse_file{
 	close UNIQKI_FH;
 
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
-		$block, $re_i_start, $re_i, @re, @re_sub, $toc, $notoc, %h_i,
-		$h_top, $h_prev, $p, $pre, $code, $list, $table);
+		$code_block, $re_i_start, $re_i, @re, @re_sub, $toc, $notoc,
+		%h_i, $h_top, $h_prev, $p, $pre, $pre_code, $list, $table);
 	my ($header_file, $footer_file);
 
 	unless($wiki){
@@ -3258,8 +3258,8 @@ sub parse_file{
 sub parse_block{
 	my $txt = shift;
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
-		$block, $re_i_start, $re_i, @re, @re_sub, $toc, $notoc, %h_i,
-		$h_top, $h_prev, $p, $pre, $code, $list, $table);
+		$code_block, $re_i_start, $re_i, @re, @re_sub, $toc, $notoc,
+		%h_i, $h_top, $h_prev, $p, $pre, $pre_code, $list, $table);
 
 	$begin_parsing = \&begin_parsing unless(defined($begin_parsing));
 	$parse_line = \&parse_line unless(defined($parse_line));
@@ -3292,7 +3292,7 @@ sub begin_parsing{
 	$image_ext = 'png|gif|jpg|jpeg';
 
 	$text = "";
-	$block = "";
+	$code_block = "";
 	$re_i_start = 0;
 	$re_i = 0;
 	@re = ();
@@ -3304,7 +3304,7 @@ sub begin_parsing{
 	$h_prev = 0;
 	$p = 0;
 	$pre = 0;
-	$code = "";
+	$pre_code = "";
 	$list = "";
 	$table = "";
 }
@@ -3344,16 +3344,16 @@ sub parse_line{
 		# Ignore inline perl code
 		s/``(.*?)``(?!`)/`\x00`$1`\x00`/g;
 	}
-	# Process block admin code
-	if($block ne ""){
+	# Process code block
+	if($code_block ne ""){
 		if($_ eq "##}"){
-			my $code = "$block}";
-			undef $block;
+			my $code = "$code_block}";
+			undef $code_block;
 			$code =~ s/^(##[{}]_*)_$/$1/mg;
 			eval $code;
 			return;
 		}
-		$block .= "$_\n";
+		$code_block .= "$_\n";
 		return;
 	}
 	# Don't close list or table if line is a command or comment.
@@ -3373,14 +3373,14 @@ sub parse_line{
 		}
 	}
 	# Start or close pre
-	if(m/^(---+)(?:\[(.*?)\])?$/ &&
-		(!$pre || ($pre == length($1) && ($2 eq "" || $code eq $2)))){
+	if(m/^(---+)(?:\[(.*?)\])?$/ && (!$pre || ($pre == length($1) &&
+				($2 eq "" || $pre_code eq $2)))){
 		if($pre){
-			if($code eq ""){
+			if($pre_code eq ""){
 				$text .= "</pre>\n";
 			}else{
 				$text .= "</code></pre>\n";
-				$code = "";
+				$pre_code = "";
 			}
 			$pre = 0;
 		}else{
@@ -3392,7 +3392,7 @@ sub parse_line{
 				$text .= "<pre>\n";
 			}else{
 				$text .= qq(<pre><code class="language-$2">\n);
-				$code = $2;
+				$pre_code = $2;
 			}
 			$pre = length($1);
 		}
@@ -3476,7 +3476,7 @@ sub parse_line{
 			eval $1;
 			return;
 		}
-		$block = "$1\n";
+		$code_block = "$1\n";
 		return;
 	}
 	if("#" eq substr $_, 0, 1){
