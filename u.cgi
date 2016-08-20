@@ -788,35 +788,46 @@ sub create_table{
 	my @lines = split /\n/, shift;
 	my $caption = "";
 	my $thead = "";
-	my $tbody = "";
 	my $tfoot = "";
+	my $tbodies = "";
+	my $tbody = "";
 
 	foreach(@lines){
+		my $end = substr $_, -1;
 		if(m/^![ \t](.+)[ \t]!$/){
 			$caption .= " " if($caption ne "");
 			$caption .= $1;
 			$caption =~ s/^[ \t]+|[ \t]+$//g;
-		}elsif(m/\^$/){
+		}elsif($end eq "^"){
 			$thead .= create_table_row($_);
-		}elsif(m/!$/){
+		}elsif($end eq "!"){
 			$tfoot .= create_table_row($_);
 		}else{
+			$_ = substr $_, 0, length($_) - 1 if($end eq "_");
 			$tbody .= create_table_row($_);
+			if($end eq "_" && $tbody ne ""){
+				$tbody = update_table_rowspan($tbody);
+				$tbodies .= "<tbody>\n$tbody</tbody>\n";
+				$tbody = "";
+			}
 		}
+	}
+	if($tbody ne ""){
+		$tbody = update_table_rowspan($tbody);
+		$tbodies .= "<tbody>\n$tbody</tbody>\n";
 	}
 
 	my $table = "";
-	return $table if($caption eq "" && $thead eq "" && $tbody eq "" &&
+	return $table if($caption eq "" && $thead eq "" && $tbodies eq "" &&
 		$tfoot eq "");
 
 	$thead = update_table_rowspan($thead);
-	$tbody = update_table_rowspan($tbody);
 	$tfoot = update_table_rowspan($tfoot);
 
 	$table = "<table class=\"table\">\n";
 	$table .= "<caption>$caption</caption>\n" if($caption ne "");
 	$table .= "<thead>\n$thead</thead>\n" if($thead ne "");
-	$table .= "<tbody>\n$tbody</tbody>\n" if($tbody ne "");
+	$table .= $tbodies if($tbodies ne "");
 	$table .= "<tfoot>\n$tfoot</tfoot>\n" if($tfoot ne "");
 	$table .= "</table>\n";
 
@@ -3355,7 +3366,7 @@ sub parse_line{
 		}
 		# Close table
 		if($table ne "" &&
-			!(m/^![ \t].*[ \t]!$|^[|^][ \t].*[ \t][|^!]+$/)){
+		   !(m/^![ \t].*[ \t]!$|^[|^][ \t].*[ \t](?:[!^]+|\|+_?)$/)){
 			$table = create_table($table);
 			$table =~ y/\x00//d;
 			$text .= $table;
@@ -3536,7 +3547,7 @@ sub parse_line{
 		return;
 	}
 	# Collect table lines
-	if(m/^![ \t].*[ \t]!$|^[|^][ \t].*[ \t][|^!]+$/){
+	if(m/^![ \t].*[ \t]!$|^[|^][ \t].*[ \t](?:[!^]+|\|+_?)$/){
 		if($p){
 			$text .= "</p>\n";
 			$p = 0;
