@@ -3268,8 +3268,7 @@ sub parse_block{
 	$end_parsing = \&end_parsing unless(defined($end_parsing));
 
 	$begin_parsing->();
-	my @lines = split /\n/, $txt, -1;
-	$parse_line->($_) foreach(@lines);
+	$parse_line->($_) foreach(split /\n/, $txt, -1);
 	$end_parsing->();
 
 	return $text;
@@ -3281,8 +3280,7 @@ sub parse_lines{
 
 	$parse_line = \&parse_line unless(defined($parse_line));
 
-	my @lines = split /\n/, $txt, -1;
-	$parse_line->($_) foreach(@lines);
+	$parse_line->($_) foreach(split /\n/, $txt, -1);
 
 	return $text;
 }
