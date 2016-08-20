@@ -771,7 +771,6 @@ sub create_list{
 		$list .= "</p>\n";
 		$p = 0;
 	}
-
 	while(--$li_i>=0){
 		if($li[$li_i] eq "dl"){
 			$list .= "</dd>\n";
@@ -780,6 +779,11 @@ sub create_list{
 		}
 		$list .= "</$li[$li_i]>\n";
 	}
+
+	# Inline perl code
+	$list =~ s/``(.*?)``(?!`)/$1/eeg;
+	# Discard NONE characters
+	$list =~ y/\x00//d;
 
 	return $list;
 }
@@ -830,6 +834,11 @@ sub create_table{
 	$table .= $tbodies if($tbodies ne "");
 	$table .= "<tfoot>\n$tfoot</tfoot>\n" if($tfoot ne "");
 	$table .= "</table>\n";
+
+	# Inline perl code
+	$table =~ s/``(.*?)``(?!`)/$1/eeg;
+	# Discard NONE characters
+	$table =~ y/\x00//d;
 
 	return $table;
 }
@@ -3212,16 +3221,11 @@ sub write_file{
 # Parsing subroutines
 sub parse_file{
 	my $file = shift;
-
-	my $text = read_file($file);
-	$wiki = "#!wiki\n" eq substr $text, 0, 7 ? 1 : 0;
-
-	return parse_text($text);
-}
-
-sub parse_text{
-	my $txt = shift;
 	local *UNIQKI_FH;
+
+	return "" unless(open UNIQKI_FH, "<", $file);
+	$wiki = <UNIQKI_FH> eq "#!wiki\n" ? 1 : 0;
+	close UNIQKI_FH;
 
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
 		$block, $re_i_start, $re_i, @re, @re_sub, $toc, $notoc, %h_i,
@@ -3240,15 +3244,9 @@ sub parse_text{
 	$end_parsing = \&end_parsing unless(defined($end_parsing));
 
 	$begin_parsing->();
-	if($header_file ne "" && open UNIQKI_FH, $header_file){
-		$parse_line->($_) while(<UNIQKI_FH>);
-		close UNIQKI_FH;
-	}
-
-	my @lines = split /\n/, $txt, -1; $#lines--;
-	$parse_line->($_) foreach(@lines);
-
-	if($footer_file ne "" && open UNIQKI_FH, $footer_file){
+	foreach my $f ($header_file, $file, $footer_file){
+		# "<" is required for the in-memory file
+		next if($f eq "" || !open UNIQKI_FH, "<", $f);
 		$parse_line->($_) while(<UNIQKI_FH>);
 		close UNIQKI_FH;
 	}
@@ -3259,11 +3257,18 @@ sub parse_text{
 
 sub parse_block{
 	my $txt = shift;
-	local $text;
+	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
+		$block, $re_i_start, $re_i, @re, @re_sub, $toc, $notoc, %h_i,
+		$h_top, $h_prev, $p, $pre, $code, $list, $table);
 
+	$begin_parsing = \&begin_parsing unless(defined($begin_parsing));
 	$parse_line = \&parse_line unless(defined($parse_line));
-	my @lines = split /\n/, $txt, -1; $#lines--;
+	$end_parsing = \&end_parsing unless(defined($end_parsing));
+
+	$begin_parsing->();
+	my @lines = split /\n/, $txt, -1;
 	$parse_line->($_) foreach(@lines);
+	$end_parsing->();
 
 	return $text;
 }
@@ -3339,8 +3344,6 @@ sub parse_line{
 		# Ignore inline perl code
 		s/``(.*?)``(?!`)/`\x00`$1`\x00`/g;
 	}
-	# Inline perl code
-	s/``(.*?)``(?!`)/$1/eeg;
 	# Process block admin code
 	if($block ne ""){
 		if($_ eq "##}"){
@@ -3359,17 +3362,13 @@ sub parse_line{
 		if($list ne "" &&
 			!(m/^( *)([*+-]|:.*?: )?/ && length($1)%2 == 0 &&
 				"$1$2" ne "")){
-			$list = create_list($list);
-			$list =~ y/\x00//d;
-			$text .= $list;
+			$text .= create_list($list);
 			$list = "";
 		}
 		# Close table
 		if($table ne "" &&
 		   !(m/^![ \t].*[ \t]!$|^[|^][ \t].*[ \t](?:[!^]+|\|+_?)$/)){
-			$table = create_table($table);
-			$table =~ y/\x00//d;
-			$text .= $table;
+			$text .= create_table($table);
 			$table = "";
 		}
 	}
@@ -3560,6 +3559,9 @@ sub parse_line{
 		my $i = length($1);
 		my $inc_toc = "!" ne substr $_, $i, 1 ? 1 : 0;
 		$_ = $2;
+		# Inline perl code
+		s/``(.*?)``(?!`)/$1/eeg;
+		# Discard NONE characters
 		y/\x00//d;
 		(my $t = $_) =~ s/<[^>]*>//g;
 		$t =~ s/^ *//; $t =~ s/ *$//;
@@ -3613,6 +3615,8 @@ sub parse_line{
 		$text .= "<p>\n";
 		$p = 1;
 	}
+	# Inline perl code
+	s/``(.*?)``(?!`)/$1/eeg;
 	# Discard NONE characters
 	y/\x00//d;
 	$text .= "$_\n";
@@ -3620,15 +3624,11 @@ sub parse_line{
 
 sub end_parsing{
 	if($list ne ""){
-		$list = create_list($list);
-		$list =~ y/\x00//d;
-		$text .= $list;
+		$text .= create_list($list);
 		$list = "";
 	}
 	if($table ne ""){
-		$table = create_table($table);
-		$table =~ y/\x00//d;
-		$text .= $table;
+		$text .= create_table($table);
 		$table = "";
 	}
 	if($pre){
