@@ -3279,7 +3279,6 @@ sub parse_lines{
 	local $text;
 
 	$parse_line = \&parse_line unless(defined($parse_line));
-
 	$parse_line->($_) foreach(split /\n/, $txt, -1);
 
 	return $text;
