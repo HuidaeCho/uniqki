@@ -3383,7 +3383,7 @@ sub parse_line{
 	if(m/^(?![#%])/){
 		# Close list
 		if($list ne "" &&
-			!(m/^( *)([*+-]|:.*?: )?/ && length($1)%2 == 0 &&
+			!(m/^( *)((?:[*+-]|:.*?:) )?/ && length($1)%2 == 0 &&
 				"$1$2" ne "")){
 			$text .= create_list($list);
 			$list = "";
@@ -3571,7 +3571,7 @@ sub parse_line{
 	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+)#<a href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
 	s/\x01/&amp;/g; s/\x02/&lt;/g; s/\x03/&gt;/g;
 	# Collect list lines
-	if(m/^( *)([*+-]|:.*?: )?/ && length($1)%2 == 0 && "$1$2" ne "" &&
+	if(m/^( *)((?:[*+-]|:.*?:) )?/ && length($1)%2 == 0 && "$1$2" ne "" &&
 		($list ne "" || $2 ne "")){
 		if($p){
 			$text .= "</p>\n";
