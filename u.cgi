@@ -3364,12 +3364,14 @@ sub parse_line{
 	}
 	# Process syntax block
 	if($syntax_block ne ""){
-		if("))" eq substr $_, 0, 2){
+		if("))" eq substr($_, 0, 2) && "_" ne substr($_, 2, 1)){
 			my $i = index $syntax_block, "\n";
 			my $begin = substr $syntax_block, 0, $i;
 			my $end = substr $_, 2;
 			my $code = substr $syntax_block, $i + 1;
 			undef $syntax_block;
+			$code =~ s/(\(\(_*)_$/$1/mg;
+			$code =~ s/^(\)\)_*)_/$1/mg;
 			push @syntax_blocks, parse_block($code);
 			$_ = "$begin\x05$end";
 		}else{
