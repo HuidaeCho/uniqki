@@ -960,7 +960,7 @@ sub create_figure{
 
 	return $figure if($content eq "" && $figcaption eq "");
 
-	$figure = "<figure>\n";
+	$figure = "<figure class=\"figure\">\n";
 	$figure .= "$content\n" if($content ne "");
 	$figure .= "<figcaption>$figcaption</figcaption>\n"
 		if($figcaption ne "");
@@ -2020,6 +2020,9 @@ textarea {
 .table {
 	border-collapse:	collapse;
 }
+.table caption {
+	text-align:		left;
+}
 .table th {
 	border:			1px solid #999999;
 	padding:		3px;
@@ -2037,6 +2040,12 @@ textarea {
 }
 .table-right {
 	text-align:		right;
+}
+.figure {
+}
+.figure img {
+}
+.figure figcaption {
 }
 
 /******************************************************************************/
