@@ -103,7 +103,7 @@ use vars qw(
 use vars qw(
 	$text $protocol $protocol_char $protocol_punct $image_ext $code_block
 	$syntax_block @syntax_blocks $re_i_start $re_i @re @re_sub $toc $notoc
-	%h_i $h_top $h_prev $p $pre $pre_code $list $table
+	%h_i $h_top $h_prev $p $pre $pre_code $list $table $figure
 );
 
 umask 022;
@@ -798,10 +798,10 @@ sub create_table{
 
 	foreach(@lines){
 		my $end = substr $_, -1;
-		if(m/^![ \t](.+)[ \t]!$/){
+		if(m/^![ \t](.*[ \t])?!$/){
+			(my $line = $1) =~ s/^[ \t]+|[ \t]+$//g;
 			$caption .= " " if($caption ne "");
-			$caption .= $1;
-			$caption =~ s/^[ \t]+|[ \t]+$//g;
+			$caption .= $line;
 		}elsif($end eq "^"){
 			$thead .= create_table_row($_);
 		}elsif($end eq "!"){
@@ -936,6 +936,42 @@ sub update_table_rowspan{
 	$rows =~ s#\x02#</td>#g;
 
 	return $rows;
+}
+
+sub create_figure{
+	my @lines = split /\n/, shift;
+	my $content = "";
+	my $figcaption = "";
+	my $figure = "";
+
+	foreach(@lines){
+		my $start = substr $_, 0, 1;
+		(my $line = substr $_, 2, length($_)-4) =~ s/^[ \t]+|[ \t]+$//g;
+		next if($line eq "");
+
+		if($start eq "@"){
+			$content .= " " if($content ne "");
+			$content .= $line;
+		}else{
+			$figcaption .= " " if($figcaption ne "");
+			$figcaption .= $line;
+		}
+	}
+
+	return $figure if($content eq "" && $figcaption eq "");
+
+	$figure = "<figure>\n";
+	$figure .= "$content\n" if($content ne "");
+	$figure .= "<figcaption>$figcaption</figcaption>\n"
+		if($figcaption ne "");
+	$figure .= "</figure>\n";
+
+	# Inline perl code
+	$figure =~ s/``(.*?)``(?!`)/$1/eeg;
+	# Discard NONE characters
+	$figure =~ y/\x00//d;
+
+	return $figure;
 }
 
 sub is_logged_in{
@@ -3230,7 +3266,7 @@ sub parse_file{
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
 		$code_block, $syntax_block, @syntax_blocks, $re_i_start, $re_i,
 		@re, @re_sub, $toc, $notoc, %h_i, $h_top, $h_prev, $p, $pre,
-		$pre_code, $list, $table);
+		$pre_code, $list, $table, $figure);
 	my ($header_file, $footer_file);
 
 	unless($wiki){
@@ -3261,7 +3297,7 @@ sub parse_block{
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
 		$code_block, $syntax_block, @syntax_blocks, $re_i_start, $re_i,
 		@re, @re_sub, $toc, $notoc, %h_i, $h_top, $h_prev, $p, $pre,
-		$pre_code, $list, $table);
+		$pre_code, $list, $table, $figure);
 
 	$begin_parsing = \&begin_parsing unless(defined($begin_parsing));
 	$parse_line = \&parse_line unless(defined($parse_line));
@@ -3320,6 +3356,7 @@ sub begin_parsing{
 	$pre_code = "";
 	$list = "";
 	$table = "";
+	$figure = "";
 }
 
 sub parse_line{
@@ -3381,7 +3418,9 @@ sub parse_line{
 			undef $syntax_block;
 			$code =~ s/(\(\(_*)_$/$1/mg;
 			$code =~ s/^(\)\)_*)_/$1/mg;
-			push @syntax_blocks, parse_block($code);
+			my $parsed_block = parse_block($code);
+			chomp $parsed_block;
+			push @syntax_blocks, $parsed_block;
 			$_ = "$begin\x05$end";
 		}else{
 			$syntax_block .= "$_\n";
@@ -3407,6 +3446,10 @@ sub parse_line{
 			if($table ne ""){
 				$text .= create_table($table);
 				$table = "";
+			}
+			if($figure ne ""){
+				$text .= create_figure($figure);
+				$figure = "";
 			}
 			if($p){
 				$text .= "</p>\n";
@@ -3524,9 +3567,14 @@ sub parse_line{
 	}
 	# Close table
 	if($table ne "" &&
-		!(m/^![ \t].*[ \t]!$|^[|^][ \t].*[ \t](?:[!^]+|\|+_?)$/)){
+		!(m/^![ \t](?:.*[ \t])?!$|^[|^][ \t].*[ \t](?:[!^]+|\|+_?)$/)){
 		$text .= create_table($table);
 		$table = "";
+	}
+	# Close figure
+	if($figure ne "" && !(m/^([@"])[ \t].*[ \t]\1$/)){
+		$text .= create_figure($figure);
+		$figure = "";
 	}
 	# Close paragraph
 	if("" eq $_ || m/^___+$/){
@@ -3587,12 +3635,21 @@ sub parse_line{
 		return;
 	}
 	# Collect table lines
-	if(m/^![ \t].*[ \t]!$|^[|^][ \t].*[ \t](?:[!^]+|\|+_?)$/){
+	if(m/^![ \t](?:.*[ \t])?!$|^[|^][ \t].*[ \t](?:[!^]+|\|+_?)$/){
 		if($p){
 			$text .= "</p>\n";
 			$p = 0;
 		}
 		$table .= "$_\n";
+		return;
+	}
+	# Collect figure lines
+	if(m/^([@"])[ \t].*[ \t]\1$/){
+		if($p){
+			$text .= "</p>\n";
+			$p = 0;
+		}
+		$figure .= "$_\n";
 		return;
 	}
 	# Heading
@@ -3671,6 +3728,10 @@ sub end_parsing{
 	if($table ne ""){
 		$text .= create_table($table);
 		$table = "";
+	}
+	if($figure ne ""){
+		$text .= create_figure($figure);
+		$figure = "";
 	}
 	if($pre){
 		$text .= "</pre>\n";
