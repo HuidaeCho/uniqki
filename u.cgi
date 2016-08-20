@@ -3275,6 +3275,18 @@ sub parse_block{
 	return $text;
 }
 
+sub parse_lines{
+	my $txt = shift;
+	local $text;
+
+	$parse_line = \&parse_line unless(defined($parse_line));
+
+	my @lines = split /\n/, $txt, -1;
+	$parse_line->($_) foreach(@lines);
+
+	return $text;
+}
+
 ################################################################################
 # User-replaceable subroutines
 sub verify_input{
