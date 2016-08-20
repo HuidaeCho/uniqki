@@ -102,8 +102,8 @@ use vars qw(
 # parse_file() local variables
 use vars qw(
 	$text $protocol $protocol_char $protocol_punct $image_ext $code_block
-	$re_i_start $re_i @re @re_sub $toc $notoc %h_i $h_top $h_prev $p $pre
-	$pre_code $list $table
+	$syntax_block @syntax_blocks $re_i_start $re_i @re @re_sub $toc $notoc
+	%h_i $h_top $h_prev $p $pre $pre_code $list $table
 );
 
 umask 022;
@@ -3228,8 +3228,9 @@ sub parse_file{
 	close UNIQKI_FH;
 
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
-		$code_block, $re_i_start, $re_i, @re, @re_sub, $toc, $notoc,
-		%h_i, $h_top, $h_prev, $p, $pre, $pre_code, $list, $table);
+		$code_block, $syntax_block, @syntax_blocks, $re_i_start, $re_i,
+		@re, @re_sub, $toc, $notoc, %h_i, $h_top, $h_prev, $p, $pre,
+		$pre_code, $list, $table);
 	my ($header_file, $footer_file);
 
 	unless($wiki){
@@ -3258,8 +3259,9 @@ sub parse_file{
 sub parse_block{
 	my $txt = shift;
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
-		$code_block, $re_i_start, $re_i, @re, @re_sub, $toc, $notoc,
-		%h_i, $h_top, $h_prev, $p, $pre, $pre_code, $list, $table);
+		$code_block, $syntax_block, @syntax_blocks, $re_i_start, $re_i,
+		@re, @re_sub, $toc, $notoc, %h_i, $h_top, $h_prev, $p, $pre,
+		$pre_code, $list, $table);
 
 	$begin_parsing = \&begin_parsing unless(defined($begin_parsing));
 	$parse_line = \&parse_line unless(defined($parse_line));
@@ -3293,6 +3295,8 @@ sub begin_parsing{
 
 	$text = "";
 	$code_block = "";
+	$syntax_block = "";
+	@syntax_blocks = ();
 	$re_i_start = 0;
 	$re_i = 0;
 	@re = ();
@@ -3315,6 +3319,7 @@ sub parse_line{
 	# \x02: <
 	# \x03: >
 	# \x04: place holder for auto-generated TOC
+	# \x05: place holder for syntax block
 	# \x1e: delimiter
 	# ##admin code
 	# #user code
@@ -3322,6 +3327,7 @@ sub parse_line{
 	# %comment
 	local $_ = shift;
 	s/[\r\n]//g;
+#	$text .= "[[$_]]\n";
 
 	# Apply regular expressions where needed
 	if(!$pre && m/^(?!#(?:no)?regex)/){
@@ -3355,6 +3361,21 @@ sub parse_line{
 		}
 		$code_block .= "$_\n";
 		return;
+	}
+	# Process syntax block
+	if($syntax_block ne ""){
+		if("))" eq substr $_, 0, 2){
+			my $i = index $syntax_block, "\n";
+			my $begin = substr $syntax_block, 0, $i;
+			my $end = substr $_, 2;
+			my $code = substr $syntax_block, $i + 1;
+			undef $syntax_block;
+			push @syntax_blocks, parse_block($code);
+			$_ = "$begin\x05$end";
+		}else{
+			$syntax_block .= "$_\n";
+			return;
+		}
 	}
 	# Don't close list or table if line is a command or comment.
 	if(m/^(?![#%])/){
@@ -3459,6 +3480,7 @@ sub parse_line{
 		return;
 	}
 	# Admin code starts
+	# Include other Uniqki files
 	if(m/^##include (.+)$/){
 		local *FH;
 		if(open FH, $1){
@@ -3467,10 +3489,12 @@ sub parse_line{
 		}
 		return;
 	}
+	# Shell commands
 	if(m/^##shell (.+)$/){
 		$text .= `$1`;
 		return;
 	}
+	# Perl subroutines or code
 	if(m/^##((?:sub |{).*)$/){
 		if("}" eq substr $1, -1){
 			eval $1;
@@ -3479,9 +3503,17 @@ sub parse_line{
 		$code_block = "$1\n";
 		return;
 	}
+	# Ignore other lines starting with #
 	if("#" eq substr $_, 0, 1){
 		return;
 	}
+	# Syntax block
+	if("((" eq substr $_, -2){
+		# Process the first line later
+		$syntax_block = (substr $_, 0, length($_) - 2)."\n";
+		return;
+	}
+	# Horizontal line
 	if(m/^___+$/){
 		if($p){
 			$text .= "</p>\n";
@@ -3498,6 +3530,7 @@ sub parse_line{
 		}
 		return;
 	}
+	# Escape inline syntax
 	s/""(.)(.*?)\1""/@{[escape_inline_syntax($2)]}/g;
 	# Regular [&<>] should not be translated to html codes at this point
 	# because page names and links will be affected.  Instead, flag them so
@@ -3658,6 +3691,8 @@ sub end_parsing{
 		$h_prev = 0;
 		$text =~ s/\x04/$toc/g;
 	}
+	my $i = 0;
+	$text =~ s/\x05/@{[$syntax_blocks[$i++]]}/g;
 	$text =~ s#<(p|i|b|code|su|mark)>([ \t\n]*)</\1>#$2#g;
 	$text =~ s#(<(?:p|li|dd)>)\n+#$1#g; $text =~ s#\n+(</(?:p|li|dd)>)#$1#g;
 }
