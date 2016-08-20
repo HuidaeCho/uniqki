@@ -3347,7 +3347,7 @@ sub parse_line{
 	if($wiki && !$pre){
 		# Skip admin code
 		return if("##" eq substr $_, 0, 2);
-		# Ignore inline perl code
+		# Escape inline perl code
 		s/``(.*?)``(?!`)/`\x00`$1`\x00`/g;
 	}
 	# Process code block
@@ -3379,22 +3379,6 @@ sub parse_line{
 			return;
 		}
 	}
-	# Don't close list or table if line is a command or comment.
-	if(m/^(?![#%])/){
-		# Close list
-		if($list ne "" &&
-			!(m/^( *)((?:[*+-]|:.*?:) )?/ && length($1)%2 == 0 &&
-				"$1$2" ne "")){
-			$text .= create_list($list);
-			$list = "";
-		}
-		# Close table
-		if($table ne "" &&
-		   !(m/^![ \t].*[ \t]!$|^[|^][ \t].*[ \t](?:[!^]+|\|+_?)$/)){
-			$text .= create_table($table);
-			$table = "";
-		}
-	}
 	# Start or close pre
 	if(m/^(---+)(?:\[(.*?)\])?$/ && (!$pre || ($pre == length($1) &&
 				($2 eq "" || $pre_code eq $2)))){
@@ -3407,6 +3391,14 @@ sub parse_line{
 			}
 			$pre = 0;
 		}else{
+			if($list ne ""){
+				$text .= create_list($list);
+				$list = "";
+			}
+			if($table ne ""){
+				$text .= create_table($table);
+				$table = "";
+			}
 			if($p){
 				$text .= "</p>\n";
 				$p = 0;
@@ -3515,21 +3507,26 @@ sub parse_line{
 		$syntax_block = (substr $_, 0, length($_) - 2)."\n";
 		return;
 	}
-	# Horizontal line
-	if(m/^___+$/){
-		if($p){
-			$text .= "</p>\n";
-			$p = 0;
-		}
-		$text .= "<hr />\n";
-		return;
+	# Close list
+	if($list ne "" && !(m/^( *)((?:[*+-]|:.*?:) )?/ && length($1)%2 == 0 &&
+			"$1$2" ne "")){
+		$text .= create_list($list);
+		$list = "";
+	}
+	# Close table
+	if($table ne "" &&
+		!(m/^![ \t].*[ \t]!$|^[|^][ \t].*[ \t](?:[!^]+|\|+_?)$/)){
+		$text .= create_table($table);
+		$table = "";
 	}
 	# Close paragraph
-	if("" eq $_){
+	if("" eq $_ || m/^___+$/){
 		if($p){
 			$text .= "</p>\n";
 			$p = 0;
 		}
+		# Horizontal line
+		$text .= "<hr />\n" if($_ ne "");
 		return;
 	}
 	# Escape inline syntax
