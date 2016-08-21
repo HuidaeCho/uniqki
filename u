@@ -2050,6 +2050,7 @@ textarea {
 #preview-warning {
 	background-color:	red;
 	padding:		5px;
+	margin-bottom:		10px;
 }
 #preview {
 }
@@ -2072,6 +2073,7 @@ textarea {
 #wiki-preview-warning {
 	background-color:	red;
 	padding:		5px;
+	margin-bottom:		10px;
 }
 #wiki-preview {
 }
