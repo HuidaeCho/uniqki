@@ -2381,7 +2381,7 @@ sub save{
 			$version = $items[0];
 		}else{
 			my $time = (stat "$PAGE.txt")[9];
-			$txtv = "$version:?:$time\n";
+			$txtv = "$version::$time\n";
 		}
 		my $text = read_file("$PAGE.txt");
 
