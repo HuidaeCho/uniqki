@@ -4148,7 +4148,8 @@ if($QUERY_STRING eq "css"){
 # u.cgi				No action specified
 # u.cgi/PAGE			No action specified
 # u.cgi/PAGE/FILE		No action specified
-	exit_path("$PAGE/$FILE") if($FILE ne "" || "/" eq substr $PATH_INFO,-1);
+	exit_path("$PAGE/$FILE") if($FILE ne "" ||
+		($PAGE ne "" && "/" eq substr $PATH_INFO, -1));
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE") if($PAGE eq "");
 	unless(-f "$PAGE.txt"){
 		my $msg_id = has_write_access() ?
