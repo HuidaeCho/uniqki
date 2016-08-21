@@ -1263,6 +1263,7 @@ logout => q(Logout),
 diff => q(Diff),
 backlinks => q(Backlinks),
 last_modified => q([[TIME]] by [[AUTHOR]]),
+unknown_author => q(Unknown),
 xhtml => q(XHTML),
 css => q(CSS),
 
@@ -2405,7 +2406,7 @@ sub save{
 sub get_author{
 	my $PAGE = shift;
 	local *FH;
-	my $author = "Unknown";
+	my $author = get_msg("unknown_author");
 	if(open FH, "$PAGE.txt.v"){
 		my @items = split /:/, <FH>;
 		close FH;
