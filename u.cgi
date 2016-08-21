@@ -645,7 +645,7 @@ sub create_list{
 	my $p = 0;
 
 	foreach(@lines){
-		m/^( *)(?:([*+-]|:(.*?):) )?(.*)$/;
+		m/^( *)(?:([*+-]|: (.*?):) )?(.*)$/;
 		my $i = length($1)/2+1;
 		if($2 eq ""){
 			if(--$i < $li_i){
@@ -828,7 +828,7 @@ sub create_table{
 	$thead = update_table_rowspan($thead);
 	$tfoot = update_table_rowspan($tfoot);
 
-	$table = "<table class=\"table\">\n";
+	$table = "<table>\n";
 	$table .= "<caption>$caption</caption>\n" if($caption ne "");
 	$table .= "<thead>\n$thead</thead>\n" if($thead ne "");
 	$table .= $tbodies if($tbodies ne "");
@@ -867,7 +867,7 @@ sub create_table_cell{
 
 	$colspan = $colspan == 1 ? "" : qq( colspan="$colspan");
 	my $align = $left == 0 ? "left" : ($right == 0 ? "right" : "center");
-	return qq(<$type$colspan class="table-$align">$content</$type>);
+	return qq(<$type$colspan class="text-$align">$content</$type>);
 }
 
 sub update_table_rowspan{
@@ -960,7 +960,7 @@ sub create_figure{
 
 	return $figure if($content eq "" && $figcaption eq "");
 
-	$figure = "<figure class=\"figure\">\n";
+	$figure = "<figure>\n";
 	$figure .= "$content\n" if($content ne "");
 	$figure .= "<figcaption>$figcaption</figcaption>\n"
 		if($figcaption ne "");
@@ -1910,9 +1910,6 @@ body {
 h1 {
 	margin-top:		0px;
 }
-form {
-	margin:			0px;
-}
 pre {
 	background-color:	#eeeeee;
 	border:			1px solid #dddddd;
@@ -1924,6 +1921,32 @@ a {
 }
 a[href*="://"] {
 	color:			blue;
+}
+table {
+	border-collapse:	collapse;
+}
+table caption {
+	text-align:		left;
+	font-size:		smaller;
+}
+table th {
+	border:			1px solid #999999;
+	padding:		3px;
+	background-color:	#eeeeee;
+}
+table td {
+	border:			1px solid #999999;
+	padding:		3px;
+}
+figure {
+}
+figure img {
+}
+figure figcaption {
+	font-size:		smaller;
+}
+form {
+	margin:			0px;
 }
 textarea {
 	width:			100%;
@@ -2017,35 +2040,14 @@ textarea {
 }
 .toc-list {
 }
-.table {
-	border-collapse:	collapse;
-}
-.table caption {
+.text-left {
 	text-align:		left;
 }
-.table th {
-	border:			1px solid #999999;
-	padding:		3px;
-	background-color:	#eeeeee;
-}
-.table td {
-	border:			1px solid #999999;
-	padding:		3px;
-}
-.table-left {
-	text-align:		left;
-}
-.table-center {
+.text-center {
 	text-align:		center;
 }
-.table-right {
+.text-right {
 	text-align:		right;
-}
-.figure {
-}
-.figure img {
-}
-.figure figcaption {
 }
 
 /******************************************************************************/
@@ -3437,7 +3439,7 @@ sub parse_line{
 		}
 	}
 	# Start or close pre
-	if(m/^(---+)(?:\[(.*?)\])?$/ && (!$pre || ($pre == length($1) &&
+	if(m/^(---+)(?:\[(.*)\])?$/ && (!$pre || ($pre == length($1) &&
 				($2 eq "" || $pre_code eq $2)))){
 		if($pre){
 			if($pre_code eq ""){
@@ -3569,19 +3571,19 @@ sub parse_line{
 		return;
 	}
 	# Close list
-	if($list ne "" && !(m/^( *)((?:[*+-]|:.*?:) )?/ && length($1)%2 == 0 &&
+	if($list ne "" && !(m/^( *)((?:[*+-]|: .*?:) )?/ && length($1)%2 == 0 &&
 			"$1$2" ne "")){
 		$text .= create_list($list);
 		$list = "";
 	}
 	# Close table
 	if($table ne "" &&
-		!(m/^![ \t](?:.*[ \t])?!$|^[|^][ \t].*[ \t](?:[!^]+|\|+_?)$/)){
+		!(m/^(?:![ \t](?:.*[ \t])?!|[|^][ \t](?:.*[ \t])?(?:[!^]+|\|+_?))$/)){
 		$text .= create_table($table);
 		$table = "";
 	}
 	# Close figure
-	if($figure ne "" && !(m/^([@"])[ \t].*[ \t]\1$/)){
+	if($figure ne "" && !(m/^([@"])[ \t](?:.*[ \t])?\1$/)){
 		$text .= create_figure($figure);
 		$figure = "";
 	}
@@ -3634,7 +3636,7 @@ sub parse_line{
 	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+)#<a href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
 	s/\x01/&amp;/g; s/\x02/&lt;/g; s/\x03/&gt;/g;
 	# Collect list lines
-	if(m/^( *)((?:[*+-]|:.*?:) )?/ && length($1)%2 == 0 && "$1$2" ne "" &&
+	if(m/^( *)((?:[*+-]|: .*?:) )?/ && length($1)%2 == 0 && "$1$2" ne "" &&
 		($list ne "" || $2 ne "")){
 		if($p){
 			$text .= "</p>\n";
@@ -3644,7 +3646,7 @@ sub parse_line{
 		return;
 	}
 	# Collect table lines
-	if(m/^![ \t](?:.*[ \t])?!$|^[|^][ \t].*[ \t](?:[!^]+|\|+_?)$/){
+	if(m/^(?:![ \t](?:.*[ \t])?!|[|^][ \t](?:.*[ \t])?(?:[!^]+|\|+_?))$/){
 		if($p){
 			$text .= "</p>\n";
 			$p = 0;
@@ -3653,7 +3655,7 @@ sub parse_line{
 		return;
 	}
 	# Collect figure lines
-	if(m/^([@"])[ \t].*[ \t]\1$/){
+	if(m/^([@"])[ \t](?:.*[ \t])?\1$/){
 		if($p){
 			$text .= "</p>\n";
 			$p = 0;
