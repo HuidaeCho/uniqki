@@ -1272,6 +1272,7 @@ preview => q(Preview),
 save => q(Save),
 upload => q(Upload),
 cancel => q(Cancel),
+preview_warning => q(This document is preview. Please make sure to save your changes.),
 
 page_updated => q([[PAGE]] updated!),
 save_your_changes_and_read_latest_version => q(Please save your changes and read <a href="[[PAGE]].html">the latest version</a>!),
@@ -1444,7 +1445,7 @@ sub process_tpl_tag{
 		print_footer();
 	}elsif($tag eq "EDIT"){
 		print_edit();
-	}elsif($tag eq "WIKIEDIT"){
+	}elsif($tag eq "WIKI_EDIT"){
 		print_wiki_edit();
 	}elsif($tag =~ m/^[A-Z_]+$/){
 		my @tags = qw(
@@ -1852,6 +1853,7 @@ EOT_UNIQKI
 sub print_preview{
 	process_tpl("preview.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
+<div id="preview-warning">[[preview_warning]]</div>
 <div id="preview">
 [[PREVIEW]]
 </div>
@@ -1925,10 +1927,11 @@ EOT_UNIQKI
 sub print_wiki_preview{
 	process_tpl("wiki_preview.tpl", shift, <<'EOT_UNIQKI'
 [[HEADER]]
+<div id="wiki-preview-warning">[[preview_warning]]</div>
 <div id="wiki-preview">
 [[PREVIEW]]
 </div>
-[[WIKIEDIT]]
+[[WIKI_EDIT]]
 [[FOOTER]]
 EOT_UNIQKI
 	)
@@ -2044,6 +2047,10 @@ textarea {
 }
 #edit {
 }
+#preview-warning {
+	background-color:	red;
+	padding:		5px;
+}
 #preview {
 }
 #updated {
@@ -2061,6 +2068,10 @@ textarea {
 	padding:		5px;
 }
 #wiki-edit {
+}
+#wiki-preview-warning {
+	background-color:	red;
+	padding:		5px;
 }
 #wiki-preview {
 }
