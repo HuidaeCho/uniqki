@@ -31,25 +31,25 @@
 
 # The document root directory relative to the server's URL including /~user, if
 # any.  For example, if the full URL path to index.html is
-# http://foo.bar.net/~user/index.html, $doc_root should be set to ".".  Leave
-# it blank if you can run u.cgi outside of the cgi-bin directory.
+# http://example.com/~user/index.html, $doc_root should be set to ".".  Leave
+# it blank if you can run this script outside of the cgi-bin directory.
 my $doc_root = "";
 
 # Temporary admin user: admin, password: admin.  DO NOT CHANGE THIS VARIABLE.
 my $tmp_adminpw = 'admin:7352327a53727a65613d7a4cb055d722c21f1a0f17ad676daccd4ad8bf728134c9ee739e5f51c9af822da15b69985908148c55b6fdea4bc0bcd5aff660a53db428a9898c12743c7d:admin:@:Administrator:';
-# Running u.cgi for the first time will create the password file u.pw using the
-# $adminpw credential, which is set to $temporary_adminpw by default.  Since
-# this password is public, make sure to change the admin password after the
-# first login to update the password file.  If $adminpw in the following line
-# is not the same as $temporary_adminpw, u.cgi will assume that you have
-# changed $adminpw to remove the password file and use u.cgi instead for login,
-# and will not create the password file anymore.  Using this feature, it is
-# possible to operate a Uniqki site with the u.cgi file alone by removing the
+# Running this script for the first time will create the password file u.pw
+# using the $adminpw credential, which is set to $temporary_adminpw by default.
+# Since this password is public, make sure to change the admin password after
+# the first login to update the password file.  If $adminpw in the following
+# line is not the same as $temporary_adminpw, Uniqki will assume that you have
+# changed $adminpw to remove the password file and use this script instead for
+# login, and will not create the password file again.  Using this feature, it
+# is possible to operate a Uniqki site with this file alone by removing the
 # password file after setting the $adminpw variable to your new credential in
-# u.pw.  Make sure to back up this variable when updating the u.cgi script.
+# u.pw.  Make sure to back up this variable when updating the script.
 # Optionally, you can create u.cfg and template files in u.tpl by running
-# u.cgi?config and u.cgi?template, respectively, but these files are only used
-# for customizations and are not required.
+# u?install_config and u?install_template, respectively, but these files are
+# only used for customizations and are not required.
 my $adminpw = $tmp_adminpw;
 
 ################################################################################
@@ -135,13 +135,13 @@ $CONTENT_LENGTH = $ENV{CONTENT_LENGTH};
 ################################################################################
 # Useful variables
 # Supported URLs:
-# u.cgi outside cgi-bin: $doc_root = ""
-# * https?://host/~user/dir/u.cgi/page/path/to/file?query
-#   * CGI: u.cgi
+# This script outside cgi-bin: $doc_root = ""
+# * https?://host/~user/dir/u/page/path/to/file?query
+#   * CGI: u
 #   * DOC_BASE: https?://host/~user/dir
-# u.cgi inside cgi-bin: $doc_root != ""
-# * https?://host/~user/cgi-bin/u.cgi/page/path/to/file?query
-#   * CGI: /~user/cgi-bin/u.cgi
+# This script inside cgi-bin: $doc_root != ""
+# * https?://host/~user/cgi-bin/u/page/path/to/file?query
+#   * CGI: /~user/cgi-bin/u
 #   * DOC_BASE: https?://host/~user/doc_root
 # * HTTP_BASE: https?://host
 # * PAGE: page
@@ -1042,22 +1042,22 @@ $TIME_ZONE = '';
 $TIME_FORMAT = '%a %b %e %H:%M:%S %Y';
 
 # Share cookies: [subdomains:][EMPTY|subpaths|all_paths]
-# * subdomains: http://example.com/u.cgi shares cookies with
+# * subdomains: http://example.com/u shares cookies with
 # 		http://www.example.com.
-# * EMPTY: http://example.com/path1/u.cgi does not share cookies with
-#	   http://example.com/u.cgi, http://example.com/path2/u.cgi, nor
-#	   http://example.com/path1/subpath1/u.cgi.
-# * subpaths: http://example.com/path1/u.cgi shares cookies with
-# 	      http://example.com/path1/subpath1/u.cgi, but not with
-# 	      http://example.com/u.cgi nor http://example.com/path2/u.cgi.
-# * all_paths: http://example.com/path1/u.cgi shares cookies with
-#	       http://example.com/u.cgi, http://example.com/path2/u.cgi, and
-#	       http://example.com/path1/subpath1/u.cgi.
+# * EMPTY: http://example.com/path1/u does not share cookies with
+#	   http://example.com/u, http://example.com/path2/u, nor
+#	   http://example.com/path1/subpath1/u.
+# * subpaths: http://example.com/path1/u shares cookies with
+# 	      http://example.com/path1/subpath1/u, but not with
+# 	      http://example.com/u nor http://example.com/path2/u.
+# * all_paths: http://example.com/path1/u shares cookies with
+#	       http://example.com/u, http://example.com/path2/u, and
+#	       http://example.com/path1/subpath1/u.
 #
 # It is possible to combine subdomains and one of EMPTY, subpaths, and
 # all_paths.  For example,
-# * subdomains:all_paths: http://example.com/path1/u.cgi shares cookies with
-#			  http://www.example.com/u.cgi.
+# * subdomains:all_paths: http://example.com/path1/u shares cookies with
+#			  http://www.example.com/u.
 #
 # An empty setting '' means that cookies are not shared with other subdomains
 # nor paths.  Subdomains and specified paths have to use the password and
@@ -1081,7 +1081,8 @@ $SESSIONS_FILE = '.sessions';
 # Messages file: The default messages will be printed if missing.
 $MESSAGES_FILE = 'u.msg';
 
-# Template directory: The default template will be served by u.cgi if missing.
+# Template directory: The default template will be served by the script if
+# missing.
 $TEMPLATE_DIRECTORY = 'u.tpl';
 
 # Page name style: case[:dots|:no_dots][:hyphens|:underscores|:no_spaces]
@@ -1156,10 +1157,10 @@ $SMTP = '';
 # required to secure *.html files:
 # RewriteEngine On
 # RewriteBase /
-# RewriteRule ^$ u.cgi [R,L]
-# RewriteRule ^([^/]*)\.html$ u.cgi/$1 [R,L]
-# RewriteRule ^(u\.cgi/[^/]*)\.html$ $1 [R,L]
-# RewriteCond %{REQUEST_URI} !/u\.cgi($|[/?])
+# RewriteRule ^$ u [R,L]
+# RewriteRule ^([^/]*)\.html$ u/$1 [R,L]
+# RewriteRule ^(u/[^/]*)\.html$ $1 [R,L]
+# RewriteCond %{REQUEST_URI} !/u($|[/?])
 # RewriteRule .* "-" [F]
 $READ_ACCESS = 'open';
 
@@ -2666,8 +2667,8 @@ sub find_user_info{
 		$method = 1;
 	}elsif($adminpw eq $tmp_adminpw){
 		# Password file does not exist and $adminpw is temporary.  The
-		# first run of u.cgi is this case.  Create the password file
-		# only for the login action immediately before checking
+		# first run of this script is this case.  Create the password
+		# file only for the login action immediately before checking
 		# credentials against the temporary password to avoid timing
 		# attacks.
 		$method = 2;
@@ -2725,8 +2726,8 @@ sub find_user_info_by_email_address{
 		$method = 1;
 	}elsif($adminpw eq $tmp_adminpw){
 		# Password file does not exist and $adminpw is temporary.  The
-		# first run of u.cgi is this case.  Create the password file
-		# only for the login action immediately before checking
+		# first run of this script is this case.  Create the password
+		# file only for the login action immediately before checking
 		# credentials against the temporary password to avoid timing
 		# attacks.
 		$method = 2;
@@ -2786,8 +2787,8 @@ sub find_user_info_by_password_reset_token{
 		$method = 1;
 	}elsif($adminpw eq $tmp_adminpw){
 		# Password file does not exist and $adminpw is temporary.  The
-		# first run of u.cgi is this case.  Create the password file
-		# only for the login action immediately before checking
+		# first run of this script is this case.  Create the password
+		# file only for the login action immediately before checking
 		# credentials against the temporary password to avoid timing
 		# attacks.
 		$method = 2;
@@ -2843,8 +2844,8 @@ sub authenticate_user{
 		$method = 2;
 	}elsif($adminpw eq $tmp_adminpw){
 		# Password file does not exist and $adminpw is temporary.  The
-		# first run of u.cgi is this case.  Create the password file
-		# only for the login action immediately before checking
+		# first run of this script is this case.  Create the password
+		# file only for the login action immediately before checking
 		# credentials against the temporary password to avoid timing
 		# attacks.
 		if($QUERY_STRING eq "login"){
@@ -3845,7 +3846,7 @@ END{
 
 if($PAGE eq $CGI && $FILE ne ""){
 ################################################################################
-# u.cgi/u.cgi/.../PAGE?ACTION	Called from a secured site
+# u/u/.../PAGE?ACTION	Called from a secured site
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$FILE?$QUERY_STRING");
 }
 
@@ -3855,12 +3856,12 @@ $PAGE = convert_page_name($PAGE);
 # Login, logout
 if($QUERY_STRING eq "logout"){
 #-------------------------------------------------------------------------------
-# u.cgi/PAGE?logout		Logout
+# u/PAGE?logout		Logout
 	close_session();
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }elsif($QUERY_STRING eq "logout_all"){
 #-------------------------------------------------------------------------------
-# u.cgi/PAGE?logout_all		Logout from all computers
+# u/PAGE?logout_all	Logout from all computers
 	clear_sessions();
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }
@@ -3871,25 +3872,25 @@ if(!is_logged_in()){
 if($QUERY_STRING eq "login"){
 	if($REQUEST_METHOD eq "GET"){
 #-------------------------------------------------------------------------------
-# u.cgi/PAGE?login		GET login request: Login form
+# u/PAGE?login		GET login request: Login form
 		print_login();
 		exit;
 	}else{
 #-------------------------------------------------------------------------------
-# u.cgi/PAGE?login		POST login request: Check credentials
+# u/PAGE?login		POST login request: Check credentials
 		my %var = get_var();
 		authenticate_user($var{user}, $var{pw}, $var{logout_others});
 	}
 }elsif($QUERY_STRING eq "loginout"){
 #-------------------------------------------------------------------------------
-# u.cgi?loginout		Loginout
-# u.cgi/PAGE?loginout		Loginout
+# u?loginout		Loginout
+# u/PAGE?loginout	Loginout
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?login");
 }
 }elsif($QUERY_STRING eq "loginout"){
 #-------------------------------------------------------------------------------
-# u.cgi?loginout		Loginout
-# u.cgi/PAGE?loginout		Loginout
+# u?loginout		Loginout
+# u/PAGE?loginout	Loginout
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?logout");
 }
 
@@ -3918,25 +3919,25 @@ if($QUERY_STRING eq "login"){
 
 if($QUERY_STRING eq "css"){
 #-------------------------------------------------------------------------------
-# u.cgi?css			Print CSS
+# u?css			Print CSS
 	print_css(2);
 	exit;
 }elsif($QUERY_STRING eq "js"){
 #-------------------------------------------------------------------------------
-# u.cgi?js			Print JavaScript
+# u?js			Print JavaScript
 	print_js(2);
 	exit;
 }elsif($QUERY_STRING eq "user_info"){
 #-------------------------------------------------------------------------------
-# u.cgi/PAGE?user_info		Print user information
+# u/PAGE?user_info	Print user information
 	my $page_exists = page_exists();
 	my $has_read_access = $page_exists && has_read_access() ? 1 : 0;
 	my $has_write_access = $page_exists && has_write_access() ? 1 : 0;
 	exit_text("$USER:$admin:$has_read_access:$has_write_access");
 }elsif($QUERY_STRING eq "forgot_password"){
 #-------------------------------------------------------------------------------
-# u.cgi?forgot_password		Forgot password
-# u.cgi/PAGE?forgot_password	Forgot password
+# u?forgot_password		Forgot password
+# u/PAGE?forgot_password	Forgot password
 	if($REQUEST_METHOD eq "GET"){
 		print_forgot_password();
 		exit;
@@ -4014,8 +4015,8 @@ if($QUERY_STRING eq "css"){
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }elsif($QUERY_STRING eq "reset_password" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
-# u.cgi?reset_password		Reset password
-# u.cgi/PAGE?reset_password	Reset password
+# u?reset_password	Reset password
+# u/PAGE?reset_password	Reset password
 	my %var = get_var();
 	exit_message("invalid_password_reset_token")
 		unless(is_password_reset_token_valid($var{token}));
@@ -4058,8 +4059,8 @@ if($QUERY_STRING eq "css"){
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }elsif($QUERY_STRING =~ m/^reset_password=([a-zA-Z0-9]{8}[0-9a-f]{40}\.([0-9]+))$/){
 #-------------------------------------------------------------------------------
-# u.cgi?reset_password=token	Reset password
-# u.cgi/PAGE?reset_password=token Reset password
+# u?reset_password=token	Reset password
+# u/PAGE?reset_password=token	Reset password
 	my $token = $1;
 	my $expires = $2;
 
@@ -4074,14 +4075,14 @@ if($QUERY_STRING eq "css"){
 	exit;
 }elsif($QUERY_STRING eq "manage_myself"){
 #-------------------------------------------------------------------------------
-# u.cgi?manage_myself		Manage myself
-# u.cgi/PAGE?manage_myself	Manage myself
+# u?manage_myself	Manage myself
+# u/PAGE?manage_myself	Manage myself
 	print_manage_myself();
 	exit;
 }elsif($QUERY_STRING eq "update_myself" && $REQUEST_METHOD eq "POST" && is_logged_in()){
 #-------------------------------------------------------------------------------
-# u.cgi?update_myself		Update myself
-# u.cgi/PAGE?update_myself	Update myself
+# u?update_myself	Update myself
+# u/PAGE?update_myself	Update myself
 	my %var = get_var();
 	if($var{pw} ne $var{pw2}){
 		exit_message("confirm_password");
@@ -4156,8 +4157,8 @@ if($QUERY_STRING eq "css"){
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_myself");
 }elsif($QUERY_STRING eq "delete_myself" && $REQUEST_METHOD eq "POST" && is_logged_in()){
 #-------------------------------------------------------------------------------
-# u.cgi?delete_myself		Delete myself
-# u.cgi/PAGE?delete_myself	Delete myself
+# u?delete_myself	Delete myself
+# u/PAGE?delete_myself	Delete myself
 	my $new_pw = "";
 	my $deleted = 0;
 	my $nadmins = 0;
@@ -4196,12 +4197,12 @@ if($QUERY_STRING eq "css"){
 # User actions
 }elsif($QUERY_STRING eq "login" || $QUERY_STRING eq ""){
 #-------------------------------------------------------------------------------
-# u.cgi?login			After a successful login
-# u.cgi/PAGE?login		After a successful login
-# u.cgi/PAGE/FILE?login		After a successful login
-# u.cgi				No action specified
-# u.cgi/PAGE			No action specified
-# u.cgi/PAGE/FILE		No action specified
+# u?login		After a successful login
+# u/PAGE?login		After a successful login
+# u/PAGE/FILE?login	After a successful login
+# u			No action specified
+# u/PAGE		No action specified
+# u/PAGE/FILE		No action specified
 	exit_path("$PAGE/$FILE") if($FILE ne "" ||
 		($PAGE ne "" && "/" eq substr $PATH_INFO, -1));
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE") if($PAGE eq "");
@@ -4212,12 +4213,12 @@ if($QUERY_STRING eq "css"){
 	}
 }elsif($QUERY_STRING ne "delete" && $FILE ne ""){
 #-------------------------------------------------------------------------------
-# u.cgi/PAGE/FILE		Show/download PAGE/FILE
+# u/PAGE/FILE		Show/download PAGE/FILE
 	exit_path("$PAGE/$FILE");
 }elsif($QUERY_STRING =~ m/^goto(?:[&=].+)?$/){
 #-------------------------------------------------------------------------------
-# u.cgi?goto			Create the goto form
-# u.cgi?goto=PAGE		Go to or create PAGE using a form (admin only)
+# u?goto		Create the goto form
+# u?goto=PAGE		Go to or create PAGE using a form (admin only)
 	my %var = get_var();
 	if($var{goto} eq ""){
 		local $TITLE = get_msg("goto_form");
@@ -4234,7 +4235,7 @@ if($QUERY_STRING eq "css"){
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$_");
 }elsif($QUERY_STRING eq "refresh" && $PAGE ne ""){
 #-------------------------------------------------------------------------------
-# u.cgi/PAGE?refresh		Refresh
+# u/PAGE?refresh	Refresh
 	if(-f "$PAGE.txt"){
 		$rebuild = 1;
 	}else{
@@ -4244,9 +4245,9 @@ if($QUERY_STRING eq "css"){
 	}
 }elsif($QUERY_STRING =~ m/^diff(?:=(-?[0-9]+))?$/){
 #-------------------------------------------------------------------------------
-# u.cgi/PAGE?diff		Diff current and previous version
-# u.cgi/PAGE?diff=([0-9]+)	Diff current and \1 version
-# u.cgi/PAGE?diff=-([0-9]+)	Diff current and current-\1 version
+# u/PAGE?diff		Diff current and previous version
+# u/PAGE?diff=([0-9]+)	Diff current and \1 version
+# u/PAGE?diff=-([0-9]+)	Diff current and current-\1 version
 	unless(-f "$PAGE.txt"){
 		exit_message("page_not_found", $PAGE);
 	}
@@ -4373,16 +4374,16 @@ if($QUERY_STRING eq "css"){
 	exit;
 }elsif($QUERY_STRING =~ m/^ls(?:[&=].+)?$/){
 #-------------------------------------------------------------------------------
-# u.cgi?ls			List all pages in alphabetical order
-# u.cgi?ls=az			List all pages in alphabetical order
-# u.cgi?ls=za			List all pages in reverse order
-# u.cgi?ls=taz			List all pages in alphabetical order of titles
-# u.cgi?ls=tza			List all pages in reverse order of titles
-# u.cgi?ls=rc			Recent changes
-# u.cgi?ls=oc			Old changes
-# u.cgi?ls&n=([0-9]+)		List only \1 pages in alphabetical order
-# u.cgi?ls&title=1		Print page titles instead of page names
-# u.cgi?ls&glob=GLOB		List all GLOB pages in alphabetical order
+# u?ls			List all pages in alphabetical order
+# u?ls=az		List all pages in alphabetical order
+# u?ls=za		List all pages in reverse order
+# u?ls=taz		List all pages in alphabetical order of titles
+# u?ls=tza		List all pages in reverse order of titles
+# u?ls=rc		Recent changes
+# u?ls=oc		Old changes
+# u?ls&n=([0-9]+)	List only \1 pages in alphabetical order
+# u?ls&title=1		Print page titles instead of page names
+# u?ls&glob=GLOB	List all GLOB pages in alphabetical order
 	my %var = get_var();
 	my ($msg_id, $title);
 	if($var{glob} eq ""){
@@ -4476,9 +4477,9 @@ if($QUERY_STRING eq "css"){
 	exit;
 }elsif($QUERY_STRING =~ m/^rss(?:[&=].+)?$/){
 #-------------------------------------------------------------------------------
-# u.cgi?rss			RSS for recent 10 pages
-# u.cgi?rss=([0-9]+)		RSS for recent \1 pages
-# u.cgi?rss&glob=GLOB		RSS for recent 10 GLOB pages
+# u?rss			RSS for recent 10 pages
+# u?rss=([0-9]+)	RSS for recent \1 pages
+# u?rss&glob=GLOB	RSS for recent 10 GLOB pages
 	my %var = get_var();
 	my $glob = $var{glob} eq "" ? "*" : $var{glob};
 
@@ -4567,13 +4568,13 @@ EOT
 	exit;
 }elsif($QUERY_STRING =~ m/^search(?:[&=].+)?$/){
 #-------------------------------------------------------------------------------
-# u.cgi?search=(.*)		Search using regular expressions
-# u.cgi?search=(.*)&simple=1	Search using space separated words
-# u.cgi?search=(.*)&icase=1	Case-insensitive search
-# u.cgi?search=(.*)&link=1	Search for pages which link to \1 page
-# u.cgi?search=(.*)&title=1	Print page titles instead of page names
-# u.cgi?search=(.*)&nomatch=1	Don't print matches
-# u.cgi?search=(.*)&glob=GLOB	Search GLOB pages
+# u?search=(.*)			Search using regular expressions
+# u?search=(.*)&simple=1	Search using space separated words
+# u?search=(.*)&icase=1		Case-insensitive search
+# u?search=(.*)&link=1		Search for pages which link to \1 page
+# u?search=(.*)&title=1		Print page titles instead of page names
+# u?search=(.*)&nomatch=1	Don't print matches
+# u?search=(.*)&glob=GLOB	Search GLOB pages
 	my %var = get_var();
 	if($var{search} eq ""){
 		local $TITLE = get_msg("search_form");
@@ -4685,18 +4686,18 @@ EOT
 	exit;
 }elsif($QUERY_STRING =~ m/^comment(?:[&=].+)?$/){
 #-------------------------------------------------------------------------------
-# u.cgi/PAGE?comment		Generate the comment form for PAGE
-#				(id=comment, downward, rows=80, cols=6)
-# u.cgi/PAGE?comment&direction=(up|down) Generate the comment form for PAGE
-#				(id=comment, (up|down)ward, rows=80, cols=6)
-# u.cgi/PAGE?comment&rows=([0-9]+) Generate the comment form for PAGE
-#				(id=comment, downward, rows=\1, cols=6)
-# u.cgi/PAGE?comment&cols=([0-9]+) Generate the comment form for PAGE
-#				(id=comment, downward, rows=80, cols=\1)
-# u.cgi/PAGE?comment=COMMENT	Generate the comment form for PAGE
-#				(id=COMMENT, downward, rows=80, cols=6)
-# u.cgi?comment&page=PAGE	Generate the comment form for PAGE
-#				(id=comment, downward, rows=80, cols=6)
+# u/PAGE?comment			Generate the comment form for PAGE
+#					(id=comment, down, rows=80, cols=6)
+# u/PAGE?comment&direction=(up|down)	Generate the comment form for PAGE
+#					(id=comment, (up|down), rows=80, cols=6)
+# u/PAGE?comment&rows=([0-9]+)		Generate the comment form for PAGE
+#					(id=comment, down, rows=\1, cols=6)
+# u/PAGE?comment&cols=([0-9]+)		Generate the comment form for PAGE
+#					(id=comment, down, rows=80, cols=\1)
+# u/PAGE?comment=COMMENT		Generate the comment form for PAGE
+#					(id=COMMENT, down, rows=80, cols=6)
+# u?comment&page=PAGE			Generate the comment form for PAGE
+#					(id=comment, down, rows=80, cols=6)
 	my %var = get_var();
 	if($REQUEST_METHOD eq "GET"){
 		$PAGE = $var{page} if($var{page} ne "");
@@ -4770,9 +4771,9 @@ EOT
 	if($REQUEST_METHOD eq "GET"){
 		if($QUERY_STRING =~ m/^wiki_edit(?:=(-?[0-9]+))?$/){
 #-------------------------------------------------------------------------------
-# u.cgi/PAGE?wiki_edit		Create/edit PAGE
-# u.cgi/PAGE?wiki_edit=([0-9]+)	Edit the version \1 of PAGE
-# u.cgi/PAGE?wiki_edit=-([0-9]+) Edit the current-\1 version of PAGE
+# u/PAGE?wiki_edit		Create/edit PAGE
+# u/PAGE?wiki_edit=([0-9]+)	Edit the version \1 of PAGE
+# u/PAGE?wiki_edit=-([0-9]+)	Edit the current-\1 version of PAGE
 			if($1 ne "" && !-f "$PAGE.txt"){
 				exit_message("page_not_found", $PAGE);
 			}
@@ -4904,14 +4905,14 @@ EOT
 	exit_message("change_admin_password");
 }elsif($QUERY_STRING eq "manage_pages"){
 #-------------------------------------------------------------------------------
-# u.cgi?manage_pages		Manage pages
-# u.cgi/PAGE?manage_pages	Manage pages
+# u?manage_pages	Manage pages
+# u/PAGE?manage_pages	Manage pages
 	print_manage_pages();
 	exit;
 }elsif($QUERY_STRING eq "backup"){
 #-------------------------------------------------------------------------------
-# u.cgi?backup			Backup all pages
-# u.cgi/PAGE?backup		Backup PAGE
+# u?backup		Backup all pages
+# u/PAGE?backup		Backup PAGE
 	eval "use Archive::Zip;";
 	exit_message("perl_module_not_installed", "Archive::Zip") if($@);
 
@@ -4936,8 +4937,8 @@ EOT
 	exit;
 }elsif($QUERY_STRING eq "restore"){
 #-------------------------------------------------------------------------------
-# u.cgi?restore			Restore
-# u.cgi/PAGE?restore		Restore
+# u?restore		Restore
+# u/PAGE?restore	Restore
 	eval "use Archive::Zip;";
 	exit_message("perl_module_not_installed", "Archive::Zip") if($@);
 
@@ -4975,8 +4976,8 @@ EOT
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_pages");
 }elsif($QUERY_STRING =~ m/^refresh(?:&.+)?$/){
 #-------------------------------------------------------------------------------
-# u.cgi?refresh			Refresh all
-# u.cgi?refresh&glob=GLOB	Refresh GLOB pages
+# u?refresh		Refresh all
+# u?refresh&glob=GLOB	Refresh GLOB pages
 	my %var = get_var();
 	my $glob = $var{glob};
 	my $title = $glob eq "" ? get_msg("refresh_pages") :
@@ -5000,14 +5001,14 @@ EOT
 	exit;
 }elsif($QUERY_STRING eq "manage_users"){
 #-------------------------------------------------------------------------------
-# u.cgi?manage_users		Manage users
-# u.cgi/PAGE?manage_users	Manage users
+# u?manage_users	Manage users
+# u/PAGE?manage_users	Manage users
 	print_manage_users();
 	exit;
 }elsif($QUERY_STRING eq "add_user" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
-# u.cgi?add_user		Add user
-# u.cgi/PAGE?add_user		Add user
+# u?add_user		Add user
+# u/PAGE?add_user	Add user
 	my %var = get_var();
 	if($var{user} eq ""){
 		exit_message("enter_username");
@@ -5091,8 +5092,8 @@ EOT
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
 }elsif($QUERY_STRING eq "update_user" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
-# u.cgi?update_user		Update user
-# u.cgi/PAGE?update_user	Update user
+# u?update_user		Update user
+# u/PAGE?update_user	Update user
 	my %var = get_var();
 	if($var{user} eq ""){
 		exit_message("enter_username");
@@ -5179,8 +5180,8 @@ EOT
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
 }elsif($QUERY_STRING eq "block_user" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
-# u.cgi?block_user		Block user
-# u.cgi/PAGE?block_user		Block user
+# u?block_user		Block user
+# u/PAGE?block_user	Block user
 	my %var = get_var();
 	if($var{user} eq ""){
 		exit_message("enter_username");
@@ -5223,8 +5224,8 @@ EOT
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
 }elsif($QUERY_STRING eq "unblock_user" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
-# u.cgi?unblock_user		Unblock user
-# u.cgi/PAGE?unblock_user	Unblock user
+# u?unblock_user	Unblock user
+# u/PAGE?unblock_user	Unblock user
 	my %var = get_var();
 	if($var{user} eq ""){
 		exit_message("enter_username");
@@ -5295,8 +5296,8 @@ EOT
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
 }elsif($QUERY_STRING eq "delete_user" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
-# u.cgi?delete_user		Delete user
-# u.cgi/PAGE?delete_user	Delete user
+# u?delete_user		Delete user
+# u/PAGE?delete_user	Delete user
 	my %var = get_var();
 	if($var{user} eq ""){
 		exit_message("enter_username");
@@ -5333,26 +5334,26 @@ EOT
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
 }elsif($QUERY_STRING eq "install_password"){
 #-------------------------------------------------------------------------------
-# u.cgi?install_password	Install the password file, but don't overwrite
-# u.cgi/PAGE?install_password	Install the password file, but don't overwrite
+# u?install_password		Install the password file, but don't overwrite
+# u/PAGE?install_password	Install the password file, but don't overwrite
 	write_pw();
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }elsif($QUERY_STRING eq "install_config"){
 #-------------------------------------------------------------------------------
-# u.cgi?install_config		Install the config file, but don't overwrite
-# u.cgi/PAGE?install_config	Install the config file, but don't overwrite
+# u?install_config	Install the config file, but don't overwrite
+# u/PAGE?install_config	Install the config file, but don't overwrite
 	process_cfg(1);
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }elsif($QUERY_STRING eq "install_messages"){
 #-------------------------------------------------------------------------------
-# u.cgi?install_messages	Install the messages file, but don't overwrite
-# u.cgi/PAGE?install_messages	Install the messages file, but don't overwrite
+# u?install_messages		Install the messages file, but don't overwrite
+# u/PAGE?install_messages	Install the messages file, but don't overwrite
 	process_msg(1);
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }elsif($QUERY_STRING eq "install_template"){
 #-------------------------------------------------------------------------------
-# u.cgi?install_template	Install the template files, but don't overwrite
-# u.cgi/PAGE?install_template	Install the template files, but don't overwrite
+# u?install_template		Install the template files, but don't overwrite
+# u/PAGE?install_template	Install the template files, but don't overwrite
 	if($TEMPLATE_DIRECTORY ne ""){
 		mkdir $TEMPLATE_DIRECTORY, 0755 unless(-d $TEMPLATE_DIRECTORY);
 		print_header(1);
@@ -5377,11 +5378,11 @@ EOT
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }elsif($PAGE eq ""){
 #-------------------------------------------------------------------------------
-# u.cgi?ACTION			Redirect to index
+# u?ACTION		Redirect to index
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE");
 }elsif($QUERY_STRING eq "upload"){
 #-------------------------------------------------------------------------------
-# u.cgi/PAGE?upload		Upload PAGE/FILE
+# u/PAGE?upload		Upload PAGE/FILE
 	my %var = get_var();
 	exit_rebuild($PAGE) unless(verify_input_data("upload", \%var));
 
@@ -5393,7 +5394,7 @@ EOT
 	}
 }elsif($QUERY_STRING eq "delete" && $FILE ne ""){
 #-------------------------------------------------------------------------------
-# u.cgi/PAGE/FILE?delete	Delete PAGE/FILE
+# u/PAGE/FILE?delete	Delete PAGE/FILE
 	my $dir = "";
 	if(unlink "$PAGE/$FILE"){
 		$dir = "$PAGE/$FILE"; $dir =~ s#/[^/]+$##;
@@ -5410,9 +5411,9 @@ EOT
 	$rebuild = 1;
 }elsif($QUERY_STRING =~ m/^edit(?:=(-?[0-9]+))?$/){
 #-------------------------------------------------------------------------------
-# u.cgi/PAGE?edit		Create/edit PAGE
-# u.cgi/PAGE?edit=([0-9]+)	Edit the version \1 of PAGE
-# u.cgi/PAGE?edit=-([0-9]+)	Edit the current-\1 version of PAGE
+# u/PAGE?edit		Create/edit PAGE
+# u/PAGE?edit=([0-9]+)	Edit the version \1 of PAGE
+# u/PAGE?edit=-([0-9]+)	Edit the current-\1 version of PAGE
 	local $TITLE = $PAGE;
 	local ($VERSION, $TEXT);
 	if($REQUEST_METHOD eq "GET"){
@@ -5470,9 +5471,9 @@ EOT
 	unlock_file("$PAGE.txt");
 }elsif($QUERY_STRING =~ m/^revert(?:=(-?[0-9]+))?$/){
 #-------------------------------------------------------------------------------
-# u.cgi/PAGE?revert		Go back to the previous version of PAGE
-# u.cgi/PAGE?revert=([0-9]+)	Go back to the \1 version of PAGE
-# u.cgi/PAGE?revert=-([0-9]+)	Go back to the current-\1 version of PAGE
+# u/PAGE?revert			Go back to the previous version of PAGE
+# u/PAGE?revert=([0-9]+)	Go back to the \1 version of PAGE
+# u/PAGE?revert=-([0-9]+)	Go back to the current-\1 version of PAGE
 	unless(-f "$PAGE.txt"){
 		exit_message("page_not_found", $PAGE);
 	}
@@ -5512,7 +5513,7 @@ EOT
 	unlock_file("$PAGE.txt");
 }elsif($QUERY_STRING eq "delete"){
 #-------------------------------------------------------------------------------
-# u.cgi/PAGE?delete		Delete PAGE
+# u/PAGE?delete		Delete PAGE
 	unlink "$PAGE.txt", "$PAGE.txt.v", "$PAGE.html";
 	rmrf($PAGE);
 	$PAGE = $INDEX_PAGE;
