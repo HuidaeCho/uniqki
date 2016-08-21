@@ -36,7 +36,7 @@
 my $doc_root = "";
 
 # Temporary admin user: admin, password: admin.  DO NOT CHANGE THIS VARIABLE.
-my $tmp_adminpw = 'admin:7352327a53727a65613d7a4cb055d722c21f1a0f17ad676daccd4ad8bf728134c9ee739e5f51c9af822da15b69985908148c55b6fdea4bc0bcd5aff660a53db428a9898c12743c7d:admin:@:';
+my $tmp_adminpw = 'admin:7352327a53727a65613d7a4cb055d722c21f1a0f17ad676daccd4ad8bf728134c9ee739e5f51c9af822da15b69985908148c55b6fdea4bc0bcd5aff660a53db428a9898c12743c7d:admin:@:Administrator:';
 # Running u.cgi for the first time will create the password file u.pw using the
 # $adminpw credential, which is set to $temporary_adminpw by default.  Since
 # this password is public, make sure to change the admin password after the
@@ -64,7 +64,7 @@ use vars qw(
 
 # Useful variables
 use vars qw(
-	$HTTP_BASE $DOC_BASE $CGI $PAGE $FILE $USER
+	$HTTP_BASE $DOC_BASE $CGI $PAGE $FILE $USER $NAME $AUTHOR
 );
 
 # Template variables
@@ -114,7 +114,7 @@ exit_message("perl_module_not_installed", "Digest::HMAC_SHA1") if($@);
 
 if(!defined $ENV{GATEWAY_INTERFACE}){
 	print "Please run this script from a web browser!\n";
-	printf "my \$tmp_adminpw = 'admin:%s:admin:\@:';\n",
+	printf "my \$tmp_adminpw = 'admin:%s:admin:\@:Administrator:';\n",
 		hash_password("admin", "admin");
 	exit;
 }
@@ -217,6 +217,7 @@ process_msg();
 ################################################################################
 # Initialization
 $USER = "";
+$NAME = "Visitor";
 my $admin = 0;
 my $header_printed = 0;
 my $footer_printed = 0;
@@ -371,10 +372,10 @@ sub exit_message{
 }
 
 sub exit_rebuild{
-	my $page = shift;
-	if(-f "$page.txt"){
-		make_html($page);
-		exit_redirect("$HTTP_BASE$SCRIPT_NAME/$page");
+	my $PAGE = shift;
+	if(-f "$PAGE.txt"){
+		make_html($PAGE);
+		exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 	}
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE");
 }
@@ -672,7 +673,7 @@ sub create_list{
 				next;
 			}
 			if($use_p && !$p){
-				$list .= "<p>\n";
+				$list .= "<p>";
 				$p = 1;
 			}
 			$list .= "$4\n";
@@ -1227,11 +1228,13 @@ block_user => q(Block user),
 unblock_user => q(Unblock user),
 delete_user => q(Delete user),
 email_address => q(Email address),
+full_name => q(Full name),
 non_admin => q(Non-admin),
 admin => q(Admin),
 dont_change => q(Don't change),
 type_password_again => q(Type password again),
 username_requirements => q(Username requirements: 4 or more letters (a-z, A-Z) and digits (0-9).),
+full_name_requirements => q(Full name requirements: 5 or more letters without digits (0-9) and special characters.),
 password_requirements => q(Password requirements: 8 or more characters with at least one letter (a-z, A-Z), one digit (0-9), and one special character excluding spaces and tabs.),
 leave_password_blank_for_email_notification => q(Leave the password field blank for an email notification with a temporary link for resetting the password.),
 
@@ -1259,6 +1262,7 @@ login => q(Login),
 logout => q(Logout),
 diff => q(Diff),
 backlinks => q(Backlinks),
+last_modified => q([[TIME]] by [[AUTHOR]]),
 xhtml => q(XHTML),
 css => q(CSS),
 
@@ -1304,6 +1308,8 @@ check_username => q(Please enter a username that meets character requirements.),
 enter_email_address => q(Please enter an email address.),
 check_email_address => q(Please enter a valid email address.),
 leave_email_address_blank => q(Please leave the email address blank.),
+enter_full_name => q(Please enter the user's full name.),
+check_full_name => q(Please enter a full name that meets character requirements.),
 check_password => q(Please enter a password that meets the length and character requirements.),
 confirm_password => q(Please confirm the password.),
 leave_password_blank => q(Please leave the password blank.),
@@ -1392,10 +1398,18 @@ sub is_password{
 
 sub is_email_address{
 	# Regex: http://www.regular-expressions.info/email.html
-	my $email_address = shift;
-	my $len = length($email_address);
+	my $email = shift;
+	my $len = length($email);
 	return $len >= 6 && $len <= 254 &&
-		$email_address =~ m/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+		$email =~ m/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+}
+
+sub is_full_name{
+	my $name = shift;
+	$name =~ s/[ \t]+/ /g;
+	$name =~ s/^ | $//g;
+	my $len = length($name);
+	return $len >= 5 && $name !~ m/[`~!@#\$%^&*_=+\\|;:'",\/?()\[\]{}<>0-9-]/;
 }
 
 sub is_session_id{
@@ -1405,8 +1419,8 @@ sub is_session_id{
 }
 
 sub is_password_reset_token_valid{
-	my $reset_token = shift;
-	if($reset_token !~ m/^[a-zA-Z0-9]{8}[0-9a-f]{40}\.([0-9]+)$/){
+	my $token = shift;
+	if($token !~ m/^[a-zA-Z0-9]{8}[0-9a-f]{40}\.([0-9]+)$/){
 		return 0;
 	}
 	my $expires = $1;
@@ -1434,7 +1448,7 @@ sub process_tpl_tag{
 		my @tags = qw(
 			SITE_TITLE SITE_DESCRIPTION INDEX_PAGE TITLE LANG
 			CHARSET PAGE VERSION TEXT HTTP_BASE DOC_BASE PREVIEW
-			TIME CGI MESSAGE PASSWORD_RESET_TOKEN
+			TIME CGI MESSAGE PASSWORD_RESET_TOKEN NAME AUTHOR
 		);
 		my %hash;
 		@hash{@tags} = undef;
@@ -1443,7 +1457,14 @@ sub process_tpl_tag{
 		$txt = $$tag if(exists $hash{$tag});
 	}elsif($tag =~ m/^[a-z_]+$/){
 		$txt = get_msg($tag);
-		$txt =~ s/\[\[PAGE\]\]/$PAGE/g;
+		my @tags = qw(
+			PAGE TIME AUTHOR
+		);
+
+		no strict;
+		foreach(@tags){
+			$txt =~ s/\[\[$_\]\]/$$_/g;
+		}
 	}
 	close FH; select $fh;
 	chomp $txt;
@@ -1513,7 +1534,11 @@ sub print_footer{
 	process_tpl("footer.tpl", $mode, <<'EOT_UNIQKI'
 </div>
 <div id="bottom">
-<small><i>[[powered_by_uniqki]]</i></small>
+<span id="validators">
+<a href="https://validator.w3.org/check?uri=referer">[[xhtml]]</a> .
+<a href="https://jigsaw.w3.org/css-validator/check/referer">[[css]]</a>
+</span> .
+[[powered_by_uniqki]]
 </div>
 </div>
 </body>
@@ -1577,14 +1602,19 @@ sub print_manage_users{
 [[HEADER]]
 <div id="manage-users">
 <h1>[[manage_users]]</h1>
-<p>[[username_requirements]]</p>
-<p>[[password_requirements]] [[leave_password_blank_for_email_notification]]</p>
+<ul>
+<li>[[username_requirements]]</li>
+<li>[[full_name_requirements]]</li>
+<li>[[password_requirements]]</li>
+<li>[[leave_password_blank_for_email_notification]]</li>
+</ul>
 
 <h2>[[add_user]]</h2>
 <form action="?add_user" method="post">
 <div>
 <input accesskey="u" type="text" id="user" name="user" placeholder="[[username]]" />
-<input accesskey="e" type="text" id="email_address" name="email_address" placeholder="[[email_address]]" />
+<input accesskey="e" type="text" id="email" name="email" placeholder="[[email_address]]" />
+<input accesskey="f" type="text" id="name" name="name" placeholder="[[full_name]]" />
 <br />
 <input type="radio" id="admin" name="admin" value="no" /> [[non_admin]]
 <input type="radio" id="admin" name="admin" value="yes" /> [[admin]]
@@ -1600,7 +1630,8 @@ sub print_manage_users{
 <form action="?update_user" method="post">
 <div>
 <input accesskey="u" type="text" id="user" name="user" placeholder="[[username]]" />
-<input accesskey="e" type="text" id="email_address" name="email_address" placeholder="[[email_address]]" />
+<input accesskey="e" type="text" id="email" name="email" placeholder="[[email_address]]" />
+<input accesskey="f" type="text" id="name" name="name" placeholder="[[full_name]]" />
 <br />
 <input type="radio" id="admin" name="admin" value="no" /> [[non_admin]]
 <input type="radio" id="admin" name="admin" value="yes" /> [[admin]]
@@ -1661,10 +1692,15 @@ sub print_manage_myself{
 <h1>[[manage_myself]]</h1>
 
 <h2>[[update_myself]]</h2>
-<p>[[password_requirements]]</p>
+<ul>
+<li>[[full_name_requirements]]</li>
+<li>[[password_requirements]]</li>
+</ul>
+
 <form action="?update_myself" method="post">
 <div>
-<input accesskey="e" type="text" id="email_address" name="email_address" placeholder="[[email_address]]" />
+<input accesskey="e" type="text" id="email" name="email" placeholder="[[email_address]]" />
+<input accesskey="f" type="text" id="name" name="name" placeholder="[[full_name]]" />
 <br />
 <input accesskey="p" type="password" id="pw" name="pw" placeholder="[[password]]" />
 <input type="password" id="pw2" name="pw2" placeholder="[[type_password_again]]" />
@@ -1699,7 +1735,7 @@ sub print_forgot_password{
 <form action="?forgot_password" method="post">
 <div>
 <input accesskey="u" type="text" id="user" name="user" placeholder="[[username]]" />
-<input accesskey="e" type="text" id="email_address" name="email_address" placeholder="[[email_address]]" />
+<input accesskey="e" type="text" id="email" name="email" placeholder="[[email_address]]" />
 <br />
 <input type="submit" value="[[forgot_password]]" />
 </div>
@@ -1720,10 +1756,13 @@ sub print_reset_password{
 [[HEADER]]
 <div id="reset-password">
 <h1>[[reset_password]]</h1>
-<p>[[password_requirements]]</p>
+<ul>
+<li>[[password_requirements]]</li>
+</ul>
+
 <form action="?reset_password" method="post">
 <div>
-<input type="hidden" id="reset_token" name="reset_token" value="[[PASSWORD_RESET_TOKEN]]" />
+<input type="hidden" id="token" name="token" value="[[PASSWORD_RESET_TOKEN]]" />
 <input accesskey="p" type="password" id="pw" name="pw" placeholder="[[password]]" />
 <input type="password" id="pw2" name="pw2" placeholder="[[type_password_again]]" />
 <br />
@@ -1779,11 +1818,7 @@ sub print_view{
 <a class="visitor" accesskey="l" href="[[CGI]]/[[PAGE]]?login">[[login]]</a>
 <a class="user" accesskey="l" href="[[CGI]]/[[PAGE]]?logout">[[logout]]</a>
 </div>
-<div id="timestamp">
-[[TIME]] .
-<a href="https://validator.w3.org/check?uri=referer">[[xhtml]]</a> .
-<a href="https://jigsaw.w3.org/css-validator/check/referer">[[css]]</a>
-</div>
+<div id="last_modified">[[last_modified]]</div>
 [[FOOTER]]
 EOT_UNIQKI
 	)
@@ -1857,11 +1892,7 @@ sub print_wiki_view{
 <a class="visitor" accesskey="l" href="[[CGI]]/[[PAGE]]?login">[[login]]</a>
 <a class="user" accesskey="l" href="[[CGI]]/[[PAGE]]?logout">[[logout]]</a>
 </div>
-<div id="timestamp">
-[[TIME]] .
-<a href="https://validator.w3.org/check?uri=referer">[[xhtml]]</a> .
-<a href="https://jigsaw.w3.org/css-validator/check/referer">[[css]]</a>
-</div>
+<div id="last_modified">[[last_modified]]</div>
 [[FOOTER]]
 EOT_UNIQKI
 	)
@@ -1976,9 +2007,6 @@ textarea {
 	padding:		10px;
 	box-shadow:		5px 5px 5px #aaaaaa;
 }
-#bottom {
-	text-align:		right;
-}
 #login {
 }
 #manage-pages {
@@ -1996,10 +2024,17 @@ textarea {
 #menu {
 	display:		none;
 }
-#timestamp {
+#last_modified {
 	padding-top:		2px;
 	font-size:		smaller;
+}
+#bottom {
+	margin-top:		5px;
+	text-align:		right;
+	font-size:		smaller;
 	font-style:		italic;
+}
+#validators {
 }
 
 /******************************************************************************/
@@ -2367,15 +2402,32 @@ sub save{
 	$rebuild = 1 if(write_file("$PAGE.txt", $TEXT));
 }
 
-sub get_version{
-	local *FH;
+sub get_author{
 	my $PAGE = shift;
+	local *FH;
+	my $author = "Unknown";
+	if(open FH, "$PAGE.txt.v"){
+		my @items = split /:/, <FH>;
+		close FH;
+		exit_message("internal_errors") unless(-f "$PAGE.txt");
+		my $user = $items[1];
+		if($user ne ""){
+			@items = find_user_info($user);
+			$author = $items[4];
+		}
+	}
+	return $author;
+}
+
+sub get_version{
+	my $PAGE = shift;
+	local *FH;
 	my $version = 0;
 	if(open FH, "$PAGE.txt.v"){
 		my @items = split /:/, <FH>;
 		close FH;
-		$version = $items[0];
 		exit_message("internal_errors") unless(-f "$PAGE.txt");
+		$version = $items[0];
 	}elsif(-f "$PAGE.txt"){
 		$version = 1;
 	}
@@ -2435,16 +2487,12 @@ sub preview{
 
 sub make_html{
 	local $PAGE = shift;
-	local *FH;
-	my $txt;
-
+	local $AUTHOR = get_author($PAGE);
+	local $TIME = format_time((stat "$PAGE.txt")[9]);
 	local $TITLE = "";
-	local $TEXT;
+	local $TEXT = parse_file("$PAGE.txt");
 	local $wiki;
-
-	$txt = "$PAGE.txt";
-	$TEXT = parse_file($txt);
-	chomp $TEXT;
+	local *FH;
 
 	if($TITLE eq ""){
 		if($PAGE eq $INDEX_PAGE){
@@ -2453,7 +2501,6 @@ sub make_html{
 			$TITLE = $PAGE;
 		}
 	}
-	local $TIME = format_time((stat "$PAGE.txt")[9]);
 
 	$header_printed = 0;
 	$footer_printed = 0;
@@ -2651,7 +2698,7 @@ sub find_user_info{
 }
 
 sub find_user_info_by_email_address{
-	my $email_address = shift;
+	my $email = shift;
 	local *FH;
 
 	my $method = 0;
@@ -2690,19 +2737,20 @@ sub find_user_info_by_email_address{
 	}
 	return if($method == 0);
 
-	(my $escaped_email_address = $email_address) =~ s/\./\\./g;
+	(my $escaped_email = $email) =~ s/\./\\./g;
 
 	my $userline = "";
 	if($method == 1){
 		open FH, $PASSWORD_FILE;
-		my @lines = grep /:$escaped_email_address:[^:]*$/i, <FH>;
+		my @lines = grep /:$escaped_email(?::[^:]*){2}$/i, <FH>;
 		close FH;
 
 		if($#lines == 0){
 			$userline = $lines[0];
 			$userline =~ s/[\r\n]//;
 		}
-	}elsif($method == 2 && $adminpw =~ m/:$escaped_email_address:[^:]*$/i){
+	}elsif($method == 2 &&
+		$adminpw =~ m/:$escaped_email(?::[^:]*){2}$/i){
 		$userline = $adminpw;
 	}
 	return if($userline eq "");
@@ -2711,7 +2759,7 @@ sub find_user_info_by_email_address{
 }
 
 sub find_user_info_by_password_reset_token{
-	my $reset_token = shift;
+	my $token = shift;
 	local *FH;
 
 	my $method = 0;
@@ -2750,11 +2798,11 @@ sub find_user_info_by_password_reset_token{
 	}
 	return if($method != 1);
 
-	(my $escaped_reset_token = $reset_token) =~ s/\./\\./g;
+	(my $escaped_token = $token) =~ s/\./\\./g;
 
 	my $userline = "";
 	open FH, $PASSWORD_FILE;
-	my @lines = grep /:$escaped_reset_token$/, <FH>;
+	my @lines = grep /:$escaped_token$/, <FH>;
 	close FH;
 
 	if($#lines == 0){
@@ -2809,7 +2857,7 @@ sub authenticate_user{
 		$method = 3;
 	}
 
-	my ($usr, $saved_pw, $group, $email_address, $reset_token) =
+	my ($usr, $saved_pw, $group, $email, $name, $token) =
 		find_user_info($user);
 	if(!defined $usr || $saved_pw eq "blocked"){
 		close_session();
@@ -2834,9 +2882,10 @@ sub authenticate_user{
 		exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_myself");
 	}
 
-	clear_password_reset_token($reset_token);
+	clear_password_reset_token($token);
 
 	$USER = $user;
+	$NAME = $name;
 	$admin = 1 if($group eq "admin");
 }
 
@@ -2964,8 +3013,7 @@ sub handle_session{
 		close_session();
 		return;
 	}
-	my ($usr, $pw, $group, $email_address, $reset_token) =
-		find_user_info($user);
+	my ($usr, $pw, $group, $email, $name, $token) = find_user_info($user);
 	unless(defined $usr){
 		close_session();
 		return;
@@ -2978,11 +3026,12 @@ sub handle_session{
 	$insecure_pw = 0 if($userpw ne substr $tmp_adminpw, 0, length($userpw));
 
 	$USER = $user;
+	$NAME = $name;
 	$admin = 1 if($group eq "admin");
 }
 
 sub clear_password_reset_token{
-	my $reset_token = shift;
+	my $token = shift;
 	return unless(-f $PASSWORD_FILE);
 
 	my $new_pw = "";
@@ -2992,11 +3041,10 @@ sub clear_password_reset_token{
 	local *FH;
 	open FH, $PASSWORD_FILE;
 	while(<FH>){
-		if(":$reset_token\n" eq substr $_,
-			length($_) - length(":$reset_token\n")){
+		if(":$token\n" eq substr $_, length($_) - length(":$token\n")){
 			my @items = split /:/;
 			$cleared = 1;
-			$_ = "$items[0]:$items[1]:$items[2]:$items[3]:\n";
+			$_ = "$items[0]:$items[1]:$items[2]:$items[3]:$items[4]:\n";
 		}
 		$new_pw .= $_;
 	}
@@ -3099,7 +3147,7 @@ sub generate_password_reset_token{
 }
 
 sub send_email{
-	my ($email_address, $subject, $text) = @_;
+	my ($email, $subject, $text) = @_;
 	eval "use MIME::Lite;";
 	exit_message("perl_module_not_installed", "MIME::Lite") if($@);
 
@@ -3128,7 +3176,7 @@ sub send_email{
 
 	my $msg = MIME::Lite->new(
 		From	=> $EMAIL_ADDRESS,
-		To	=> $email_address,
+		To	=> $email,
 		Subject	=> $subject,
 		Data	=> $text
 	);
@@ -3151,12 +3199,12 @@ sub create_goto_form{
 EOT
 	if($mode == 1){
 		print $form;
-	}elsif($text ne ""){
+	}elsif($p){
 		# Forms are not allowed inside a <p> block
-		return "</p>$form<p>";
-	}else{
-		return $form;
+		$text .= "</p>\n";
+		$p = 0;
 	}
+	return $form;
 }
 
 sub create_search_form{
@@ -3184,12 +3232,12 @@ sub create_search_form{
 EOT
 	if($mode == 1){
 		print $form;
-	}elsif($text ne ""){
+	}elsif($p){
 		# Forms are not allowed inside a <p> block
-		return "</p>$form<p>";
-	}else{
-		return $form;
+		$text .= "</p>\n";
+		$p = 0;
 	}
+	return $form;
 }
 
 sub create_comment_form{
@@ -3221,12 +3269,12 @@ sub create_comment_form{
 EOT
 	if($mode == 1){
 		print $form;
-	}elsif($text ne ""){
+	}elsif($p){
 		# Forms are not allowed inside a <p> block
-		return "</p>$form<p>";
-	}else{
-		return $form;
+		$text .= "</p>\n";
+		$p = 0;
 	}
+	return $form;
 }
 
 sub verify_input_data{
@@ -3722,7 +3770,7 @@ sub parse_line{
 	}
 	# Start a new paragraph
 	if(!$p && !$pre && $list eq "" && $table eq ""){
-		$text .= "<p>\n";
+		$text .= "<p>";
 		$p = 1;
 	}
 	# Inline perl code
@@ -3780,8 +3828,10 @@ sub end_parsing{
 	}
 	my $i = 0;
 	$text =~ s/\x05/@{[$syntax_blocks[$i++]]}/g;
-	$text =~ s#<(p|i|b|code|su|mark)>([ \t\n]*)</\1>#$2#g;
-	$text =~ s#(<(?:p|li|dd)>)\n+#$1#g; $text =~ s#\n+(</(?:p|li|dd)>)#$1#g;
+	$text =~ s#<(i|b|code|su|mark)>([ \t\n]*)</\1>#$2#g;
+	$text =~ s#\n*(<(?:p|li|dd)>)\n*#\n$1#g;
+	$text =~ s#\n*(</(?:p|li|dd)>)\n*#$1\n#g;
+	$text =~ s#^\n+|\n+$##g;
 }
 
 ################################################################################
@@ -3892,27 +3942,26 @@ if($QUERY_STRING eq "css"){
 	}
 
 	my %var = get_var();
-	if($var{user} eq "" && $var{email_address} eq ""){
+	if($var{user} eq "" && $var{email} eq ""){
 		exit_message("enter_username_or_email_address");
 	}
-	my ($user, $pw, $group, $email_address, $reset_token);
+	my ($user, $pw, $group, $email, $name, $token);
 	$user = "";
-	if($var{email_address} ne ""){
-		if(!is_email_address($var{email_address})){
+	if($var{email} ne ""){
+		if(!is_email_address($var{email})){
 			exit_message("check_email_address");
 		}
-		($user, $pw, $group, $email_address, $reset_token) =
-			find_user_info_by_email_address($var{email_address});
+		($user, $pw, $group, $email, $name, $token) =
+			find_user_info_by_email_address($var{email});
 		unless(defined $user){
-			exit_message("email_address_not_found",
-				$var{email_address});
+			exit_message("email_address_not_found", $var{email});
 		}
 		if($var{user} ne "" && $var{user} ne $user){
 			exit_message("user_info_mismatch");
 		}
 	}
 	if($user eq ""){
-		($user, $pw, $group, $email_address, $reset_token) =
+		($user, $pw, $group, $email, $name, $token) =
 			find_user_info($var{user});
 		unless(defined $user){
 			exit_message("user_not_found", $var{user});
@@ -3921,12 +3970,12 @@ if($QUERY_STRING eq "css"){
 
 	exit_message("user_blocked", $user) if($pw eq "blocked");
 	exit_message("password_reset_token_still_valid")
-		if(is_password_reset_token_valid($reset_token));
+		if(is_password_reset_token_valid($token));
 
-	$reset_token = generate_password_reset_token($user);
+	$token = generate_password_reset_token($user);
 
 	my $new_pw = "";
-	my $reset_token_added = 0;
+	my $token_added = 0;
 
 	lock_file($PASSWORD_FILE);
 	if(-f $PASSWORD_FILE){
@@ -3934,29 +3983,28 @@ if($QUERY_STRING eq "css"){
 		open FH, $PASSWORD_FILE;
 		while(<FH>){
 			if(m/^$user:/){
-				$reset_token_added = 1;
+				$token_added = 1;
 				my @items = split /:/;
-				$_ = "$user:$items[1]:$items[2]:$items[3]:$reset_token\n";
+				$_ = "$user:$items[1]:$items[2]:$items[3]:$items[4]:$token\n";
 			}
 			$new_pw .= $_;
 		}
 		close FH;
 	}elsif($adminpw =~ m/^$user:/){
-		$reset_token_added = 1;
+		$token_added = 1;
 		my @items = split /:/, $adminpw;
-		$new_pw = "$user:$items[1]:$items[2]:$items[3]:$reset_token\n";
+		$new_pw = "$user:$items[1]:$items[2]:$items[3]:$items[4]:$token\n";
 	}
 
 	# Something's wrong because a username already found does not exist.
-	exit_message("internal_errors") unless($reset_token_added);
+	exit_message("internal_errors") unless($token_added);
 
-	my $link = "$HTTP_BASE$SCRIPT_NAME?reset_password=$reset_token";
+	my $link = "$HTTP_BASE$SCRIPT_NAME?reset_password=$token";
 	my $subject = get_msg("reset_password_email_subject", $DOC_BASE);
 	my $text = get_msg("reset_password_email_text", $var{user}, $DOC_BASE,
 		$link, $RESET_PASSWORD_TIMEOUT);
-	if(!send_email($email_address, $subject, $text)){
-		exit_message("email_notification_failed", $user,
-			$email_address);
+	if(!send_email($email, $subject, $text)){
+		exit_message("email_notification_failed", $user, $email);
 	}
 
 	write_file($PASSWORD_FILE, $new_pw);
@@ -3969,9 +4017,9 @@ if($QUERY_STRING eq "css"){
 # u.cgi/PAGE?reset_password	Reset password
 	my %var = get_var();
 	exit_message("invalid_password_reset_token")
-		unless(is_password_reset_token_valid($var{reset_token}));
-	my ($user, $saved_pw, $group, $email_address) =
-		find_user_info_by_password_reset_token($var{reset_token});
+		unless(is_password_reset_token_valid($var{token}));
+	my ($user, $saved_pw, $group, $email, $name) =
+		find_user_info_by_password_reset_token($var{token});
 	exit_message("password_reset_token_not_found") unless(defined $user);
 
 	if($var{pw} ne $var{pw2}){
@@ -3993,7 +4041,7 @@ if($QUERY_STRING eq "css"){
 				$reset = 1;
 				my @items = split /:/;
 				my $pw = hash_password($user, $var{pw});
-				my $userline = "$user:$pw:$items[2]:$items[3]:\n";
+				my $userline = "$user:$pw:$items[2]:$items[3]:$items[4]:\n";
 				$_ = $userline;
 			}
 			$new_pw .= $_;
@@ -4011,16 +4059,16 @@ if($QUERY_STRING eq "css"){
 #-------------------------------------------------------------------------------
 # u.cgi?reset_password=token	Reset password
 # u.cgi/PAGE?reset_password=token Reset password
-	my $reset_token = $1;
+	my $token = $1;
 	my $expires = $2;
 
 	my $time = time;
 	if($time >= $expires){
-		clear_password_reset_token($reset_token);
+		clear_password_reset_token($token);
 		exit_message("password_reset_token_expired");
 	}
 
-	local $PASSWORD_RESET_TOKEN = $reset_token;
+	local $PASSWORD_RESET_TOKEN = $token;
 	print_reset_password();
 	exit;
 }elsif($QUERY_STRING eq "manage_myself"){
@@ -4040,7 +4088,7 @@ if($QUERY_STRING eq "css"){
 	if($var{pw} ne "" && !is_password($var{pw})){
 		exit_message("check_password");
 	}
-	if($var{pw} eq "" && $var{email_address} eq ""){
+	if($var{pw} eq "" && $var{email} eq "" && $var{name} eq ""){
 		exit_message("enter_user_info_to_update");
 	}
 
@@ -4059,11 +4107,13 @@ if($QUERY_STRING eq "css"){
 					hash_password($USER, $var{pw}) :
 					$items[1];
 				my $group = $items[2];
-				my $email_address = $var{email_address} ne "" ?
-					$var{email_address} : $items[3];
-				my $reset_token = $items[4];
-				# new line from $items[4]
-				my $userline = "$USER:$pw:$group:$email_address:$reset_token";
+				my $email = $var{email} ne "" ?
+					$var{email} : $items[3];
+				my $name = $var{name} ne "" ?
+					$var{name} : $items[4];
+				my $token = $items[5];
+				# new line from $items[5]
+				my $userline = "$USER:$pw:$group:$email:$name:$token";
 				if($userline eq $_){
 					close FH;
 					exit_message("enter_user_info_to_update", $USER);
@@ -4086,11 +4136,11 @@ if($QUERY_STRING eq "css"){
 		my $pw = $var{pw} ne "" ? hash_password($USER, $var{pw}) :
 			$items[1];
 		my $group = $items[2];
-		my $email_address = $var{email_address} ne "" ?
-			$var{email_address} : $items[3];
-		my $reset_token = $items[4];
-		# new line from $items[4]
-		my $userline = "$USER:$pw:$group:$email_address:$reset_token";
+		my $email = $var{email} ne "" ? $var{email} : $items[3];
+		my $name = $var{name} ne "" ? $var{name} : $items[4];
+		my $token = $items[5];
+		# new line from $items[5]
+		my $userline = "$USER:$pw:$group:$email:$name:$token";
 		if($userline eq $adminpw){
 			exit_message("enter_user_info_to_update", $USER);
 		}
@@ -4116,7 +4166,7 @@ if($QUERY_STRING eq "css"){
 		local *FH;
 		open FH, $PASSWORD_FILE;
 		while(<FH>){
-			$nadmins++ if($admin && m/^[^:]*:[^:]*:admin:/);
+			$nadmins++ if($admin && m/^(?:[^:]*:){2}admin:/);
 			if(m/^$USER:/){
 				$deleted = 1;
 				next;
@@ -4967,11 +5017,17 @@ EOT
 	if($var{user} eq $USER){
 		exit_message("cannot_add_yourself");
 	}
-	if($var{email_address} eq ""){
+	if($var{email} eq ""){
 		exit_message("enter_email_address");
 	}
-	if(!is_email_address($var{email_address})){
+	if(!is_email_address($var{email})){
 		exit_message("check_email_address");
+	}
+	if($var{name} eq ""){
+		exit_message("enter_full_name");
+	}
+	if(!is_full_name($var{name})){
+		exit_message("check_full_name");
 	}
 	if($var{pw} ne $var{pw2}){
 		exit_message("confirm_password");
@@ -4980,7 +5036,7 @@ EOT
 		exit_message("check_password");
 	}
 
-	(my $escaped_email_address = $var{email_address}) =~ s/\./\\./g;
+	(my $escaped_email = $var{email}) =~ s/\./\\./g;
 	my $new_pw = "";
 
 	lock_file($PASSWORD_FILE);
@@ -4992,17 +5048,16 @@ EOT
 				close FH;
 				exit_message("user_already_exists", $var{user});
 			}
-			if(m/:$escaped_email_address:[^:]*$/i){
+			if(m/:$escaped_email(?::[^:]*){2}$/i){
 				close FH;
 				exit_message("email_address_already_registered",
-					$var{email_address});
+					$var{email});
 			}
 			$new_pw .= $_;
 		}
 		close FH;
-	}elsif($adminpw =~ m/:$escaped_email_address:[^:]*$/i){
-		exit_message("email_address_already_registered",
-			$var{email_address});
+	}elsif($adminpw =~ m/:$escaped_email(?::[^:]*){2}$/i){
+		exit_message("email_address_already_registered", $var{email});
 	}else{
 		$new_pw = "$adminpw\n";
 	}
@@ -5010,24 +5065,24 @@ EOT
 	# Add a new user if user was not found
 	my $group = $var{admin} eq "yes" ? "admin" : "user";
 	my $pw;
-	my $reset_token;
+	my $token;
 	if($var{pw} eq ""){
 		$pw = "reset";
-		$reset_token = generate_password_set_token($var{user});
+		$token = generate_password_set_token($var{user});
 
-		my $link = "$HTTP_BASE$SCRIPT_NAME?reset_password=$reset_token";
+		my $link = "$HTTP_BASE$SCRIPT_NAME?reset_password=$token";
 		my $subject = get_msg("new_user_email_subject", $DOC_BASE);
 		my $text = get_msg("new_user_email_text", $var{user}, $DOC_BASE,
 			$link, $SET_PASSWORD_TIMEOUT);
-		if(!send_email($var{email_address}, $subject, $text)){
+		if(!send_email($var{email}, $subject, $text)){
 			exit_message("email_notification_failed", $var{user},
-				$var{email_address});
+				$var{email});
 		}
 	}else{
 		$pw = hash_password($var{user}, $var{pw});
-		$reset_token = "";
+		$token = "";
 	}
-	$new_pw .= "$var{user}:$pw:$group:$var{email_address}:$reset_token\n";
+	$new_pw .= "$var{user}:$pw:$group:$var{email}:$var{name}:$token\n";
 
 	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
@@ -5044,13 +5099,16 @@ EOT
 	if(!is_username($var{user})){
 		exit_message("check_username");
 	}
+	if($var{name} ne "" && !is_full_name($var{name})){
+		exit_message("check_full_name");
+	}
 	if($var{pw} ne $var{pw2}){
 		exit_message("confirm_password");
 	}
 	if($var{pw} ne "" && !is_password($var{pw})){
 		exit_message("check_password");
 	}
-	if($var{pw} eq "" && $var{email_address} eq "" &&
+	if($var{pw} eq "" && $var{email} eq "" &&
 		$var{admin} ne "yes" && $var{admin} ne "no"){
 		exit_message("enter_user_info_to_update");
 	}
@@ -5072,11 +5130,13 @@ EOT
 				my $group = $var{admin} eq "yes" ? "admin" :
 					($var{admin} eq "no" ? "user" :
 						$items[2]);
-				my $email_address = $var{email_address} ne "" ?
-					$var{email_address} : $items[3];
-				my $reset_token = $items[4];
-				# new line from $items[4]
-				my $userline = "$var{user}:$pw:$group:$email_address:$reset_token";
+				my $email = $var{email} ne "" ?
+					$var{email} : $items[3];
+				my $name = $var{name} ne "" ?
+					$var{name} : $items[4];
+				my $token = $items[5];
+				# new line from $items[5]
+				my $userline = "$var{user}:$pw:$group:$email:$name:$token";
 				if($userline eq $_){
 					close FH;
 					exit_message("enter_user_info_to_update", $var{user});
@@ -5100,11 +5160,11 @@ EOT
 			$items[1];
 		my $group = $var{admin} eq "yes" ? "admin" :
 			($var{admin} eq "no" ? "user" : $items[2]);
-		my $email_address = $var{email_address} ne "" ?
-			$var{email_address} : $items[3];
-		my $reset_token = $items[4];
-		# new line from $items[4]
-		my $userline = "$var{user}:$pw:$group:$email_address:$reset_token";
+		my $email = $var{email} ne "" ? $var{email} : $items[3];
+		my $name = $var{name} ne "" ? $var{name} : $items[4];
+		my $token = $items[5];
+		# new line from $items[5]
+		my $userline = "$var{user}:$pw:$group:$email:$name:$token";
 		if($userline eq $adminpw){
 			exit_message("enter_user_info_to_update", $var{user});
 		}
@@ -5148,7 +5208,7 @@ EOT
 				}
 				$blocked = 1;
 				clear_sessions($var{user});
-				$_ = "$var{user}:blocked:$items[2]:$items[3]:\n";
+				$_ = "$var{user}:blocked:$items[2]:$items[3]:$items[4]:\n";
 			}
 			$new_pw .= $_;
 		}
@@ -5184,7 +5244,7 @@ EOT
 
 	my $new_pw = "";
 	my $unblocked = 0;
-	my $reset_token = "";
+	my $token = "";
 
 	lock_file($PASSWORD_FILE);
 	if(-f $PASSWORD_FILE){
@@ -5202,13 +5262,13 @@ EOT
 				my $pw;
 				if($var{pw} eq ""){
 					$pw = "reset";
-					$reset_token = generate_password_set_token($var{user});
+					$token = generate_password_set_token($var{user});
 				}else{
 					$pw = hash_password($var{user},
 						$var{pw});
-					$reset_token = "";
+					$token = "";
 				}
-				$_ = "$var{user}:$pw:$items[2]:$items[3]:$reset_token\n";
+				$_ = "$var{user}:$pw:$items[2]:$items[3]:$items[4]:$token\n";
 			}
 			$new_pw .= $_;
 		}
@@ -5216,15 +5276,15 @@ EOT
 	}
 	exit_message("user_not_found", $var{user}) unless($unblocked);
 
-	if($reset_token ne ""){
-		my $link = "$HTTP_BASE$SCRIPT_NAME?reset_password=$reset_token";
+	if($token ne ""){
+		my $link = "$HTTP_BASE$SCRIPT_NAME?reset_password=$token";
 		my $subject = get_msg("unblocked_user_email_subject",
 			$DOC_BASE);
 		my $text = get_msg("unblocked_user_email_text", $var{user},
 			$DOC_BASE, $link, $SET_PASSWORD_TIMEOUT);
-		if(!send_email($var{email_address}, $subject, $text)){
+		if(!send_email($var{email}, $subject, $text)){
 			exit_message("email_notification_failed", $var{user},
-				$var{email_address});
+				$var{email});
 		}
 	}
 
