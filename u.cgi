@@ -3446,6 +3446,7 @@ sub parse_line{
 	if(m/^(---+)(?:\[(.*)\])?$/ && (!$pre || ($pre == length($1) &&
 				($2 eq "" || $pre_code eq $2)))){
 		if($pre){
+			chomp $text;
 			if($pre_code eq ""){
 				$text .= "</pre>\n";
 			}else{
@@ -3471,9 +3472,9 @@ sub parse_line{
 				$p = 0;
 			}
 			if($2 eq ""){
-				$text .= "<pre>\n";
+				$text .= "<pre>";
 			}else{
-				$text .= qq(<pre><code class="language-$2">\n);
+				$text .= qq(<pre><code class="language-$2">);
 				$pre_code = $2;
 			}
 			$pre = length($1);
@@ -3749,7 +3750,13 @@ sub end_parsing{
 		$figure = "";
 	}
 	if($pre){
-		$text .= "</pre>\n";
+		chomp $text;
+		if($pre_code eq ""){
+			$text .= "</pre>\n";
+		}else{
+			$text .= "</code></pre>\n";
+			$pre_code = "";
+		}
 		$pre = 0;
 	}
 	if($p){
