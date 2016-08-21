@@ -1915,13 +1915,6 @@ pre {
 	border:			1px solid #dddddd;
 	overflow:		auto;
 }
-a {
-	color:			green;
-	text-decoration:	none;
-}
-a[href*="://"] {
-	color:			blue;
-}
 table {
 	border-collapse:	collapse;
 }
@@ -1939,11 +1932,22 @@ table td {
 	padding:		3px;
 }
 figure {
+	display:		table;
+	margin:			auto;
 }
 figure img {
 }
 figure figcaption {
 	font-size:		smaller;
+	display:		table-caption;
+	caption-side:		bottom;
+}
+a {
+	color:			green;
+	text-decoration:	none;
+}
+a[href*="://"] {
+	color:			blue;
 }
 form {
 	margin:			0px;
