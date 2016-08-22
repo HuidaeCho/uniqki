@@ -3402,6 +3402,12 @@ sub verify_input{
 	my ($query, $var) = @_;
 	if($query eq "comment"){
 		return 0 if($$var{website} ne "" || $$var{id} >= time - 15);
+		(my $text = $$var{text}) =~ s/[`~!@#\$%^&*_=+\\|;:'",.\/?()\[\]{}<>0-9-]//g;
+		$text =~ s/[ \t\n]+/ /g;
+		$text =~ s/^ | $//g;
+		return 0 if($text eq "");
+
+		$$var{text} =~ s/^[ \t\n]+|[ \t\n]+$//g;
 	}
 	return 1;
 }
