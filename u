@@ -2590,7 +2590,7 @@ sub get_var{
 	}
 	my $boundary = <STDIN>;
 	if("-" eq substr $boundary, 0, 1){
-		read STDIN, my $content, $CONTENT_LENGTH-length($boundary);
+		read STDIN, my $content, $CONTENT_LENGTH - length($boundary);
 		$content = $boundary.$content;
 		(my $b = $boundary) =~ s/\r\n$//;
 		$content =~ s/^$boundary//;
