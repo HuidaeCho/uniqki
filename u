@@ -1352,10 +1352,10 @@ goto_form_goto => q(Go to),
 search_form => q(Search form),
 search_form_search => q(Search),
 search_form_simple => q(Simple),
-search_form_link => q(Link),
 search_form_ignore_case => q(Ignore case),
-search_form_print_title => q(Print title),
-search_form_no_match => q(No match),
+search_form_links => q(Links),
+search_form_print_titles => q(Print titles),
+search_form_dont_print_matches => q(Don't print matches),
 comment_form => q(Comment form),
 comment_form_leave_this_field_blank => q(Please leave this field blank: ),
 comment_form_write => q(Write),
@@ -1559,10 +1559,9 @@ sub print_login{
 <div>
 <input accesskey="u" type="text" id="user" name="user" placeholder="[[username]]" />
 <input accesskey="p" type="password" id="pw" name="pw" placeholder="[[password]]" />
+<input accesskey="l" type="submit" value="[[login]]" />
 <br />
 <input type="checkbox" id="logout_others" name="logout_others" value="1" /> [[logout_from_other_computers]]
-<br />
-<input accesskey="l" type="submit" value="[[login]]" />
 </div>
 </form>
 </div>
@@ -3253,20 +3252,22 @@ sub create_search_form{
 	my $mode = shift;
 	my $search = get_msg("search_form_search");
 	my $simple = get_msg("search_form_simple");
-	my $link = get_msg("search_form_link");
-	my $ignore_case = get_msg("search_form_ignore_case");
-	my $print_title = get_msg("search_form_print_title");
-	my $no_match = get_msg("search_form_no_match");
+	my $icase = get_msg("search_form_ignore_case");
+	my $link = get_msg("search_form_links");
+	my $title = get_msg("search_form_print_titles");
+	my $nomatch = get_msg("search_form_dont_print_matches");
 	my $form = <<EOT;
 <form class="search-input" action="$CGI" method="get">
 <div>
 <input accesskey="s" id="search" name="search" />
 <input type="submit" value="$search" />
+<br />
 <input type="checkbox" id="simple" name="simple" value="1" checked="checked" /> $simple
+<input type="checkbox" id="icase" name="icase" value="1" checked="checked" /> $icase
 <input type="checkbox" id="link" name="link" value="1" /> $link
-<input type="checkbox" id="icase" name="icase" value="1" checked="checked" /> $ignore_case
-<input type="checkbox" id="title" name="title" value="1" /> $print_title
-<input type="checkbox" id="nomatch" name="nomatch" value="1" /> $no_match
+<br />
+<input type="checkbox" id="title" name="title" value="1" /> $title
+<input type="checkbox" id="nomatch" name="nomatch" value="1" /> $nomatch
 </div>
 </form>
 EOT
