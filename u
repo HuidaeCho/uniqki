@@ -1559,7 +1559,9 @@ sub print_login{
 <div>
 <input accesskey="u" type="text" id="user" name="user" placeholder="[[username]]" />
 <input accesskey="p" type="password" id="pw" name="pw" placeholder="[[password]]" />
+<br />
 <input type="checkbox" id="logout_others" name="logout_others" value="1" /> [[logout_from_other_computers]]
+<br />
 <input accesskey="l" type="submit" value="[[login]]" />
 </div>
 </form>
