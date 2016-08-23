@@ -2891,7 +2891,7 @@ sub authenticate_user{
 	my $userpw = "$user:$saved_pw:";
 	$insecure_pw = 0 if($userpw ne substr $tmp_adminpw, 0, length($userpw));
 
-	clear_sessions($user) if($logout_others eq "1");
+	clear_user_sessions($user) if($logout_others eq "1");
 	start_session($user);
 
 	if($insecure_pw){
@@ -2981,7 +2981,7 @@ sub close_session{
 	unlock_file($sessions_file);
 }
 
-sub clear_sessions{
+sub clear_user_sessions{
 	my $user = shift;
 
 	unless(defined $user){
@@ -3001,6 +3001,29 @@ sub clear_sessions{
 	open FH, $sessions_file;
 	while(<FH>){
 		if(m/^[^:]*:$user:/){
+			$deleted = 1;
+			next;
+		}
+		$new_sessions .= $_;
+	}
+	close FH;
+
+	write_file($sessions_file, $new_sessions) if($deleted);
+	unlock_file($sessions_file);
+}
+
+sub clear_expired_sessions{
+	return if(!-f $sessions_file);
+
+	my $new_sessions = "";
+	my $deleted = 0;
+	my $time = time;
+
+	lock_file($sessions_file);
+	local *FH;
+	open FH, $sessions_file;
+	while(<FH>){
+		if(m/:([0-9]+)$/ && $time > $1){
 			$deleted = 1;
 			next;
 		}
@@ -3883,10 +3906,11 @@ if($QUERY_STRING eq "logout"){
 }elsif($QUERY_STRING eq "logout_all"){
 #-------------------------------------------------------------------------------
 # u/PAGE?logout_all	Logout from all computers
-	clear_sessions();
+	clear_user_sessions();
 	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }
 
+clear_expired_sessions();
 handle_session();
 
 if(!is_logged_in()){
@@ -4204,7 +4228,7 @@ if($QUERY_STRING eq "css"){
 	# You cannot delete yourself when you are the only admin.
 	exit_message("cannot_delete_only_admin") if($nadmins == 1);
 
-	clear_sessions($USER);
+	clear_user_sessions($USER);
 
 	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
@@ -5230,7 +5254,7 @@ EOT
 						$var{user});
 				}
 				$blocked = 1;
-				clear_sessions($var{user});
+				clear_user_sessions($var{user});
 				$_ = "$var{user}:blocked:$items[2]:$items[3]:$items[4]:\n";
 			}
 			$new_pw .= $_;
@@ -5340,7 +5364,7 @@ EOT
 		while(<FH>){
 			if(m/^$var{user}:/){
 				$deleted = 1;
-				clear_sessions($var{user});
+				clear_user_sessions($var{user});
 				next;
 			}
 			$new_pw .= $_;
