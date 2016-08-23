@@ -1270,7 +1270,7 @@ css => q(CSS),
 
 preview => q(Preview),
 save => q(Save),
-upload => q(Upload),
+file_upload => q(File upload: ),
 cancel => q(Cancel),
 preview_warning => q(This document is preview. Please make sure to save your changes.),
 
@@ -1840,9 +1840,10 @@ sub print_edit{
 <br />
 <input accesskey="p" type="submit" id="preview" name="preview" value="[[preview]]" />
 <input accesskey="s" type="submit" id="save" name="save" value="[[save]]" /> .
-[[upload]] <input accesskey="u" type="file" id="file" name="file" /> .
 <a accesskey="c" href="[[PAGE]].html">[[cancel]]</a> .
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
+<br />
+[[file_upload]] <input accesskey="f" type="file" id="file" name="file" />
 </div>
 </form>
 </div>
@@ -1914,9 +1915,10 @@ sub print_wiki_edit{
 <textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea><br />
 <input accesskey="p" type="submit" id="preview" name="preview" value="[[preview]]" />
 <input accesskey="s" type="submit" id="save" name="save" value="[[save]]" /> .
-[[upload]] <input accesskey="u" type="file" id="file" name="file" /> .
 <a accesskey="c" href="[[PAGE]].html">[[cancel]]</a> .
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
+<br />
+[[file_upload]] <input accesskey="f" type="file" id="file" name="file" />
 </div>
 </form>
 </div>
