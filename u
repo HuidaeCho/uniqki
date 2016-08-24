@@ -243,7 +243,7 @@ sub debug{
 sub format_time{
 	my $time = shift;
 	my $ftime;
-	if($use_posix){
+	if($use_posix && $TIME_FORMAT ne ""){
 		$ftime = strftime($TIME_FORMAT, localtime $time);
 	}else{
 		$ftime = scalar localtime $time;
@@ -1038,7 +1038,8 @@ $LOCALE = '';
 # Set time zone if different from the system time
 $TIME_ZONE = '';
 
-# Time format interpreted by the POSIX::strftime function
+# Time format interpreted by the POSIX::strftime function.  Set this variable
+# to an empty string to use Perl's scalar localtime.
 $TIME_FORMAT = '%a %b %e %H:%M:%S %Y';
 
 # Share cookies: [subdomains:][EMPTY|subpaths|all_paths]
