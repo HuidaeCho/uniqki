@@ -193,7 +193,7 @@ if($use_posix){
 	setlocale(LC_ALL(), $LOCALE) if($LOCALE ne "");
 	tzset() if($TIME_ZONE ne "");
 	# Windows does not implement %e. %#d is the same as %e on Windows.
-	$TIME_FORMAT =~ s/%e/%#d/g if("" eq strftime "%e", localtime);
+	$TIME_FORMAT =~ s/%e/%#d/g if("" eq strftime("%e", localtime));
 }
 
 my $smtp_server = "";
