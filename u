@@ -2591,14 +2591,12 @@ sub get_var{
 		$var{$v} =~ y/+/ /; $var{$v} =~ s/%0D//g;
 		$var{$v} =~ s/%(..)/pack "c", hex($1)/eg;
 	}
-	my $boundary = <STDIN>;
-	if("-" eq substr $boundary, 0, 1){
-		read STDIN, my $content, $CONTENT_LENGTH - length($boundary);
-		$content = $boundary.$content;
-		(my $b = $boundary) =~ s/\r\n$//;
-		$content =~ s/^$boundary//;
-		$content =~ s/\r\n$b--\r\n$//;
-		foreach(split /\r\n$boundary/, $content){
+	read STDIN, my $content, $CONTENT_LENGTH;
+	if(index($content, "\r\n") != -1){
+		(my $boundary = $content) =~ s/\r\n.*$//s;
+		$content =~ s/^$boundary\r\n//;
+		$content =~ s/\r\n$boundary--\r\n$//;
+		foreach(split /\r\n$boundary\r\n/, $content){
 			my ($header, $body) = m/(.*?)\r\n\r\n(.*)$/s;
 			$header =~ m/ name="(.*?)"/;
 			my $name = $1;
@@ -2611,7 +2609,7 @@ sub get_var{
 			}
 		}
 	}else{
-		foreach(split /&/, $boundary){
+		foreach(split /&/, $content){
 			m/^([^=]*)=(.*)$/;
 			$v = $1; $var{$v} = $2;
 			$var{$v} =~ y/+/ /; $var{$v} =~ s/%0D//g;
