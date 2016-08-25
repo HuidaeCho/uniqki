@@ -58,7 +58,7 @@ my $adminpw = $tmp_adminpw;
 use vars qw(
 	$CFG
 	$HTTPS $HTTP_COOKIE $HTTP_HOST $SERVER_NAME $SCRIPT_NAME $PATH_INFO
-	$QUERY_STRING $REQUEST_METHOD $CONTENT_LENGTH
+	$QUERY_STRING $REQUEST_METHOD $CONTENT_TYPE $CONTENT_LENGTH
 );
 
 # Useful variables
@@ -270,6 +270,8 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 					if($field eq "HOST"){
 						$ENV{HTTP_HOST} = $2;
 						($ENV{SERVER_NAME} = $2) =~ s/:[0-9]+$//;
+					}elsif($field eq "CONTENT-TYPE"){
+						$ENV{CONTENT_TYPE} = $2;
 					}elsif($field eq "CONTENT-LENGTH"){
 						$ENV{CONTENT_LENGTH} = $2;
 					}elsif($field eq "COOKIE"){
@@ -415,6 +417,7 @@ $SCRIPT_NAME = $ENV{SCRIPT_NAME};
 $PATH_INFO = $ENV{PATH_INFO};
 $QUERY_STRING = $ENV{QUERY_STRING};
 $REQUEST_METHOD = $ENV{REQUEST_METHOD};
+$CONTENT_TYPE = $ENV{CONTENT_TYPE};
 $CONTENT_LENGTH = $ENV{CONTENT_LENGTH};
 
 ################################################################################
@@ -2865,12 +2868,19 @@ sub get_var{
 		$var{$v} = decode_url($var{$v});
 	}
 	read STDIN, my $content, $CONTENT_LENGTH;
-	if(index($content, "\r\n") != -1){
-		(my $boundary = $content) =~ s/\r\n.*$//s;
-		$content =~ s/^$boundary\r\n//;
-		$content =~ s/\r\n$boundary--\r\n$//;
-		foreach(split /\r\n$boundary\r\n/, $content){
-			my ($header, $body) = m/(.*?)\r\n\r\n(.*)$/s;
+	if($CONTENT_TYPE eq "application/x-www-form-urlencoded"){
+		foreach(split /&/, $content){
+			m/^([^=]*)=(.*)$/;
+			$v = $1; $var{$v} = $2;
+			$var{$v} =~ y/+/ /; $var{$v} =~ s/%0D//g;
+			$var{$v} = decode_url($var{$v});
+		}
+	}elsif($CONTENT_TYPE =~ m#^multipart/form-data; boundary=(.*)$#){
+		my $boundary = $1;
+		$content = substr $content, length($boundary) + 4,
+			$CONTENT_LENGTH - 2 * (length($boundary) + 4) - 4;
+		foreach(split /\r\n--$boundary\r\n/, $content){
+			my ($header, $body) = m/^(.*?)\r\n\r\n(.*)$/s;
 			$header =~ m/ name="(.*?)"/;
 			my $name = $1;
 			if($header =~ m/ filename="(.*?)"/){
@@ -2880,13 +2890,6 @@ sub get_var{
 				$body =~ s/\r//g;
 				$var{$name} = $body;
 			}
-		}
-	}else{
-		foreach(split /&/, $content){
-			m/^([^=]*)=(.*)$/;
-			$v = $1; $var{$v} = $2;
-			$var{$v} =~ y/+/ /; $var{$v} =~ s/%0D//g;
-			$var{$v} = decode_url($var{$v});
 		}
 	}
 	return %var;
