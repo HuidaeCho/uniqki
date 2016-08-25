@@ -507,8 +507,7 @@ my $sessions_file = $SESSIONS_FILE eq "" ? ".sessions" : $SESSIONS_FILE;
 my $debug_started = 0;
 my $html_started = 0;
 my %locked_files = ();
-my $cookie_domain_path = get_cookie_domain_path();
-my $cookie_secure = $HTTPS eq "on" ? "; secure" : "";
+my $cookie_attributes = get_cookie_attributes();
 
 ################################################################################
 # Non-user-replaceable subroutines
@@ -1324,13 +1323,13 @@ $TIME_FORMAT = '%a %b %e %H:%M:%S %Y';
 
 # Share cookies: [subdomains:][EMPTY|subpaths|all_paths]
 # * subdomains: http://example.com/u shares cookies with
-# 		http://www.example.com.
+#		http://www.example.com.
 # * EMPTY: http://example.com/path1/u does not share cookies with
 #	   http://example.com/u, http://example.com/path2/u, nor
 #	   http://example.com/path1/subpath1/u.
 # * subpaths: http://example.com/path1/u shares cookies with
-# 	      http://example.com/path1/subpath1/u, but not with
-# 	      http://example.com/u nor http://example.com/path2/u.
+#	      http://example.com/path1/subpath1/u, but not with
+#	      http://example.com/u nor http://example.com/path2/u.
 # * all_paths: http://example.com/path1/u shares cookies with
 #	       http://example.com/u, http://example.com/path2/u, and
 #	       http://example.com/path1/subpath1/u.
@@ -1385,8 +1384,8 @@ $TEMPLATE_DIRECTORY = 'u.tpl';
 # * hyphens (default): Replace a series of whitespaces with a hyphen
 # * underscores: Replace a series of whitespaces with an underscore
 # * no_spaces: Remove whitespaces.  The lower_camel_case and upper_camel_case
-# 	       styles imply this option.  For example, lower_camel_case is the
-# 	       same as lower_camel_case:no_dots:no_spaces.
+#	       styles imply this option.  For example, lower_camel_case is the
+#	       same as lower_camel_case:no_dots:no_spaces.
 #
 # The following special characters will be replaced with spaces and separate
 # words before a case conversion: `~!@#$%^&*=+\|;:'",/?()[]{}<>
@@ -1421,7 +1420,7 @@ $SMTP = '';
 
 # Read access control
 # * open: Opens both non-wiki and wiki pages to the public and anyone will be
-# 	  able to read those pages with or without a login.
+#	  able to read those pages with or without a login.
 # * closed: Requires a login to perform any read actions including search, diff,
 #	    etc.  In addition, the following directives in .htaccess will
 #	    prevent direct access to *.html files, effectively making the
@@ -2882,8 +2881,7 @@ sub get_var{
 	return %var;
 }
 
-sub get_cookie_domain_path{
-	(my $script_dir = $SCRIPT_NAME) =~ s#[^/]*$##;
+sub get_cookie_attributes{
 	my $subdomains = 0;
 	my $paths = "";
 	foreach my $item (split /:/, $SHARE_COOKIES){
@@ -2893,10 +2891,17 @@ sub get_cookie_domain_path{
 			$paths = $item;
 		}
 	}
-	return ($subdomains ? "domain=$HTTP_HOST; " : "").
-		($paths eq "all_paths" ? "path=/" :
-			($paths eq "subpaths" && $doc_root eq "" ?
-				"path=$script_dir" : "path=$SCRIPT_NAME"));
+	(my $script_dir = $SCRIPT_NAME) =~ s#[^/]*$##;
+
+	my $cookie_attributes = "";
+	$cookie_attributes .= "domain=$HTTP_HOST; " if($subdomains);
+	$cookie_attributes .= $paths eq "all_paths" ? "path=/; " :
+		($paths eq "subpaths" && $doc_root eq "" ?
+			"path=$script_dir; " : "path=$SCRIPT_NAME; ");
+	$cookie_attributes .= "secure; " if($HTTPS eq "on");
+	$cookie_attributes .= "httponly";
+
+	return $cookie_attributes;
 }
 
 sub set_cookie{
@@ -2908,13 +2913,13 @@ sub set_cookie{
 	my $expires = sprintf "%s, %02d-%s-%d %02d:%02d:%02d GMT",
 		$w[$t[6]], $t[3], $m[$t[4]], $t[5]+1900, $t[2], $t[1], $t[0];
 
-	print "Set-Cookie: uniqki=$session_id; $cookie_domain_path; ".
-		"expires=$expires; httponly$cookie_secure\n";
+	print "Set-Cookie: uniqki=$session_id; expires=$expires; ".
+		"$cookie_attributes\n";
 }
 
 sub clear_cookie{
-	print "Set-Cookie: uniqki=; $cookie_domain_path; ".
-		"expires=Tue, 01-Jan-1980 00:00:00 GMT; httponly$cookie_secure\n";
+	print "Set-Cookie: uniqki=; expires=Tue, 01-Jan-1980 00:00:00 GMT; ".
+		"$cookie_attributes\n";
 }
 
 sub find_user_info{
@@ -3848,7 +3853,7 @@ sub parse_line{
 	if(m/^#regex (.)(.+)(?<!\\)\1(.*)(?<!\\)\1$/){
 		# Don't allow code embedding in a wiki page
 		return if($wiki && (index($2, '(?{') != -1 ||
-			  	    index($2, '(??{') != -1 ||
+				    index($2, '(??{') != -1 ||
 				    index($3, '@{[') != -1));
 
 		my $i;
