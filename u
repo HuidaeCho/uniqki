@@ -200,7 +200,8 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 		eval "use IO::Socket::INET;";
 		die "The IO::Socket::INET module is required to self-serve Uniqki" if($@);
 
-		my $port = $opt{port} eq "" ? 80 : $opt{port};
+		my $port = $opt{port} eq "" ? ($opt{cert} eq "" ? 80 : 443) :
+			$opt{port};
 		my $server = IO::Socket::INET->new(
 			Proto=>"tcp",
 			LocalPort=>$port,
@@ -376,7 +377,7 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 	print <<EOT;
 Usage: $u OPTIONS
   start			Start the server
-    port=<port>		Port number (default: 80)
+    port=<port>		Port number (default: 80 for HTTP and 443 for HTTPS)
     cert=<cert.pem>	SSL certificate file
     key=<key.pem>	SSL key file
 EOT
