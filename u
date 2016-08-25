@@ -320,6 +320,7 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 						print "Content-Type: $mimetype\n\n";
 						local *FH;
 						open FH, $file;
+						binmode FH;
 						print <FH>;
 						close FH;
 					}else{
@@ -3623,11 +3624,12 @@ sub read_file{
 sub write_file{
 	# return 1 if successful
 	# return 0 otherwise
-	my ($file, $text) = @_;
+	my ($file, $text, $binary) = @_;
 	local *FH;
 
 	# ">" is required for the in-memory file
 	if(open FH, ">", $file){
+		binmode FH if($binary);
 		print FH $text;
 		close FH;
 		return 1;
@@ -5179,7 +5181,7 @@ EOT
 		close FH;
 
 		mkdir $PAGE, 0755 if(!-d $PAGE);
-		write_file("$PAGE/$t.$var{file}", $var{"file="});
+		write_file("$PAGE/$t.$var{file}", $var{"file="}, 1);
 		chmod 0755, "$PAGE/$t.$var{file}" if($hosting eq "awardspace");
 		die_message("wiki_file_uploaded", $var{file}, "$t.$var{file}");
 	}
@@ -5200,7 +5202,7 @@ EOT
 	}
 	if($var{file} ne "" && $var{file} =~ m/$WIKI_ALLOWED_FILES/oi){
 		mkdir $PAGE, 0755 if(!-d $PAGE);
-		write_file("$PAGE/$t.$var{file}", $var{"file="});
+		write_file("$PAGE/$t.$var{file}", $var{"file="}, 1);
 		chmod 0755, "$PAGE/$t.$var{file}" if($hosting eq "awardspace");
 		if($var{preview} eq ""){
 			(my $f = $var{file}) =~ s/ /%20/g;
@@ -5715,7 +5717,7 @@ EOT
 
 	if($var{file} ne ""){
 		mkdir $PAGE, 0755 if(!-d $PAGE);
-		write_file("$PAGE/$var{file}", $var{"file="});
+		write_file("$PAGE/$var{file}", $var{"file="}, 1);
 		chmod 0755, "$PAGE/$var{file}" if($hosting eq "awardspace");
 		$rebuild = 1;
 	}
@@ -5781,7 +5783,7 @@ EOT
 	}
 	if($var{file} ne ""){
 		mkdir $PAGE, 0755 if(!-d $PAGE);
-		write_file("$PAGE/$var{file}", $var{"file="});
+		write_file("$PAGE/$var{file}", $var{"file="}, 1);
 		chmod 0755, "$PAGE/$var{file}" if($hosting eq "awardspace");
 	}
 	if($var{preview} ne ""){
