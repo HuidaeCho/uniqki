@@ -303,8 +303,13 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 					}
 					print $output;
 				}elsif($ENV{REQUEST_URI} =~ m#^/+(.*)$#m){
-					my $file = $1 eq "" ? "index.html" : $1;
-					if(-f $file){
+					my $file = decode_url($1);
+					if($file eq ""){
+						logger "Redirecting to /$u...\n\n";
+						select $client;
+						print "HTTP/1.1 302 Found\n";
+						print "Location: /$u\n\n";
+					}elsif(-f $file){
 						logger "Sending $file...\n\n";
 
 						my $mimetype = get_mimetype($file);
@@ -914,6 +919,12 @@ sub encode_url{
 
 	# https://en.wikipedia.org/wiki/Percent-encoding
 	$url =~ s/([^!*'();:@&=+\$,\/?#\[\]a-zA-Z0-9_.~-])/@{[sprintf "%%%x", ord($1)]}/g;
+	return $url;
+}
+
+sub decode_url{
+	my $url = shift;
+	$url =~ s/%(..)/@{[pack "c", hex($1)]}/g;
 	return $url;
 }
 
@@ -2851,7 +2862,7 @@ sub get_var{
 		m/^([^=]*)=(.*)$/;
 		$v = $1; $var{$v} = $2;
 		$var{$v} =~ y/+/ /; $var{$v} =~ s/%0D//g;
-		$var{$v} =~ s/%(..)/pack "c", hex($1)/eg;
+		$var{$v} = decode_url($var{$v});
 	}
 	read STDIN, my $content, $CONTENT_LENGTH;
 	if(index($content, "\r\n") != -1){
@@ -2875,7 +2886,7 @@ sub get_var{
 			m/^([^=]*)=(.*)$/;
 			$v = $1; $var{$v} = $2;
 			$var{$v} =~ y/+/ /; $var{$v} =~ s/%0D//g;
-			$var{$v} =~ s/%(..)/pack "c", hex($1)/eg;
+			$var{$v} = decode_url($var{$v});
 		}
 	}
 	return %var;
