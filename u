@@ -2325,8 +2325,7 @@ textarea {
 #updated {
 }
 #file-link-example {
-	border-bottom:		1px dashed #999999;
-	padding-bottom:		20px;
+	margin-bottom:		30px;
 }
 
 /******************************************************************************/
