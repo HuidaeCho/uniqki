@@ -28,6 +28,7 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 ################################################################################
+use strict;
 
 # The document root directory relative to the server's URL including /~user, if
 # any.  For example, if the full URL path to index.html is
@@ -53,8 +54,6 @@ my $tmp_adminpw = 'admin:7352327a53727a65613d7a4cb055d722c21f1a0f17ad676daccd4ad
 my $adminpw = $tmp_adminpw;
 
 ################################################################################
-use strict;
-
 # HTTP server environment variables
 use vars qw(
 	$CFG
@@ -108,16 +107,296 @@ use vars qw(
 
 umask 022;
 
-# hmac_sha1 routine for password hashing
-eval "use Digest::HMAC_SHA1 qw(hmac_sha1);";
-exit_message("perl_module_not_installed", "Digest::HMAC_SHA1") if($@);
+my $win = $^O eq "MSWin32" ? 1 : 0;
 
 if(!defined $ENV{GATEWAY_INTERFACE}){
-	print "Please run this script from a web browser!\n";
-	printf "my \$tmp_adminpw = 'admin:%s:admin:\@:Administrator:';\n",
-		hash_password("admin", "admin");
+	my $cmd = "";
+	my %opt;
+	foreach(@ARGV){
+		if(m/^([^=]+)=(.*)$/){
+			$opt{$1} = $2;
+		}else{
+			$cmd = $_;
+		}
+	}
+	if($opt{cert} ne "" && !-f $opt{cert}){
+		die "$opt{cert}: File not found";
+	}
+	if($opt{key} ne "" && !-f $opt{key}){
+		die "$opt{key}: File not found";
+	}
+	if(($opt{cert} eq "" && $opt{key} ne "") ||
+	   ($opt{cert} ne "" && $opt{key} eq "")){
+		die "Both cert and key files must be specified";
+	}
+	if($opt{port} ne "" && $opt{port} !~ m/^[0-9]+$/){
+		die "Port must be a number";
+	}
+	my $u = $0;
+	if($u =~ m#^(.*)[\\/]([^\\/]+)#){
+		chdir $1;
+		$u = $2;
+	}
+	my $pid_file = "$u.pid";
+	my $log_file = "$u.log";
+	my $foreground = 0;
+
+	sub logger{
+		my @msg = @_;
+
+		local *FH;
+		open FH, ">>$log_file";
+		printf FH @msg;
+		close FH;
+
+		printf @msg if($foreground);
+	}
+
+	sub die_logger{
+		logger @_;
+		die;
+	}
+
+	sub get_pid{
+		return 0 unless(-f $pid_file);
+
+		local *FH;
+		open FH, $pid_file;
+		my $pid = <FH>;
+		close FH;
+		chomp $pid;
+
+		my $alive = kill 0, $pid;
+		unlink $pid_file unless($alive);
+
+		return $alive ? $pid : 0;
+	}
+
+	sub stop_server{
+		my $pid = get_pid();
+		if($pid > 0){
+			kill 9, $pid;
+			logger "Stopped by the user.\n";
+		}
+		unlink $pid_file;
+	}
+
+	if($cmd eq "start" || $cmd eq "restart"){
+################################################################################
+# Tiny HTTP server to self-serve Uniqki
+		my $pid;
+		unless($win){
+			$pid = get_pid();
+			if($pid > 0){
+				if($cmd eq "start"){
+					die "Process $pid is still running";
+				}else{
+					stop_server();
+				}
+			}
+		}
+
+		$ENV{GATEWAY_INTERFACE} = "CGI/1.1";
+		eval "use IO::Socket::INET;";
+		die "The IO::Socket::INET module is required to self-serve Uniqki" if($@);
+
+		my $port = $opt{port} eq "" ? 80 : $opt{port};
+		my $server = IO::Socket::INET->new(
+			Proto=>"tcp",
+			LocalPort=>$port,
+			Listen=>SOMAXCONN(),
+			Reuse=>1) || die "Cannot create a socket";
+
+		if($opt{cert} ne ""){
+			$ENV{HTTPS} = "on";
+			eval "use IO::Socket::SSL;";
+			die "The IO::Socket::SSL module is required to self-serve Uniqki" if($@);
+		}else{
+			$ENV{HTTPS} = "off";
+		}
+
+		if($win){
+			print "Close this window to terminate the service.\n";
+			$foreground = 1;
+		}else{
+			$pid = fork();
+			# $pid > 0 on Unix: Background process
+			# $pid < 0 on Windows: Multi-threaded
+			if(defined $pid && $pid > 0){
+				# Parent of successful fork on Unix
+				local *FH;
+				print "Running in the background. Kill process $pid later to terminate the service.\n";
+				print "The process ID $pid is stored in $pid_file.\n";
+				print "Log messages are being written to $log_file.\n";
+
+				open FH, ">$pid_file";
+				print FH "$pid\n";
+				close FH;
+				exit;
+			}elsif(!defined $pid){
+				# Unsuccessful fork
+				print "Cannot fork the server. Running in the foreground.\n";
+				$foreground = 1;
+			} # else child of successful fork on Unix
+		}
+		while(my $client = $server->accept()){
+			$pid = fork();
+			die_logger "Cannot fork the client.\n"
+				unless defined $pid;
+			if($pid){
+				close $client;
+				next;
+			}
+			if($opt{cert} ne ""){
+				IO::Socket::SSL->start_SSL($client,
+					SSL_server=>1,
+					SSL_cert_file=>$opt{cert},
+					SSL_key_file=>$opt{key}) ||
+				die_logger "Failed to SSL handshake.\n";
+			}
+			$client->autoflush(1);
+			logger "%s\n", scalar localtime;
+
+			while(<$client>){
+				logger $_;
+				s/\r\n//;
+				if(m#^([A-Z]+) (.*?)(?:\?(.*))? HTTP\/[0-9.]+$#){
+					$ENV{REQUEST_METHOD} = $1;
+					$ENV{REQUEST_URI} = $2;
+					$ENV{QUERY_STRING} = $3;
+				}elsif(m/^([^:]+): (.*)$/){
+					my $field = uc $1;
+					if($field eq "HOST"){
+						$ENV{HTTP_HOST} = $2;
+						($ENV{SERVER_NAME} = $2) =~ s/:[0-9]+$//;
+					}elsif($field eq "CONTENT-LENGTH"){
+						$ENV{CONTENT_LENGTH} = $2;
+					}elsif($field eq "COOKIE"){
+						$ENV{HTTP_COOKIE} = $2;
+					}
+				}elsif($_ eq ""){
+					last;
+				}
+			}
+
+			if($ENV{REQUEST_METHOD} eq "GET"){
+				if($ENV{REQUEST_URI} =~ m#^/$u(/.*)?$#){
+					logger "Processing $ENV{REQUEST_URI}...\n\n";
+
+					$ENV{SCRIPT_NAME} = "/$u";
+					$ENV{PATH_INFO} = $1;
+
+					local *OUTPUT;
+					my $output;
+					open OUTPUT, ">", \$output;
+					select OUTPUT;
+					do $u;
+					close OUTPUT;
+
+					select $client;
+					my @items = split /\n\n/, $output;
+					if($items[0] =~ m/^Location: /m){
+						print "HTTP/1.1 302 Found\n";
+					}else{
+						print "HTTP/1.1 200 OK\n";
+					}
+					print $output;
+				}elsif($ENV{REQUEST_URI} =~ m#^/+(.*)$#m){
+					my $file = $1 eq "" ? "index.html" : $1;
+					if(-f $file){
+						logger "Sending $file...\n\n";
+
+						my $mimetype = get_mimetype($file);
+						select $client;
+						print "HTTP/1.1 200 OK\n";
+						print "Content-Type: $mimetype\n\n";
+						local *FH;
+						open FH, $file;
+						print <FH>;
+						close FH;
+					}else{
+						logger "$file: Not found\n";
+						logger "Redirect to /$u/$file\n";
+
+						select $client;
+						print "HTTP/1.1 302 Found\n";
+						print "Location: /$u/$file\n\n";
+					}
+				}else{
+					logger "Bad Request\n\n";
+
+					select $client;
+					print "HTTP/1.1 400 Bad Request\n";
+					print "Content-Type: text/plain\n\nNot Found";
+				}
+			}elsif($ENV{REQUEST_METHOD} eq "POST"){
+				if($ENV{REQUEST_URI} =~ m#^/$u(/.*)?$#){
+					logger "Processing $ENV{REQUEST_URI}...\n\n";
+
+					$ENV{SCRIPT_NAME} = "/$u";
+					$ENV{PATH_INFO} = $1;
+
+					*STDIN = $client;
+					local *OUTPUT;
+					my $output;
+					open OUTPUT, ">", \$output;
+					select OUTPUT;
+					do $u;
+					close OUTPUT;
+
+					select $client;
+					my @items = split /\n\n/, $output;
+					if($items[0] =~ m/^Location: /m){
+						print "HTTP/1.1 302 Found\n";
+					}else{
+						print "HTTP/1.1 200 OK\n";
+					}
+					print $output;
+				}else{
+					logger "Bad Request\n\n";
+
+					select $client;
+					print "HTTP/1.1 400 Bad Request\n";
+					print "Content-Type: text/plain\n\nNot Found";
+				}
+			}
+			close $client;
+			exit;
+		}
+		exit;
+	}elsif($cmd eq "stop"){
+		stop_server();
+		exit;
+	}elsif($cmd eq "password"){
+		eval "use Digest::HMAC_SHA1 qw(hmac_sha1);";
+		die "The Digest::HMAC_SHA1 module is required to hash passwords" if($@);
+		printf "my \$tmp_adminpw = 'admin:%s:admin:\@:Administrator:';\n", hash_password("admin", "admin");
+		exit;
+	}
+	print <<EOT;
+Usage: $u OPTIONS
+  start			Start the server
+    port=<port>		Port number (default: 80)
+    cert=<cert.pem>	SSL certificate file
+    key=<key.pem>	SSL key file
+EOT
+	unless($win){
+		print <<EOT;
+  restart		Restart the server
+  stop			Stop the server
+EOT
+	}
+	print <<EOT;
+  password		Print a new admin password hash
+
+Please run this script from a web browser or with one of the above options.
+EOT
 	exit;
 }
+
+# hmac_sha1 routine for password hashing
+eval "use Digest::HMAC_SHA1 qw(hmac_sha1);";
+die_message("perl_module_not_installed", "Digest::HMAC_SHA1") if($@);
 
 ################################################################################
 # CGI variables
@@ -192,8 +471,7 @@ my $use_posix = $@ ? 0 : 1;
 if($use_posix){
 	setlocale(LC_ALL(), $LOCALE) if($LOCALE ne "");
 	tzset() if($TIME_ZONE ne "");
-	# Windows does not implement %e. %#d is the same as %e on Windows.
-	$TIME_FORMAT =~ s/%e/%#d/g if("" eq strftime("%e", localtime));
+	$TIME_FORMAT =~ s/%e/%#d/g if($win);
 }
 
 my $smtp_server = "";
@@ -230,6 +508,7 @@ my $debug_started = 0;
 my $html_started = 0;
 my %locked_files = ();
 my $cookie_domain_path = get_cookie_domain_path();
+my $cookie_secure = $HTTPS eq "on" ? "; secure" : "";
 
 ################################################################################
 # Non-user-replaceable subroutines
@@ -327,9 +606,9 @@ sub get_mimetype{
 	return $mimetype;
 }
 
-sub exit_path{
+sub die_path{
 	my $path = shift;
-	exit_message("path_not_found", $path) unless(-e $path);
+	die_message("path_not_found", $path) unless(-e $path);
 
 	if(-d $path){
 		$path =~ s#/+$##;
@@ -349,7 +628,7 @@ sub exit_path{
 		}
 		print qq(</ul></div>\n);
 		print_footer();
-		exit;
+		die;
 	}
 
 	my $mimetype = get_mimetype($path);
@@ -363,34 +642,34 @@ EOT
 	open FH, $path;
 	print <FH>;
 	close FH;
-	exit;
+	die;
 }
 
-sub exit_message{
+sub die_message{
 	local $MESSAGE = get_msg(@_);
 	(local $TITLE = $MESSAGE) =~ s/<[^>]*>//g;
 	print_message();
-	exit;
+	die;
 }
 
-sub exit_rebuild{
+sub die_rebuild{
 	my $PAGE = shift;
 	if(-f "$PAGE.txt"){
 		make_html($PAGE);
-		exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
+		die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 	}
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE");
 }
 
-sub exit_redirect{
+sub die_redirect{
 	printf "Location: %s\n\n", shift;
-	exit;
+	die;
 }
 
-sub exit_text{
+sub die_text{
 	print "Content-Type: text/plain\n\n";
 	print shift;
-	exit;
+	die;
 }
 
 sub start_html{
@@ -1040,8 +1319,7 @@ $LOCALE = '';
 # Set time zone if different from the system time
 $TIME_ZONE = '';
 
-# Time format interpreted by the POSIX::strftime function.  Set this variable
-# to an empty string to use Perl's scalar localtime.
+# Time format interpreted by the POSIX::strftime function
 $TIME_FORMAT = '%a %b %e %H:%M:%S %Y';
 
 # Share cookies: [subdomains:][EMPTY|subpaths|all_paths]
@@ -1510,7 +1788,7 @@ sub print_header{
 	return if(!defined $mode && $header_printed);
 
 	$header_printed = 1;
-	process_tpl("header.tpl", $mode, <<'EOT_UNIQKI'
+	process_tpl("header.tpl", $mode, <<'EOT_UNIQKI');
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="[[LANG]]">
 <head>
@@ -1529,7 +1807,6 @@ sub print_header{
 </div>
 <div id="main">
 EOT_UNIQKI
-	)
 }
 
 sub print_footer{
@@ -1537,7 +1814,7 @@ sub print_footer{
 	return if(!defined $mode && $footer_printed);
 
 	$footer_printed = 1;
-	process_tpl("footer.tpl", $mode, <<'EOT_UNIQKI'
+	process_tpl("footer.tpl", $mode, <<'EOT_UNIQKI');
 </div>
 <div id="bottom">
 <span id="validators">
@@ -1550,11 +1827,10 @@ sub print_footer{
 </body>
 </html>
 EOT_UNIQKI
-	)
 }
 
 sub print_login{
-	process_tpl("login.tpl", shift, <<'EOT_UNIQKI'
+	process_tpl("login.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="login">
 <h1>[[login]]</h1>
@@ -1575,11 +1851,10 @@ sub print_login{
 </div>
 [[FOOTER]]
 EOT_UNIQKI
-	)
 }
 
 sub print_manage_pages{
-	process_tpl("manage_pages.tpl", shift, <<'EOT_UNIQKI'
+	process_tpl("manage_pages.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="manage-pages">
 <h1>[[manage_pages]]</h1>
@@ -1601,11 +1876,10 @@ sub print_manage_pages{
 </div>
 [[FOOTER]]
 EOT_UNIQKI
-	)
 }
 
 sub print_manage_users{
-	process_tpl("manage_users.tpl", shift, <<'EOT_UNIQKI'
+	process_tpl("manage_users.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="manage-users">
 <h1>[[manage_users]]</h1>
@@ -1689,11 +1963,10 @@ sub print_manage_users{
 </div>
 [[FOOTER]]
 EOT_UNIQKI
-	)
 }
 
 sub print_manage_myself{
-	process_tpl("manage_myself.tpl", shift, <<'EOT_UNIQKI'
+	process_tpl("manage_myself.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="manage-myself">
 <h1>[[manage_myself]]</h1>
@@ -1731,11 +2004,10 @@ sub print_manage_myself{
 </div>
 [[FOOTER]]
 EOT_UNIQKI
-	)
 }
 
 sub print_forgot_password{
-	process_tpl("forgot_password.tpl", shift, <<'EOT_UNIQKI'
+	process_tpl("forgot_password.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="forgot-password">
 <h1>[[forgot_password]]</h1>
@@ -1755,11 +2027,10 @@ sub print_forgot_password{
 </div>
 [[FOOTER]]
 EOT_UNIQKI
-	)
 }
 
 sub print_reset_password{
-	process_tpl("reset_password.tpl", shift, <<'EOT_UNIQKI'
+	process_tpl("reset_password.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="reset-password">
 <h1>[[reset_password]]</h1>
@@ -1784,11 +2055,10 @@ sub print_reset_password{
 </div>
 [[FOOTER]]
 EOT_UNIQKI
-	)
 }
 
 sub print_message{
-	process_tpl("message.tpl", shift, <<'EOT_UNIQKI'
+	process_tpl("message.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="message">
 [[MESSAGE]]
@@ -1803,14 +2073,13 @@ sub print_message{
 </div>
 [[FOOTER]]
 EOT_UNIQKI
-	)
 }
 
 sub print_view{
 	# View templates are never served dynamically, so don't print a
 	# content-type header
 	$html_started = 1;
-	process_tpl("view.tpl", shift, <<'EOT_UNIQKI'
+	process_tpl("view.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="view">
 <!-- start text -->
@@ -1828,11 +2097,10 @@ sub print_view{
 <div id="last_modified">[[last_modified]]</div>
 [[FOOTER]]
 EOT_UNIQKI
-	)
 }
 
 sub print_edit{
-	process_tpl("edit.tpl", shift, <<'EOT_UNIQKI'
+	process_tpl("edit.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="edit">
 <h1>[[edit_page]]</h1>
@@ -1852,11 +2120,10 @@ sub print_edit{
 </div>
 [[FOOTER]]
 EOT_UNIQKI
-	)
 }
 
 sub print_preview{
-	process_tpl("preview.tpl", shift, <<'EOT_UNIQKI'
+	process_tpl("preview.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="preview-warning">[[preview_warning]]</div>
 <div id="preview">
@@ -1865,11 +2132,10 @@ sub print_preview{
 [[EDIT]]
 [[FOOTER]]
 EOT_UNIQKI
-	)
 }
 
 sub print_updated{
-	process_tpl("updated.tpl", shift, <<'EOT_UNIQKI'
+	process_tpl("updated.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="updated">
 <h1>[[page_updated]]</h1>
@@ -1879,14 +2145,13 @@ sub print_updated{
 </div>
 [[FOOTER]]
 EOT_UNIQKI
-	)
 }
 
 sub print_wiki_view{
 	# View templates are never served dynamically, so don't print a
 	# content-type header
 	$html_started = 1;
-	process_tpl("wiki_view.tpl", shift, <<'EOT_UNIQKI'
+	process_tpl("wiki_view.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="wiki-view">
 <!-- start text -->
@@ -1904,11 +2169,10 @@ sub print_wiki_view{
 <div id="last_modified">[[last_modified]]</div>
 [[FOOTER]]
 EOT_UNIQKI
-	)
 }
 
 sub print_wiki_edit{
-	process_tpl("wiki_edit.tpl", shift, <<'EOT_UNIQKI'
+	process_tpl("wiki_edit.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="wiki-edit">
 <h1>[[wiki_edit_page]]</h1>
@@ -1927,11 +2191,10 @@ sub print_wiki_edit{
 </div>
 [[FOOTER]]
 EOT_UNIQKI
-	)
 }
 
 sub print_wiki_preview{
-	process_tpl("wiki_preview.tpl", shift, <<'EOT_UNIQKI'
+	process_tpl("wiki_preview.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="wiki-preview-warning">[[preview_warning]]</div>
 <div id="wiki-preview">
@@ -1940,11 +2203,10 @@ sub print_wiki_preview{
 [[WIKI_EDIT]]
 [[FOOTER]]
 EOT_UNIQKI
-	)
 }
 
 sub print_css{
-	process_tpl("uniqki.css", shift, <<'EOT_UNIQKI'
+	process_tpl("uniqki.css", shift, <<'EOT_UNIQKI');
 /******************************************************************************/
 body {
 	background-color:	#eeeeee;
@@ -2168,21 +2430,20 @@ textarea {
 .comment-input {
 }
 EOT_UNIQKI
-	)
 }
 
 sub print_js{
-	process_tpl("uniqki.js", shift, <<'EOT_UNIQKI'
+	process_tpl("uniqki.js", shift, <<'EOT_UNIQKI');
 /* http://developer.mozilla.org/en/docs/AJAX:Getting_Started */
-function ajax_request(url, data, func){
+function ajax_request(url, data, func, mimetype){
 	var xml_request = null;
 
 	/* Create an XMLHTTP instance */
 	if(window.XMLHttpRequest){ /* Mozilla, Safari, ... */
 		xml_request = new XMLHttpRequest();
-		if(xml_request.overrideMimeType){
+		if(mimetype != null && xml_request.overrideMimeType){
 			/* Some web servers return a non-standard mime type. */
-			xml_request.overrideMimeType('text/xml');
+			xml_request.overrideMimeType(mimetype);
 		}
 	}else
 	if(window.ActiveXObject){ /* IE */
@@ -2286,7 +2547,6 @@ function process_menu(xml_request){
 
 ajax_request('[[CGI]]/[[PAGE]]?user_info', null, process_menu);
 EOT_UNIQKI
-	)
 }
 
 #-------------------------------------------------------------------------------
@@ -2430,7 +2690,7 @@ sub get_author{
 	if(open FH, "$PAGE.txt.v"){
 		my @items = split /:/, <FH>;
 		close FH;
-		exit_message("internal_errors") unless(-f "$PAGE.txt");
+		die_message("internal_errors") unless(-f "$PAGE.txt");
 		my $user = $items[1];
 		if($user ne ""){
 			@items = find_user_info($user);
@@ -2447,7 +2707,7 @@ sub get_version{
 	if(open FH, "$PAGE.txt.v"){
 		my @items = split /:/, <FH>;
 		close FH;
-		exit_message("internal_errors") unless(-f "$PAGE.txt");
+		die_message("internal_errors") unless(-f "$PAGE.txt");
 		$version = $items[0];
 	}elsif(-f "$PAGE.txt"){
 		$version = 1;
@@ -2460,11 +2720,11 @@ sub lock_file{
 	my $timeout = 60;
 	my $i = 0;
 	while(-f "$file.lock"){
-		exit_message("internal_errors") if(++$i > $timeout);
+		die_message("internal_errors") if(++$i > $timeout);
 		sleep 1;
 	}
 	$locked_files{$file} = 1;
-	exit_message("internal_errors") unless(write_file("$file.lock"));
+	die_message("internal_errors") unless(write_file("$file.lock"));
 }
 
 sub unlock_file{
@@ -2649,12 +2909,12 @@ sub set_cookie{
 		$w[$t[6]], $t[3], $m[$t[4]], $t[5]+1900, $t[2], $t[1], $t[0];
 
 	print "Set-Cookie: uniqki=$session_id; $cookie_domain_path; ".
-		"expires=$expires; secure; httponly\n";
+		"expires=$expires; httponly$cookie_secure\n";
 }
 
 sub clear_cookie{
 	print "Set-Cookie: uniqki=; $cookie_domain_path; ".
-		"expires=Tue, 01-Jan-1980 00:00:00 GMT; secure; httponly\n";
+		"expires=Tue, 01-Jan-1980 00:00:00 GMT; httponly$cookie_secure\n";
 }
 
 sub find_user_info{
@@ -2851,7 +3111,7 @@ sub authenticate_user{
 			# very dangerous because anyone can login using the
 			# public temporary password.  Do not allow any login in
 			# this case.
-			exit_message("login_not_allowed");
+			die_message("login_not_allowed");
 		}else{
 			# If $adminpw has been changed, use this password.
 			$method = 3;
@@ -2880,13 +3140,13 @@ sub authenticate_user{
 		find_user_info($user);
 	if(!defined $usr || $saved_pw eq "blocked"){
 		close_session();
-		exit_message("login_failed");
+		die_message("login_failed");
 	}
 
 	my $salt = pack("H*", substr $saved_pw, 0, 16);
 	if($saved_pw ne hash_password($user, $pw, $salt)){
 		close_session();
-		exit_message("login_failed");
+		die_message("login_failed");
 	}
 
 	# If admin password is not temporary, the password is secure.
@@ -2898,7 +3158,7 @@ sub authenticate_user{
 
 	if($insecure_pw){
 		# Force to change the password
-		exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_myself");
+		die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_myself");
 	}
 
 	clear_password_reset_token($token);
@@ -3122,13 +3382,13 @@ sub generate_session_id{
 		$i++;
 	}while($found && $i<10);
 
-	exit_message("session_errors") if($found);
+	die_message("session_errors") if($found);
 
 	my $expires = time + $INACTIVE_TIMEOUT * 60;
 
 	lock_file($sessions_file);
 	local *FH;
-	exit_message("session_errors") unless(open FH, ">>$sessions_file");
+	die_message("session_errors") unless(open FH, ">>$sessions_file");
 	print FH "$session_id:$user:active:$expires\n";
 	close FH;
 	unlock_file($sessions_file);
@@ -3191,7 +3451,7 @@ sub generate_password_reset_token{
 sub send_email{
 	my ($email, $subject, $text) = @_;
 	eval "use MIME::Lite;";
-	exit_message("perl_module_not_installed", "MIME::Lite") if($@);
+	die_message("perl_module_not_installed", "MIME::Lite") if($@);
 
 	if($smtp_server ne ""){
 		if($smtp_port ne ""){
@@ -3217,11 +3477,10 @@ sub send_email{
 	MIME::Lite->quiet(1);
 
 	my $msg = MIME::Lite->new(
-		From	=> $EMAIL_ADDRESS,
-		To	=> $email,
-		Subject	=> $subject,
-		Data	=> $text
-	);
+		From=>$EMAIL_ADDRESS,
+		To=>$email,
+		Subject=>$subject,
+		Data=>$text);
 	$msg->send();
 	return $msg->last_send_successful();
 }
@@ -3293,7 +3552,7 @@ sub create_comment_form{
 	$direction = "down" if($direction eq "");
 	$rows = "6" if($rows eq "");
 	$cols = "80" if($cols eq "");
-	exit_message("invalid_comment_tag", $comment)
+	die_message("invalid_comment_tag", $comment)
 		unless($comment =~ m/^[a-zA-Z0-9_-]+$/);
 	my $id = time;
 
@@ -3708,9 +3967,9 @@ sub parse_line{
 	# Pages
 	s#\[\[(.*?)(?:\#(.*?))?(?:\|(.*?))?\]\]#@{[link_page($1, $2, $3)]}#g;
 	# Images
-	s#{{{(.*?)(?:\|(.*?))?}}}(?:\[(.*?)\])?#@{[link_image($1, $2, $3)]}#g;
+	s#\{\{\{(.*?)(?:\|(.*?))?}}}(?:\[(.*?)\])?#@{[link_image($1, $2, $3)]}#g;
 	# Files
-	s#{{(.*?)(?:\|(.*?))?}}#@{[link_file($1, $2)]}#g;
+	s#\{\{(.*?)(?:\|(.*?))?}}#@{[link_file($1, $2)]}#g;
 	# URL images
 	s#\x02\x02\x02(.*?)(?:\|(.*?))?\x03\x03\x03(?:\[(.*?)\])?#@{[link_url_image($1, $2, $3)]}#g;
 	# URLs
@@ -3895,7 +4154,7 @@ END{
 if($PAGE eq $CGI && $FILE ne ""){
 ################################################################################
 # u/u/.../PAGE?ACTION	Called from a secured site
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$FILE?$QUERY_STRING");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$FILE?$QUERY_STRING");
 }
 
 $PAGE = convert_page_name($PAGE);
@@ -3906,12 +4165,12 @@ if($QUERY_STRING eq "logout"){
 #-------------------------------------------------------------------------------
 # u/PAGE?logout		Logout
 	close_session();
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }elsif($QUERY_STRING eq "logout_all"){
 #-------------------------------------------------------------------------------
 # u/PAGE?logout_all	Logout from all computers
 	clear_user_sessions();
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }
 
 clear_expired_sessions();
@@ -3923,7 +4182,7 @@ if($QUERY_STRING eq "login"){
 #-------------------------------------------------------------------------------
 # u/PAGE?login		GET login request: Login form
 		print_login();
-		exit;
+		die;
 	}else{
 #-------------------------------------------------------------------------------
 # u/PAGE?login		POST login request: Check credentials
@@ -3934,13 +4193,13 @@ if($QUERY_STRING eq "login"){
 #-------------------------------------------------------------------------------
 # u?loginout		Loginout
 # u/PAGE?loginout	Loginout
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?login");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?login");
 }
 }elsif($QUERY_STRING eq "loginout"){
 #-------------------------------------------------------------------------------
 # u?loginout		Loginout
 # u/PAGE?loginout	Loginout
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?logout");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?logout");
 }
 
 {
@@ -3970,57 +4229,57 @@ if($QUERY_STRING eq "css"){
 #-------------------------------------------------------------------------------
 # u?css			Print CSS
 	print_css(2);
-	exit;
+	die;
 }elsif($QUERY_STRING eq "js"){
 #-------------------------------------------------------------------------------
 # u?js			Print JavaScript
 	print_js(2);
-	exit;
+	die;
 }elsif($QUERY_STRING eq "user_info"){
 #-------------------------------------------------------------------------------
 # u/PAGE?user_info	Print user information
 	my $page_exists = page_exists();
 	my $has_read_access = $page_exists && has_read_access() ? 1 : 0;
 	my $has_write_access = $page_exists && has_write_access() ? 1 : 0;
-	exit_text("$USER:$admin:$has_read_access:$has_write_access");
+	die_text("$USER:$admin:$has_read_access:$has_write_access");
 }elsif($QUERY_STRING eq "forgot_password"){
 #-------------------------------------------------------------------------------
 # u?forgot_password		Forgot password
 # u/PAGE?forgot_password	Forgot password
 	if($REQUEST_METHOD eq "GET"){
 		print_forgot_password();
-		exit;
+		die;
 	}
 
 	my %var = get_var();
 	if($var{user} eq "" && $var{email} eq ""){
-		exit_message("enter_username_or_email_address");
+		die_message("enter_username_or_email_address");
 	}
 	my ($user, $pw, $group, $email, $name, $token);
 	$user = "";
 	if($var{email} ne ""){
 		if(!is_email_address($var{email})){
-			exit_message("check_email_address");
+			die_message("check_email_address");
 		}
 		($user, $pw, $group, $email, $name, $token) =
 			find_user_info_by_email_address($var{email});
 		unless(defined $user){
-			exit_message("email_address_not_found", $var{email});
+			die_message("email_address_not_found", $var{email});
 		}
 		if($var{user} ne "" && $var{user} ne $user){
-			exit_message("user_info_mismatch");
+			die_message("user_info_mismatch");
 		}
 	}
 	if($user eq ""){
 		($user, $pw, $group, $email, $name, $token) =
 			find_user_info($var{user});
 		unless(defined $user){
-			exit_message("user_not_found", $var{user});
+			die_message("user_not_found", $var{user});
 		}
 	}
 
-	exit_message("user_blocked", $user) if($pw eq "blocked");
-	exit_message("password_reset_token_still_valid")
+	die_message("user_blocked", $user) if($pw eq "blocked");
+	die_message("password_reset_token_still_valid")
 		if(is_password_reset_token_valid($token));
 
 	$token = generate_password_reset_token($user);
@@ -4048,36 +4307,36 @@ if($QUERY_STRING eq "css"){
 	}
 
 	# Something's wrong because a username already found does not exist.
-	exit_message("internal_errors") unless($token_added);
+	die_message("internal_errors") unless($token_added);
 
 	my $link = "$HTTP_BASE$SCRIPT_NAME?reset_password=$token";
 	my $subject = get_msg("reset_password_email_subject", $DOC_BASE);
 	my $text = get_msg("reset_password_email_text", $var{user}, $DOC_BASE,
 		$link, $RESET_PASSWORD_TIMEOUT);
 	if(!send_email($email, $subject, $text)){
-		exit_message("email_notification_failed", $user, $email);
+		die_message("email_notification_failed", $user, $email);
 	}
 
 	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
 
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }elsif($QUERY_STRING eq "reset_password" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
 # u?reset_password	Reset password
 # u/PAGE?reset_password	Reset password
 	my %var = get_var();
-	exit_message("invalid_password_reset_token")
+	die_message("invalid_password_reset_token")
 		unless(is_password_reset_token_valid($var{token}));
 	my ($user, $saved_pw, $group, $email, $name) =
 		find_user_info_by_password_reset_token($var{token});
-	exit_message("password_reset_token_not_found") unless(defined $user);
+	die_message("password_reset_token_not_found") unless(defined $user);
 
 	if($var{pw} ne $var{pw2}){
-		exit_message("confirm_password");
+		die_message("confirm_password");
 	}
 	unless(is_password($var{pw})){
-		exit_message("check_password");
+		die_message("check_password");
 	}
 
 	my $new_pw = "";
@@ -4100,12 +4359,12 @@ if($QUERY_STRING eq "css"){
 		close FH;
 	}
 	# Password reset token cannot be found this time?
-	exit_message("internal_errors") unless($reset);
+	die_message("internal_errors") unless($reset);
 
 	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
 
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }elsif($QUERY_STRING =~ m/^reset_password=([a-zA-Z0-9]{8}[0-9a-f]{40}\.([0-9]+))$/){
 #-------------------------------------------------------------------------------
 # u?reset_password=token	Reset password
@@ -4116,31 +4375,31 @@ if($QUERY_STRING eq "css"){
 	my $time = time;
 	if($time >= $expires){
 		clear_password_reset_token($token);
-		exit_message("password_reset_token_expired");
+		die_message("password_reset_token_expired");
 	}
 
 	local $PASSWORD_RESET_TOKEN = $token;
 	print_reset_password();
-	exit;
+	die;
 }elsif($QUERY_STRING eq "manage_myself"){
 #-------------------------------------------------------------------------------
 # u?manage_myself	Manage myself
 # u/PAGE?manage_myself	Manage myself
 	print_manage_myself();
-	exit;
+	die;
 }elsif($QUERY_STRING eq "update_myself" && $REQUEST_METHOD eq "POST" && is_logged_in()){
 #-------------------------------------------------------------------------------
 # u?update_myself	Update myself
 # u/PAGE?update_myself	Update myself
 	my %var = get_var();
 	if($var{pw} ne $var{pw2}){
-		exit_message("confirm_password");
+		die_message("confirm_password");
 	}
 	if($var{pw} ne "" && !is_password($var{pw})){
-		exit_message("check_password");
+		die_message("check_password");
 	}
 	if($var{pw} eq "" && $var{email} eq "" && $var{name} eq ""){
-		exit_message("enter_user_info_to_update");
+		die_message("enter_user_info_to_update");
 	}
 
 	my $new_pw = "";
@@ -4167,7 +4426,7 @@ if($QUERY_STRING eq "css"){
 				my $userline = "$USER:$pw:$group:$email:$name:$token";
 				if($userline eq $_){
 					close FH;
-					exit_message("enter_user_info_to_update", $USER);
+					die_message("enter_user_info_to_update", $USER);
 				}
 				$_ = $userline;
 			}
@@ -4180,7 +4439,7 @@ if($QUERY_STRING eq "css"){
 			# Something's wrong because you're the only user, but
 			# the user line in this script is not you! How did you
 			# login?
-			exit_message("internal_errors");
+			die_message("internal_errors");
 		}
 
 		$updated = 1;
@@ -4193,17 +4452,17 @@ if($QUERY_STRING eq "css"){
 		# new line from $items[5]
 		my $userline = "$USER:$pw:$group:$email:$name:$token";
 		if($userline eq $adminpw){
-			exit_message("enter_user_info_to_update", $USER);
+			die_message("enter_user_info_to_update", $USER);
 		}
 		$new_pw = "$userline\n";
 	}
 	# How did you login when your username is not found?
-	exit_message("internal_errors") unless($updated);
+	die_message("internal_errors") unless($updated);
 
 	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
 
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_myself");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_myself");
 }elsif($QUERY_STRING eq "delete_myself" && $REQUEST_METHOD eq "POST" && is_logged_in()){
 #-------------------------------------------------------------------------------
 # u?delete_myself	Delete myself
@@ -4227,21 +4486,21 @@ if($QUERY_STRING eq "css"){
 		close FH;
 	}
 	# How did you login when your username is not found?
-	exit_message("internal_errors") unless($deleted);
+	die_message("internal_errors") unless($deleted);
 
 	# You cannot delete yourself when you are the only admin.
-	exit_message("cannot_delete_only_admin") if($nadmins == 1);
+	die_message("cannot_delete_only_admin") if($nadmins == 1);
 
 	clear_user_sessions($USER);
 
 	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
 
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }elsif(!has_read_access()){
 #-------------------------------------------------------------------------------
 # Read-secured
-	exit_message("read_secured");
+	die_message("read_secured");
 ################################################################################
 # User actions
 }elsif($QUERY_STRING eq "login" || $QUERY_STRING eq ""){
@@ -4252,18 +4511,18 @@ if($QUERY_STRING eq "css"){
 # u			No action specified
 # u/PAGE		No action specified
 # u/PAGE/FILE		No action specified
-	exit_path("$PAGE/$FILE") if($FILE ne "" ||
+	die_path("$PAGE/$FILE") if($FILE ne "" ||
 		($PAGE ne "" && "/" eq substr $PATH_INFO, -1));
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE") if($PAGE eq "");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE") if($PAGE eq "");
 	unless(-f "$PAGE.txt"){
 		my $msg_id = has_write_access() ?
 			"create_page" : "page_not_found";
-		exit_message($msg_id, $PAGE);
+		die_message($msg_id, $PAGE);
 	}
 }elsif($QUERY_STRING ne "delete" && $FILE ne ""){
 #-------------------------------------------------------------------------------
 # u/PAGE/FILE		Show/download PAGE/FILE
-	exit_path("$PAGE/$FILE");
+	die_path("$PAGE/$FILE");
 }elsif($QUERY_STRING =~ m/^goto(?:[&=].+)?$/){
 #-------------------------------------------------------------------------------
 # u?goto		Create the goto form
@@ -4274,14 +4533,14 @@ if($QUERY_STRING eq "css"){
 		print_header();
 		create_goto_form(1);
 		print_footer();
-		exit;
+		die;
 	}
 
 	$_ = $var{goto};
 	s#/.*$##; s#\.html$##;
 	y/+/ /;
 
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$_");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$_");
 }elsif($QUERY_STRING eq "refresh" && $PAGE ne ""){
 #-------------------------------------------------------------------------------
 # u/PAGE?refresh	Refresh
@@ -4290,7 +4549,7 @@ if($QUERY_STRING eq "css"){
 	}else{
 		my $msg_id = has_write_access() ?
 			"create_page" : "page_not_found";
-		exit_message($msg_id, $PAGE);
+		die_message($msg_id, $PAGE);
 	}
 }elsif($QUERY_STRING =~ m/^diff(?:=(-?[0-9]+))?$/){
 #-------------------------------------------------------------------------------
@@ -4298,14 +4557,14 @@ if($QUERY_STRING eq "css"){
 # u/PAGE?diff=([0-9]+)	Diff current and \1 version
 # u/PAGE?diff=-([0-9]+)	Diff current and current-\1 version
 	unless(-f "$PAGE.txt"){
-		exit_message("page_not_found", $PAGE);
+		die_message("page_not_found", $PAGE);
 	}
 
 	my $current_version = get_version($PAGE);
 	my $version = $1 > 0 ? $1 : $current_version + ($1 < 0 ? $1 : -1);
 
 	if($version >= $current_version || $version <= 0){
-		exit_message("current_version", $PAGE, $current_version)
+		die_message("current_version", $PAGE, $current_version)
 	}
 
 	my $title = get_msg("differences", $PAGE, $version, $current_version);
@@ -4420,7 +4679,7 @@ if($QUERY_STRING eq "css"){
 
 	print qq(</div>\n);
 	print_footer();
-	exit;
+	die;
 }elsif($QUERY_STRING =~ m/^ls(?:[&=].+)?$/){
 #-------------------------------------------------------------------------------
 # u?ls			List all pages in alphabetical order
@@ -4523,7 +4782,7 @@ if($QUERY_STRING eq "css"){
 
 	print qq(</ul>\n</div>\n);
 	print_footer();
-	exit;
+	die;
 }elsif($QUERY_STRING =~ m/^rss(?:[&=].+)?$/){
 #-------------------------------------------------------------------------------
 # u?rss			RSS for recent 10 pages
@@ -4614,7 +4873,7 @@ EOT
 </channel>
 </rss>
 EOT
-	exit;
+	die;
 }elsif($QUERY_STRING =~ m/^search(?:[&=].+)?$/){
 #-------------------------------------------------------------------------------
 # u?search=(.*)			Search using regular expressions
@@ -4630,7 +4889,7 @@ EOT
 		print_header();
 		create_search_form(1);
 		print_footer();
-		exit;
+		die;
 	}
 
 	my $glob = $var{glob} eq "" ? "*" : $var{glob};
@@ -4732,7 +4991,7 @@ EOT
 
 	print qq(</div>\n);
 	print_footer();
-	exit;
+	die;
 }elsif($QUERY_STRING =~ m/^comment(?:[&=].+)?$/){
 #-------------------------------------------------------------------------------
 # u/PAGE?comment			Generate the comment form for PAGE
@@ -4751,9 +5010,9 @@ EOT
 	if($REQUEST_METHOD eq "GET"){
 		$PAGE = $var{page} if($var{page} ne "");
 		if($PAGE eq ""){
-			exit_message("specify_comment_page");
+			die_message("specify_comment_page");
 		}elsif(!-f "$PAGE.txt"){
-			exit_message("page_not_found", $PAGE);
+			die_message("page_not_found", $PAGE);
 		}
 
 		local $TITLE = get_msg("comment_form");
@@ -4761,14 +5020,14 @@ EOT
 		create_comment_form($PAGE, $var{comment}, $var{direction},
 			$var{rows}, $var{cols}, 1);
 		print_footer();
-		exit;
+		die;
 	}
-	exit_rebuild($var{page}) unless(verify_input_data("comment", \%var));
+	die_rebuild($var{page}) unless(verify_input_data("comment", \%var));
 
 	$PAGE = $var{page};
-	exit_message("page_not_found", $PAGE) unless(-f "$PAGE.txt");
+	die_message("page_not_found", $PAGE) unless(-f "$PAGE.txt");
 
-	exit_message("invalid_comment_tag", $var{comment})
+	die_message("invalid_comment_tag", $var{comment})
 		unless($var{comment} =~ m/^[a-zA-Z0-9_-]+$/);
 
 	$var{text} = escape_comment($var{text});
@@ -4794,7 +5053,7 @@ EOT
 		}
 		close FH;
 	}
-	exit_message("comment_tag_not_found", "#%$var{comment}") unless($added);
+	die_message("comment_tag_not_found", "#%$var{comment}") unless($added);
 	save($PAGE, $TEXT);
 	unlock_file("$PAGE.txt");
 }elsif($QUERY_STRING =~ m/^wiki_/){
@@ -4815,7 +5074,7 @@ EOT
 				$msg_id = "not_allowed_to_create_nonwiki_page";
 			}
 		}
-		exit_message($msg_id, $PAGE);
+		die_message($msg_id, $PAGE);
 	}
 	if($REQUEST_METHOD eq "GET"){
 		if($QUERY_STRING =~ m/^wiki_edit(?:=(-?[0-9]+))?$/){
@@ -4824,7 +5083,7 @@ EOT
 # u/PAGE?wiki_edit=([0-9]+)	Edit the version \1 of PAGE
 # u/PAGE?wiki_edit=-([0-9]+)	Edit the current-\1 version of PAGE
 			if($1 ne "" && !-f "$PAGE.txt"){
-				exit_message("page_not_found", $PAGE);
+				die_message("page_not_found", $PAGE);
 			}
 
 			local $TITLE = $PAGE;
@@ -4835,7 +5094,7 @@ EOT
 				$TEXT = read_file("$PAGE.txt");
 				chomp $TEXT;
 				if("#!wiki\n" ne substr $TEXT, 0, 7){
-					exit_message("internal_errors");
+					die_message("internal_errors");
 				}
 
 				$TEXT = substr $TEXT, 7;
@@ -4849,11 +5108,11 @@ EOT
 
 				$TEXT = read_file("$PAGE.txt");
 				if("#!wiki\n" ne substr $TEXT, 0, 7){
-					exit_message("internal_errors");
+					die_message("internal_errors");
 				}
 
 				if($version >= $VERSION || $version <= 0){
-					exit_message("current_version", $PAGE,
+					die_message("current_version", $PAGE,
 						$version);
 				}
 
@@ -4866,7 +5125,7 @@ EOT
 				close FH;
 				if("#!wiki\n" ne substr $TEXT, 0, 7){
 					# Previous version was not a wiki page
-					exit_message("not_wiki_page", $PAGE);
+					die_message("not_wiki_page", $PAGE);
 				}
 
 				$TEXT = substr $TEXT, 7;
@@ -4878,38 +5137,38 @@ EOT
 			$VERSION++;
 			print_wiki_edit();
 		}
-		exit;
+		die;
 	}
 
 	my %var = get_var();
-	exit_rebuild($PAGE) unless(verify_input_data($QUERY_STRING, \%var));
+	die_rebuild($PAGE) unless(verify_input_data($QUERY_STRING, \%var));
 
 	local *FH;
 	my $t = time;
 	if($QUERY_STRING eq "wiki_upload"){
 #-------------------------------------------------------------------------------
 # Wiki upload
-		exit if($WIKI_ALLOWED_FILES eq "" || !-f "$PAGE.txt" ||
+		die if($WIKI_ALLOWED_FILES eq "" || !-f "$PAGE.txt" ||
 			$var{file} eq "" ||
 			$var{file} !~ m/$WIKI_ALLOWED_FILES/oi);
 
 		open FH, "$PAGE.txt";
 		if(<FH> ne "#!wiki\n"){
 			close FH;
-			exit_message("internal_errors");
+			die_message("internal_errors");
 		}
 		close FH;
 
 		mkdir $PAGE, 0755 if(!-d $PAGE);
 		write_file("$PAGE/$t.$var{file}", $var{"file="});
 		chmod 0755, "$PAGE/$t.$var{file}" if($hosting eq "awardspace");
-		exit_message("wiki_file_uploaded", $var{file}, "$t.$var{file}");
+		die_message("wiki_file_uploaded", $var{file}, "$t.$var{file}");
 	}
 	if(-f "$PAGE.txt"){
 		open FH, "$PAGE.txt";
 		if(<FH> ne "#!wiki\n"){
 			close FH;
-			exit_message("internal_errors");
+			die_message("internal_errors");
 		}
 		close FH;
 	}
@@ -4918,7 +5177,7 @@ EOT
 	local $TEXT = $var{text};
 	if($VERSION != get_version($PAGE) + 1){
 		print_updated();
-		exit;
+		die;
 	}
 	if($var{file} ne "" && $var{file} =~ m/$WIKI_ALLOWED_FILES/oi){
 		mkdir $PAGE, 0755 if(!-d $PAGE);
@@ -4937,7 +5196,7 @@ EOT
 		}
 
 		preview($PAGE, $TEXT, $uploaded, 1);
-		exit;
+		die;
 	}
 
 	lock_file("$PAGE.txt");
@@ -4946,24 +5205,24 @@ EOT
 }elsif(!$admin){
 ################################################################################
 # Admin actions
-	exit_message("admin_actions_not_allowed");
+	die_message("admin_actions_not_allowed");
 }elsif($insecure_pw){
 #-------------------------------------------------------------------------------
 # Admin password is still temporary. No admin actions are allowed other than
 # changing the password.
-	exit_message("change_admin_password");
+	die_message("change_admin_password");
 }elsif($QUERY_STRING eq "manage_pages"){
 #-------------------------------------------------------------------------------
 # u?manage_pages	Manage pages
 # u/PAGE?manage_pages	Manage pages
 	print_manage_pages();
-	exit;
+	die;
 }elsif($QUERY_STRING eq "backup"){
 #-------------------------------------------------------------------------------
 # u?backup		Backup all pages
 # u/PAGE?backup		Backup PAGE
 	eval "use Archive::Zip;";
-	exit_message("perl_module_not_installed", "Archive::Zip") if($@);
+	die_message("perl_module_not_installed", "Archive::Zip") if($@);
 
 	my $zip = Archive::Zip->new();
 	my $file;
@@ -4983,13 +5242,13 @@ Content-Disposition: attachment; filename="$file"
 
 EOT
 	$zip->writeToFileHandle(*STDOUT);
-	exit;
+	die;
 }elsif($QUERY_STRING eq "restore"){
 #-------------------------------------------------------------------------------
 # u?restore		Restore
 # u/PAGE?restore	Restore
 	eval "use Archive::Zip;";
-	exit_message("perl_module_not_installed", "Archive::Zip") if($@);
+	die_message("perl_module_not_installed", "Archive::Zip") if($@);
 
 	my $boundary = <STDIN>;
 	my $file = <STDIN>; my $tmp = $file.<STDIN>.<STDIN>;
@@ -5022,7 +5281,7 @@ EOT
 		}
 	}
 
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_pages");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_pages");
 }elsif($QUERY_STRING =~ m/^refresh(?:&.+)?$/){
 #-------------------------------------------------------------------------------
 # u?refresh		Refresh all
@@ -5047,44 +5306,44 @@ EOT
 	}
 	print qq(</ul>\n</div>\n);
 	print_footer();
-	exit;
+	die;
 }elsif($QUERY_STRING eq "manage_users"){
 #-------------------------------------------------------------------------------
 # u?manage_users	Manage users
 # u/PAGE?manage_users	Manage users
 	print_manage_users();
-	exit;
+	die;
 }elsif($QUERY_STRING eq "add_user" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
 # u?add_user		Add user
 # u/PAGE?add_user	Add user
 	my %var = get_var();
 	if($var{user} eq ""){
-		exit_message("enter_username");
+		die_message("enter_username");
 	}
 	if(!is_username($var{user})){
-		exit_message("check_username");
+		die_message("check_username");
 	}
 	if($var{user} eq $USER){
-		exit_message("cannot_add_yourself");
+		die_message("cannot_add_yourself");
 	}
 	if($var{email} eq ""){
-		exit_message("enter_email_address");
+		die_message("enter_email_address");
 	}
 	if(!is_email_address($var{email})){
-		exit_message("check_email_address");
+		die_message("check_email_address");
 	}
 	if($var{name} eq ""){
-		exit_message("enter_full_name");
+		die_message("enter_full_name");
 	}
 	if(!is_full_name($var{name})){
-		exit_message("check_full_name");
+		die_message("check_full_name");
 	}
 	if($var{pw} ne $var{pw2}){
-		exit_message("confirm_password");
+		die_message("confirm_password");
 	}
 	if($var{pw} ne "" && !is_password($var{pw})){
-		exit_message("check_password");
+		die_message("check_password");
 	}
 
 	(my $escaped_email = $var{email}) =~ s/\./\\./g;
@@ -5097,18 +5356,18 @@ EOT
 		while(<FH>){
 			if(m/^$var{user}:/){
 				close FH;
-				exit_message("user_already_exists", $var{user});
+				die_message("user_already_exists", $var{user});
 			}
 			if(m/:$escaped_email(?::[^:]*){2}$/i){
 				close FH;
-				exit_message("email_address_already_registered",
+				die_message("email_address_already_registered",
 					$var{email});
 			}
 			$new_pw .= $_;
 		}
 		close FH;
 	}elsif($adminpw =~ m/:$escaped_email(?::[^:]*){2}$/i){
-		exit_message("email_address_already_registered", $var{email});
+		die_message("email_address_already_registered", $var{email});
 	}else{
 		$new_pw = "$adminpw\n";
 	}
@@ -5126,7 +5385,7 @@ EOT
 		my $text = get_msg("new_user_email_text", $var{user}, $DOC_BASE,
 			$link, $SET_PASSWORD_TIMEOUT);
 		if(!send_email($var{email}, $subject, $text)){
-			exit_message("email_notification_failed", $var{user},
+			die_message("email_notification_failed", $var{user},
 				$var{email});
 		}
 	}else{
@@ -5138,30 +5397,30 @@ EOT
 	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
 
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
 }elsif($QUERY_STRING eq "update_user" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
 # u?update_user		Update user
 # u/PAGE?update_user	Update user
 	my %var = get_var();
 	if($var{user} eq ""){
-		exit_message("enter_username");
+		die_message("enter_username");
 	}
 	if(!is_username($var{user})){
-		exit_message("check_username");
+		die_message("check_username");
 	}
 	if($var{name} ne "" && !is_full_name($var{name})){
-		exit_message("check_full_name");
+		die_message("check_full_name");
 	}
 	if($var{pw} ne $var{pw2}){
-		exit_message("confirm_password");
+		die_message("confirm_password");
 	}
 	if($var{pw} ne "" && !is_password($var{pw})){
-		exit_message("check_password");
+		die_message("check_password");
 	}
 	if($var{pw} eq "" && $var{email} eq "" &&
 		$var{admin} ne "yes" && $var{admin} ne "no"){
-		exit_message("enter_user_info_to_update");
+		die_message("enter_user_info_to_update");
 	}
 
 	my $new_pw = "";
@@ -5190,7 +5449,7 @@ EOT
 				my $userline = "$var{user}:$pw:$group:$email:$name:$token";
 				if($userline eq $_){
 					close FH;
-					exit_message("enter_user_info_to_update", $var{user});
+					die_message("enter_user_info_to_update", $var{user});
 				}
 				$_ = $userline;
 			}
@@ -5203,7 +5462,7 @@ EOT
 			# Something's wrong because you're the only user, but
 			# the user line in this script is not you! How did you
 			# login?
-			exit_message("internal_errors");
+			die_message("internal_errors");
 		}
 
 		$updated = 1;
@@ -5217,29 +5476,29 @@ EOT
 		# new line from $items[5]
 		my $userline = "$var{user}:$pw:$group:$email:$name:$token";
 		if($userline eq $adminpw){
-			exit_message("enter_user_info_to_update", $var{user});
+			die_message("enter_user_info_to_update", $var{user});
 		}
 		$new_pw = "$userline\n";
 	}
-	exit_message("user_not_found", $var{user}) unless($updated);
+	die_message("user_not_found", $var{user}) unless($updated);
 
 	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
 
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
 }elsif($QUERY_STRING eq "block_user" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
 # u?block_user		Block user
 # u/PAGE?block_user	Block user
 	my %var = get_var();
 	if($var{user} eq ""){
-		exit_message("enter_username");
+		die_message("enter_username");
 	}
 	if(!is_username($var{user})){
-		exit_message("check_username");
+		die_message("check_username");
 	}
 	if($var{user} eq $USER){
-		exit_message("cannot_block_yourself");
+		die_message("cannot_block_yourself");
 	}
 
 	my $new_pw = "";
@@ -5254,7 +5513,7 @@ EOT
 				my @items = split /:/;
 				if($items[1] eq "blocked"){
 					close FH;
-					exit_message("user_already_blocked",
+					die_message("user_already_blocked",
 						$var{user});
 				}
 				$blocked = 1;
@@ -5265,32 +5524,32 @@ EOT
 		}
 		close FH;
 	}
-	exit_message("user_not_found", $var{user}) unless($blocked);
+	die_message("user_not_found", $var{user}) unless($blocked);
 
 	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
 
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
 }elsif($QUERY_STRING eq "unblock_user" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
 # u?unblock_user	Unblock user
 # u/PAGE?unblock_user	Unblock user
 	my %var = get_var();
 	if($var{user} eq ""){
-		exit_message("enter_username");
+		die_message("enter_username");
 	}
 	if(!is_username($var{user})){
-		exit_message("check_username");
+		die_message("check_username");
 	}
 	if($var{user} eq $USER){
-		exit_message("cannot_unblock_yourself");
+		die_message("cannot_unblock_yourself");
 	}
 
 	if($var{pw} ne $var{pw2}){
-		exit_message("confirm_password");
+		die_message("confirm_password");
 	}
 	if($var{pw} ne "" && !is_password($var{pw})){
-		exit_message("check_password");
+		die_message("check_password");
 	}
 
 	my $new_pw = "";
@@ -5306,7 +5565,7 @@ EOT
 				my @items = split /:/;
 				if($items[1] ne "blocked"){
 					close FH;
-					exit_message("user_already_unblocked",
+					die_message("user_already_unblocked",
 						$var{user});
 				}
 				$unblocked = 1;
@@ -5325,7 +5584,7 @@ EOT
 		}
 		close FH;
 	}
-	exit_message("user_not_found", $var{user}) unless($unblocked);
+	die_message("user_not_found", $var{user}) unless($unblocked);
 
 	if($token ne ""){
 		my $link = "$HTTP_BASE$SCRIPT_NAME?reset_password=$token";
@@ -5334,7 +5593,7 @@ EOT
 		my $text = get_msg("unblocked_user_email_text", $var{user},
 			$DOC_BASE, $link, $SET_PASSWORD_TIMEOUT);
 		if(!send_email($var{email}, $subject, $text)){
-			exit_message("email_notification_failed", $var{user},
+			die_message("email_notification_failed", $var{user},
 				$var{email});
 		}
 	}
@@ -5342,20 +5601,20 @@ EOT
 	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
 
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
 }elsif($QUERY_STRING eq "delete_user" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
 # u?delete_user		Delete user
 # u/PAGE?delete_user	Delete user
 	my %var = get_var();
 	if($var{user} eq ""){
-		exit_message("enter_username");
+		die_message("enter_username");
 	}
 	if(!is_username($var{user})){
-		exit_message("check_username");
+		die_message("check_username");
 	}
 	if($var{user} eq $USER){
-		exit_message("cannot_delete_yourself");
+		die_message("cannot_delete_yourself");
 	}
 
 	my $new_pw = "";
@@ -5375,30 +5634,30 @@ EOT
 		}
 		close FH;
 	}
-	exit_message("user_not_found", $var{user}) unless($deleted);
+	die_message("user_not_found", $var{user}) unless($deleted);
 
 	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
 
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
 }elsif($QUERY_STRING eq "install_password"){
 #-------------------------------------------------------------------------------
 # u?install_password		Install the password file, but don't overwrite
 # u/PAGE?install_password	Install the password file, but don't overwrite
 	write_pw();
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }elsif($QUERY_STRING eq "install_config"){
 #-------------------------------------------------------------------------------
 # u?install_config	Install the config file, but don't overwrite
 # u/PAGE?install_config	Install the config file, but don't overwrite
 	process_cfg(1);
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }elsif($QUERY_STRING eq "install_messages"){
 #-------------------------------------------------------------------------------
 # u?install_messages		Install the messages file, but don't overwrite
 # u/PAGE?install_messages	Install the messages file, but don't overwrite
 	process_msg(1);
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }elsif($QUERY_STRING eq "install_template"){
 #-------------------------------------------------------------------------------
 # u?install_template		Install the template files, but don't overwrite
@@ -5424,16 +5683,16 @@ EOT
 		print_css(1);
 		print_js(1);
 	}
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
 }elsif($PAGE eq ""){
 #-------------------------------------------------------------------------------
 # u?ACTION		Redirect to index
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE");
 }elsif($QUERY_STRING eq "upload"){
 #-------------------------------------------------------------------------------
 # u/PAGE?upload		Upload PAGE/FILE
 	my %var = get_var();
-	exit_rebuild($PAGE) unless(verify_input_data("upload", \%var));
+	die_rebuild($PAGE) unless(verify_input_data("upload", \%var));
 
 	if($var{file} ne ""){
 		mkdir $PAGE, 0755 if(!-d $PAGE);
@@ -5489,17 +5748,17 @@ EOT
 			chomp $TEXT;
 		}
 		print_edit();
-		exit;
+		die;
 	}
 
 	my %var = get_var();
-	exit_rebuild($PAGE) unless(verify_input_data("edit", \%var));
+	die_rebuild($PAGE) unless(verify_input_data("edit", \%var));
 
 	$VERSION = $var{version};
 	$TEXT = $var{text};
 	if($VERSION != get_version($PAGE) + 1){
 		print_updated();
-		exit;
+		die;
 	}
 	if($var{file} ne ""){
 		mkdir $PAGE, 0755 if(!-d $PAGE);
@@ -5513,7 +5772,7 @@ EOT
 		}
 
 		preview($PAGE, $TEXT, $uploaded, 0);
-		exit;
+		die;
 	}
 	lock_file("$PAGE.txt");
 	save($PAGE, "$TEXT\n");
@@ -5524,7 +5783,7 @@ EOT
 # u/PAGE?revert=([0-9]+)	Go back to the \1 version of PAGE
 # u/PAGE?revert=-([0-9]+)	Go back to the current-\1 version of PAGE
 	unless(-f "$PAGE.txt"){
-		exit_message("page_not_found", $PAGE);
+		die_message("page_not_found", $PAGE);
 	}
 
 	lock_file("$PAGE.txt");
@@ -5573,15 +5832,15 @@ EOT
 make_html($PAGE) if($rebuild);
 
 if($nonwiki_read_access ne "open" || $wiki_read_access ne "open"){
-	exit_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE") if($QUERY_STRING ne "");
-	exit_message("page_not_found", $PAGE) unless(-f "$PAGE.html");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE") if($QUERY_STRING ne "");
+	die_message("page_not_found", $PAGE) unless(-f "$PAGE.html");
 
 	local *FH;
 	start_html();
 	open FH, "$PAGE.html";
 	print <FH>;
 	close FH;
-	exit;
+	die;
 }
 
-exit_redirect("$DOC_BASE/$PAGE.html");
+die_redirect("$DOC_BASE/$PAGE.html");
