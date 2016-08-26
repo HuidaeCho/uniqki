@@ -377,6 +377,7 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 				&& !-f $request_file){
 				my $url = "/$u/".substr($request_uri, 0,
 					length($request_uri) - 5);
+				respond_location($client, $url);
 			}elsif($opt{r} && ".html" ne substr($request_file, -5)
 				&& -f "$request_file.html"){
 				my $url = "/$request_uri.html";
