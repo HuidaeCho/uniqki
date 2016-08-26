@@ -2928,7 +2928,16 @@ sub get_var{
 		$var{$v} =~ y/+/ /; $var{$v} =~ s/%0D//g;
 		$var{$v} = decode_url($var{$v});
 	}
-	read STDIN, my $content, $CONTENT_LENGTH;
+	return %var if($CONTENT_LENGTH eq "" || $CONTENT_LENGTH <= 0);
+
+	my $content = "";
+	my $total_len = 0;
+	while(my $buf_len = read STDIN, my $buf, $CONTENT_LENGTH - $total_len){
+		$total_len += $buf_len;
+		$content .= $buf;
+		die_message("internal_errors") if($total_len > $CONTENT_LENGTH);
+		last if($total_len == $CONTENT_LENGTH);
+	}
 	if($CONTENT_TYPE eq "application/x-www-form-urlencoded"){
 		foreach(split /&/, $content){
 			m/^([^=]*)=(.*)$/;
