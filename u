@@ -296,9 +296,12 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 		}
 		while(my $client = $server->accept()){
 			$pid = fork();
-			die_logger "Cannot fork the client.\n"
-				unless defined $pid;
+			unless(defined $pid){
+				logger "Cannot fork the client.\n";
+				next;
+			}
 			if($pid){
+				# Parent closes the client and listens again.
 				close $client;
 				next;
 			}
