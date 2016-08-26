@@ -112,33 +112,55 @@ my $win = $^O eq "MSWin32" ? 1 : 0;
 if(!defined $ENV{GATEWAY_INTERFACE}){
 	my $cmd = "";
 	my %opt;
-	foreach(@ARGV){
-		if(m/^([^=]+)=(.*)$/){
-			$opt{$1} = $2;
+	for(my $i = 0; $i <= $#ARGV; $i++){
+		if("-" eq substr $ARGV[$i], 0, 1){
+			my $name = substr $ARGV[$i], 1;
+			if($name eq "p" || $name eq "c" || $name eq "k" ||
+				$name eq "i" || $name eq "f"){
+				die "$ARGV[$i] option requires a value"
+					if($i + 1 > $#ARGV);
+				$opt{$name} = $ARGV[++$i];
+			}else{
+				$opt{$name} = 1;
+			}
+		}elsif($cmd eq ""){
+			$cmd = $ARGV[$i];
 		}else{
-			$cmd = $_;
+			die "Provide only one command";
 		}
 	}
-	if($opt{cert} ne "" && !-f $opt{cert}){
-		die "$opt{cert}: File not found";
+	if($opt{p} ne "" && $opt{p} !~ m/^[0-9]+$/){
+		die "Port must be a number";
 	}
-	if($opt{key} ne "" && !-f $opt{key}){
-		die "$opt{key}: File not found";
+	if($opt{p} eq ""){
+		$opt{p} = $opt{c} eq "" ? 80 : 443;
 	}
-	if(($opt{cert} eq "" && $opt{key} ne "") ||
-	   ($opt{cert} ne "" && $opt{key} eq "")){
+	if($opt{c} ne "" && !-f $opt{c}){
+		die "$opt{c}: File not found";
+	}
+	if($opt{k} ne "" && !-f $opt{k}){
+		die "$opt{k}: File not found";
+	}
+	if(($opt{c} eq "" && $opt{k} ne "") ||
+	   ($opt{c} ne "" && $opt{k} eq "")){
 		die "Both cert and key files must be specified";
 	}
-	if($opt{port} ne "" && $opt{port} !~ m/^[0-9]+$/){
-		die "Port must be a number";
+	if($opt{i} eq ""){
+		$opt{i} = "index.html";
+	}
+	if($opt{f} eq ""){
+		$opt{f} = '(?:^u\.(?:cfg|pw|msg|pid|log)|^\.sessions|\.(?:tpl|txt|txt\.v))$';
+	}
+	if($opt{r} && $opt{s}){
+		die "-r and -s are mutually exclusive";
 	}
 	my $u = $0;
 	if($u =~ m#^(.*)[\\/]([^\\/]+)#){
 		chdir $1;
 		$u = $2;
 	}
-	my $pid_file = "$u.pid";
-	my $log_file = "$u.log";
+	my $pid_file = "u.pid";
+	my $log_file = "u.log";
 	my $foreground = 0;
 
 	sub logger{
@@ -200,15 +222,13 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 		eval "use IO::Socket::INET;";
 		die "The IO::Socket::INET module is required to self-serve Uniqki" if($@);
 
-		my $port = $opt{port} eq "" ? ($opt{cert} eq "" ? 80 : 443) :
-			$opt{port};
 		my $server = IO::Socket::INET->new(
 			Proto=>"tcp",
-			LocalPort=>$port,
+			LocalPort=>$opt{p},
 			Listen=>SOMAXCONN(),
 			Reuse=>1) || die "Cannot create a socket";
 
-		if($opt{cert} ne ""){
+		if($opt{c} ne ""){
 			$ENV{HTTPS} = "on";
 			eval "use IO::Socket::SSL;";
 			die "The IO::Socket::SSL module is required to self-serve Uniqki" if($@);
@@ -248,11 +268,11 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 				close $client;
 				next;
 			}
-			if($opt{cert} ne ""){
+			if($opt{c} ne ""){
 				IO::Socket::SSL->start_SSL($client,
 					SSL_server=>1,
-					SSL_cert_file=>$opt{cert},
-					SSL_key_file=>$opt{key}) ||
+					SSL_cert_file=>$opt{c},
+					SSL_key_file=>$opt{k}) ||
 				die_logger "Failed to SSL handshake.\n";
 			}
 			$client->autoflush(1);
@@ -282,9 +302,27 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 				}
 			}
 
-			if($ENV{REQUEST_METHOD} eq "GET"){
-				if($ENV{REQUEST_URI} =~ m#^/$u(/.*)?$#){
-					logger "Processing $ENV{REQUEST_URI}...\n\n";
+			logger "Processing $ENV{REQUEST_URI}...\n";
+
+			$ENV{REQUEST_URI} =~ s#^/+#/#;
+			(my $request_uri = $ENV{REQUEST_URI}) =~ s#^/##;
+			my $request_file = $request_uri eq "" ? $opt{i} :
+				decode_url($request_uri);
+			if("/" ne substr $ENV{REQUEST_URI}, 0, 1){
+				logger "Bad Request\n\n";
+				select $client;
+				print "HTTP/1.1 400 Bad Request\n";
+				print "Content-Type: text/plain\n\n";
+				print "Bad Request\n";
+			}elsif($request_file =~ m/$opt{f}/){
+				logger "Forbidden\n\n";
+				select $client;
+				print "HTTP/1.1 403 Forbidden\n";
+				print "Content-Type: text/plain\n\n";
+				print "Forbidden\n";
+			}elsif($ENV{REQUEST_METHOD} eq "GET"){
+				if($request_uri =~ m#^$u(/.*)?$#){
+					logger "Executing $u...\n\n";
 
 					$ENV{SCRIPT_NAME} = "/$u";
 					$ENV{PATH_INFO} = $1;
@@ -304,43 +342,57 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 						print "HTTP/1.1 200 OK\n";
 					}
 					print $output;
-				}elsif($ENV{REQUEST_URI} =~ m#^/+(.*)$#m){
-					my $file = decode_url($1);
-					if($file eq ""){
-						logger "Redirecting to /$u...\n\n";
-						select $client;
-						print "HTTP/1.1 302 Found\n";
-						print "Location: /$u\n\n";
-					}elsif(-f $file){
-						logger "Sending $file...\n\n";
+				}elsif($opt{r} &&
+					".html" eq substr($request_file, -5) &&
+					!-f $request_file){
+					my $url = "/$u/".substr($request_uri, 0,
+						length($request_uri) - 5);
 
-						my $mimetype = get_mimetype($file);
+					logger "Redirecting to $url...\n\n";
+					select $client;
+					print "HTTP/1.1 302 Found\n";
+					print "Location: $url\n\n";
+				}elsif($opt{r} &&
+					".html" ne substr($request_file, -5) &&
+					-f "$request_file.html"){
+					my $url = "/$request_uri.html";
+
+					logger "Redirecting to $url...\n\n";
+					select $client;
+					print "HTTP/1.1 302 Found\n";
+					print "Location: $url\n\n";
+				}elsif($opt{s}){
+					(my $page = $request_uri) =~ s/\.html$//;
+					my $url = "/$u";
+					$url .= "/$page" if($page ne "");
+
+					logger "Redirecting to $url...\n\n";
+					select $client;
+					print "HTTP/1.1 302 Found\n";
+					print "Location: $url\n\n";
+				}else{
+					if(-f $request_file){
+						logger "Sending $request_file...\n\n";
+						my $mimetype = get_mimetype($request_file);
 						select $client;
 						print "HTTP/1.1 200 OK\n";
 						print "Content-Type: $mimetype\n\n";
 						local *FH;
-						open FH, $file;
+						open FH, $request_file;
 						binmode FH;
 						print <FH>;
 						close FH;
 					}else{
-						logger "$file: Not found\n";
-						logger "Redirect to /$u/$file\n";
-
+						logger "Not Found\n\n";
 						select $client;
-						print "HTTP/1.1 302 Found\n";
-						print "Location: /$u/$file\n\n";
+						print "HTTP/1.1 404 Not Found\n";
+						print "Content-Type: text/plain\n\n";
+						print "Not Found\n";
 					}
-				}else{
-					logger "Bad Request\n\n";
-
-					select $client;
-					print "HTTP/1.1 400 Bad Request\n";
-					print "Content-Type: text/plain\n\nNot Found";
 				}
 			}elsif($ENV{REQUEST_METHOD} eq "POST"){
-				if($ENV{REQUEST_URI} =~ m#^/$u(/.*)?$#){
-					logger "Processing $ENV{REQUEST_URI}...\n\n";
+				if($request_uri =~ m#^$u(/.*)?$#){
+					logger "Executing $u...\n\n";
 
 					$ENV{SCRIPT_NAME} = "/$u";
 					$ENV{PATH_INFO} = $1;
@@ -363,10 +415,10 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 					print $output;
 				}else{
 					logger "Bad Request\n\n";
-
 					select $client;
 					print "HTTP/1.1 400 Bad Request\n";
-					print "Content-Type: text/plain\n\nNot Found";
+					print "Content-Type: text/plain\n\n";
+					print "Bad Request\n";
 				}
 			}
 			close $client;
@@ -383,22 +435,30 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 		exit;
 	}
 	print <<EOT;
-Usage: $u OPTIONS
-  start			Start the server
-    port=<port>		Port number (default: 80 for HTTP and 443 for HTTPS)
-    cert=<cert.pem>	SSL certificate file
-    key=<key.pem>	SSL key file
+Usage: $u COMMAND [OPTIONS]
+  start		     Start the server
+    -p <port>	     Port number (default: 80 for HTTP and 443 for HTTPS)
+    -c <cert.pem>    SSL certificate file
+    -k <key.pem>     SSL key file
+    -i <index.html>  Index HTML
+    -f <forbidden>   Regular expression for forbidden files (default:
+    		     (^u\\.(cfg|pw|msg|pid|log)|^\\.sessions|\\.(tpl|txt|txt\\.v))\$)
+    -r		     Redirect non-existing HTML requests to $u and non-HTML
+		     requests to existing HTML files
+    -s		     Secure the server by redirecting all requests to $u; Any
+		     of \$READ_ACCESS or \$WRITE_ACCESS must be closed to avoid
+		     infinite redirections
 EOT
 	unless($win){
 		print <<EOT;
-  restart		Restart the server
-  stop			Stop the server
+  restart	     Restart the server
+  stop		     Stop the server
 EOT
 	}
 	print <<EOT;
-  password		Print a new admin password hash
+  password	     Print a new admin password hash
 
-Please run this script from a web browser or with one of the above options.
+Please run this script from a web browser or with one of the above commands.
 EOT
 	exit;
 }
