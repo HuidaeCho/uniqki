@@ -5154,7 +5154,6 @@ EOT
 
 			if($1 eq "" && -f "$PAGE.txt"){
 				$TEXT = read_file("$PAGE.txt");
-				chomp $TEXT;
 				if("#!wiki\n" ne substr $TEXT, 0, 7){
 					die_message("internal_errors");
 				}
@@ -5194,7 +5193,6 @@ EOT
 				$TEXT =~ s/&/&amp;/g;
 				$TEXT =~ s/</&lt;/g;
 				$TEXT =~ s/>/&gt;/g;
-				chomp $TEXT;
 			}
 			$VERSION++;
 			print_wiki_edit();
@@ -5807,7 +5805,6 @@ EOT
 			$TEXT =~ s/&/&amp;/g;
 			$TEXT =~ s/</&lt;/g;
 			$TEXT =~ s/>/&gt;/g;
-			chomp $TEXT;
 		}
 		print_edit();
 		die;
