@@ -1714,7 +1714,7 @@ wiki_file_uploaded => q(%s: File uploaded. Copy and paste the link below:<pre id
 file_uploaded => q(%s: File uploaded. Copy and paste the link below:<pre id="file-link-example">{{%1$s}}</pre>),
 page_files => q(Files belonging to <a href="../%s">%1$s</a>),
 
-table_of_contents => q(Table of contents),
+table_of_contents => q(Contents),
 );
 EOT_UNIQKI
 	my $file = $MESSAGES_FILE eq "" ? "u.msg" : $MESSAGES_FILE;
