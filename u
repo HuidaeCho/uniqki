@@ -1468,7 +1468,8 @@ $SMTP = '';
 
 # Fallback MIME type command: This command will be used to determine the MIME
 # type of files when the MIME::Types module is not installed or fails to
-# determine the type.
+# determine the type.  Setting this variable to an empty string will return an
+# empty MIME type.
 $MIME_TYPE_COMMAND = '/usr/bin/file --brief --mime-type';
 
 # Read access control
