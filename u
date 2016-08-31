@@ -1119,6 +1119,7 @@ sub create_list{
 
 sub create_table{
 	my @lines = split /\n/, shift;
+	my $id = "";
 	my $caption = "";
 	my $thead = "";
 	my $tfoot = "";
@@ -1131,6 +1132,7 @@ sub create_table{
 			(my $line = $1) =~ s/^[ \t]+|[ \t]+$//g;
 			$caption .= " " if($caption ne "");
 			$caption .= $line;
+			$id = convert_page_name($line) if($id eq "");
 		}elsif($end eq "^"){
 			$thead .= create_table_row($_);
 		}elsif($end eq "!"){
@@ -1157,7 +1159,11 @@ sub create_table{
 	$thead = update_table_rowspan($thead);
 	$tfoot = update_table_rowspan($tfoot);
 
-	$table = "<table>\n";
+	if($id eq ""){
+		$table = "<table>\n";
+	}else{
+		$table = "<table id=\"table.$id\">\n";
+	}
 	$table .= "<caption>$caption</caption>\n" if($caption ne "");
 	$table .= "<thead>\n$thead</thead>\n" if($thead ne "");
 	$table .= $tbodies if($tbodies ne "");
@@ -1269,6 +1275,7 @@ sub update_table_rowspan{
 
 sub create_figure{
 	my @lines = split /\n/, shift;
+	my $id = "";
 	my $content = "";
 	my $figcaption = "";
 	my $figure = "";
@@ -1284,12 +1291,17 @@ sub create_figure{
 		}else{
 			$figcaption .= " " if($figcaption ne "");
 			$figcaption .= $line;
+			$id = convert_page_name($line) if($id eq "");
 		}
 	}
 
 	return $figure if($content eq "" && $figcaption eq "");
 
-	$figure = "<figure>\n";
+	if($id eq ""){
+		$figure = "<figure>\n";
+	}else{
+		$figure = "<figure id=\"figure.$id\">\n";
+	}
 	$figure .= "$content\n" if($content ne "");
 	$figure .= "<figcaption>$figcaption</figcaption>\n"
 		if($figcaption ne "");
