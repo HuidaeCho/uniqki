@@ -436,10 +436,6 @@ EOT
 	exit;
 }
 
-# hmac_sha1 routine for password hashing
-eval "use Digest::HMAC_SHA1 qw(hmac_sha1);";
-die_message("perl_module_not_installed", "Digest::HMAC_SHA1") if($@);
-
 ################################################################################
 # CGI variables
 $CFG = $ENV{HTTP_UNIQKI_CONFIG};
@@ -536,6 +532,11 @@ my ($nonwiki_read_access, $wiki_read_access, $wiki_write_access) =
 ################################################################################
 # Messages
 process_msg();
+
+################################################################################
+# hmac_sha1 routine for password hashing
+eval "use Digest::HMAC_SHA1 qw(hmac_sha1);";
+die_message("perl_module_not_installed", "Digest::HMAC_SHA1") if($@);
 
 ################################################################################
 # Initialization
@@ -3534,9 +3535,9 @@ sub pbkdf2{
 	my ($k, $t, $u, $ui, $i);
 	$t = "";
 	for($k = 1; length($t) < $keylen; $k++){
-		$u = $ui = hmac_sha1($salt.pack('N', $k), $password);
+		$u = $ui = $prf->($salt.pack('N', $k), $password);
 		for($i = 1; $i < $iter; $i++){
-			$ui = hmac_sha1($ui, $password);
+			$ui = $prf->($ui, $password);
 			$u ^= $ui;
 		}
 		$t .= $u;
