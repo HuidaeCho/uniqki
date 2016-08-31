@@ -225,10 +225,10 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 	sub respond_file{
 		my ($client, $file) = @_;
 		logger "Sending $file...\n\n";
-		my $mimetype = get_mimetype($file);
+		my $mime_type = get_mime_type($file);
 		select $client;
 		print "HTTP/1.1 200 OK\n";
-		print "Content-Type: $mimetype\n\n";
+		print "Content-Type: $mime_type\n\n";
 
 		local *FH;
 		open FH, $file;
@@ -625,26 +625,26 @@ sub config_read_write_access{
 	return ($nonwiki_read_access, $wiki_read_access, $wiki_write_access);
 }
 
-sub run_file_mimetype{
+sub run_file_mime_type{
 	my $file = shift;
-	return "" unless(-f $file);
-	(my $mimetype = `file --brief --mime-type $file`) =~ y/[\r\n]//d;
-	return $mimetype;
+	return "" if($MIME_TYPE_COMMAND eq "" || !-f $file);
+	(my $mime_type = `$MIME_TYPE_COMMAND $file`) =~ y/[\r\n]//d;
+	return $mime_type;
 }
 
-sub get_mimetype{
+sub get_mime_type{
 	my $file = shift;
 	return "" unless(-f $file);
-	my $mimetype;
+	my $mime_type;
 	eval "use MIME::Types;";
 	if($@){
-		$mimetype = run_file_mimetype($file);
+		$mime_type = run_file_mime_type($file);
 	}else{
-		$mimetype = MIME::Types->new(only_iana=>1)->mimeTypeOf($file);
-		$mimetype = run_file_mimetype($file) if($mimetype eq "");
+		$mime_type = MIME::Types->new(only_iana=>1)->mimeTypeOf($file);
+		$mime_type = run_file_mime_type($file) if($mime_type eq "");
 	}
-	$mimetype = "application/octet-stream" if($mimetype eq "");
-	return $mimetype;
+	$mime_type = "application/octet-stream" if($mime_type eq "");
+	return $mime_type;
 }
 
 sub die_path{
@@ -672,10 +672,10 @@ sub die_path{
 		die;
 	}
 
-	my $mimetype = get_mimetype($path);
+	my $mime_type = get_mime_type($path);
 	(my $file = $path) =~ s#^.*/##;
 	print <<EOT;
-Content-Type: $mimetype
+Content-Type: $mime_type
 Content-Disposition: inline; filename="$file"
 
 EOT
@@ -1465,6 +1465,11 @@ $EMAIL_ADDRESS = '';
 # The format of this variable is 'server:port:username:password'.  The password
 # may contain colons (:), but the username cannot.
 $SMTP = '';
+
+# Fallback MIME type command: This command will be used to determine the MIME
+# type of files when the MIME::Types module is not installed or fails to
+# determine the type.
+$MIME_TYPE_COMMAND = '/usr/bin/file --brief --mime-type';
 
 # Read access control
 # * open: Opens both non-wiki and wiki pages to the public and anyone will be
@@ -2481,15 +2486,15 @@ EOT_UNIQKI
 sub print_js{
 	process_tpl("uniqki.js", shift, <<'EOT_UNIQKI');
 /* http://developer.mozilla.org/en/docs/AJAX:Getting_Started */
-function ajax_request(url, data, func, mimetype){
+function ajax_request(url, data, func, mime_type){
 	var xml_request = null;
 
 	/* Create an XMLHTTP instance */
 	if(window.XMLHttpRequest){ /* Mozilla, Safari, ... */
 		xml_request = new XMLHttpRequest();
-		if(mimetype != null && xml_request.overrideMimeType){
+		if(mime_type != null && xml_request.overrideMimeType){
 			/* Some web servers return a non-standard mime type. */
-			xml_request.overrideMimeType(mimetype);
+			xml_request.overrideMimeType(mime_type);
 		}
 	}else
 	if(window.ActiveXObject){ /* IE */
