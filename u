@@ -802,14 +802,14 @@ sub link_page{
 
 	if($enc_page eq ""){
 		return "" if($enc_section eq "");
-		return qq(<a href="#$enc_section">$section</a>) if($title eq "");
+		return qq(<a class="auto-title" href="#$enc_section">$section</a>) if($title eq "");
 		return qq(<a href="#$enc_section">$title</a>);
 	}
 	if($enc_section eq ""){
-		return qq(<a href="$enc_page.html">$page</a>) if($title eq "");
+		return qq(<a class="auto-title" href="$enc_page.html">$page</a>) if($title eq "");
 		return qq(<a href="$enc_page.html">$title</a>);
 	}
-	return qq(<a href="$enc_page.html#$enc_section">$section</a>) if($title eq "");
+	return qq(<a class="auto-title" href="$enc_page.html#$enc_section">$section</a>) if($title eq "");
 	return qq(<a href="$enc_page.html#$enc_section">$title</a>);
 }
 
@@ -850,7 +850,7 @@ sub link_image{
 	}
 
 	my $enc_path = encode_url("$page/$file");
-	return qq(<img src="$enc_path" alt="$file" title="$file"$style />) if($title eq "");
+	return qq(<img class="auto-title" src="$enc_path" alt="$file" title="$file"$style />) if($title eq "");
 	return qq(<img src="$enc_path" alt="$title" title="$title"$style />);
 }
 
@@ -893,12 +893,12 @@ sub link_file{
 	}
 
 	if($file eq ""){
-		return qq(<a href="$page/">$page/</a>) if($title eq "");
+		return qq(<a class="auto-title" href="$page/">$page/</a>) if($title eq "");
 		return qq(<a href="$page/">$title</a>);
 	}
 
 	my $enc_path = encode_url("$page/$file");
-	return qq(<a href="$enc_path">$file</a>) if($title eq "");
+	return qq(<a class="auto-title" href="$enc_path">$file</a>) if($title eq "");
 	return qq(<a href="$enc_path">$title</a>);
 }
 
@@ -911,7 +911,7 @@ sub link_url_image{
 	$style = qq( style="$style") if($style ne "");
 
 	my $enc_url = encode_url($url);
-	return qq(<img src="$enc_url" alt="$url" title="$url"$style />) if($title eq "");
+	return qq(<img class="auto-title" src="$enc_url" alt="$url" title="$url"$style />) if($title eq "");
 	return qq(<img src="$enc_url" alt="$title" title="$title"$style />);
 }
 
@@ -922,7 +922,7 @@ sub link_url{
 	$title =~ s/^[ \t]+|[ \t]+$//g;
 
 	my $enc_url = encode_url($url);
-	return qq(<a href="$enc_url">$url</a>) if($title eq "");
+	return qq(<a class="auto-title" href="$enc_url">$url</a>) if($title eq "");
 	return qq(<a href="$enc_url">$title</a>);
 }
 
@@ -4124,9 +4124,9 @@ sub parse_line{
 	# Protect protocols outside a tag
 	s#(<a [^>]*>)([^<]*(?:$protocol)[^<]*)(</a>)#$1@{[protect_urls($2)]}$3#ogi;
 	# Translate non-protected protocols to links
-	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+\x01[a-z]+;)(?=(?:[ \t]|$))#<a href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
-	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+)(?=[$protocol_punct](?:[ \t]|$))#<a href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
-	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+)#<a href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
+	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+\x01[a-z]+;)(?=(?:[ \t]|$))#<a class="auto-title" href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
+	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+)(?=[$protocol_punct](?:[ \t]|$))#<a class="auto-title" href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
+	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+)#<a class="auto-title" href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
 	s/\x01/&amp;/g; s/\x02/&lt;/g; s/\x03/&gt;/g;
 	# Collect list lines
 	if(m/^( *)((?:[*+-]|: .*?:) )?/ && length($1)%2 == 0 && "$1$2" ne "" &&
