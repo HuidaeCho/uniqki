@@ -102,7 +102,8 @@ use vars qw(
 use vars qw(
 	$text $protocol $protocol_char $protocol_punct $image_ext $code_block
 	$syntax_block @syntax_blocks $re_i_start $re_i @re @re_sub $toc $notoc
-	%h_i $h_top $h_prev $p $pre $pre_code $list $table $figure
+	%h_i $h_top $h_prev $lot $nolot $lof $nolof $p $pre $pre_code $list
+	$table $figure
 );
 
 umask 022;
@@ -1120,6 +1121,7 @@ sub create_list{
 sub create_table{
 	my @lines = split /\n/, shift;
 	my $id = "";
+	my $title = "";
 	my $caption = "";
 	my $thead = "";
 	my $tfoot = "";
@@ -1128,11 +1130,16 @@ sub create_table{
 
 	foreach(@lines){
 		my $end = substr $_, -1;
-		if(m/^![ \t](.*[ \t])?!$/){
-			(my $line = $1) =~ s/^[ \t]+|[ \t]+$//g;
+		if(m/^!(!)?[ \t](.*[ \t])?!$/){
+			my $inc_lot = $1 eq "" ? 1 : 0;
+			(my $line = $2) =~ s/^[ \t]+|[ \t]+$//g;
+			next if($line eq "");
 			$caption .= " " if($caption ne "");
 			$caption .= $line;
-			$id = convert_page_name("table $line") if($id eq "");
+			if($inc_lot && $id eq ""){
+				$id = convert_page_name("table $line");
+				$title = $line;
+			}
 		}elsif($end eq "^"){
 			$thead .= create_table_row($_);
 		}elsif($end eq "!"){
@@ -1163,6 +1170,8 @@ sub create_table{
 		$table = "<table>\n";
 	}else{
 		$table = "<table id=\"$id\">\n";
+		my $enc_id = encode_url($id);
+		$lot .= "<li><a href=\"#$enc_id\">$title</a></li>\n";
 	}
 	$table .= "<caption>$caption</caption>\n" if($caption ne "");
 	$table .= "<thead>\n$thead</thead>\n" if($thead ne "");
@@ -1276,22 +1285,28 @@ sub update_table_rowspan{
 sub create_figure{
 	my @lines = split /\n/, shift;
 	my $id = "";
+	my $title = "";
 	my $content = "";
 	my $figcaption = "";
 	my $figure = "";
 
 	foreach(@lines){
-		my $start = substr $_, 0, 1;
-		(my $line = substr $_, 2, length($_)-4) =~ s/^[ \t]+|[ \t]+$//g;
-		next if($line eq "");
-
-		if($start eq "@"){
-			$content .= " " if($content ne "");
-			$content .= $line;
-		}else{
+		if(m/^"(!)?[ \t](.*[ \t])?"$/){
+			my $inc_lof = $1 eq "" ? 1 : 0;
+			(my $line = $2) =~ s/^[ \t]+|[ \t]+$//g;
+			next if($line eq "");
 			$figcaption .= " " if($figcaption ne "");
 			$figcaption .= $line;
-			$id = convert_page_name("figure $line") if($id eq "");
+			if($inc_lof && $id eq ""){
+				$id = convert_page_name("figure $line");
+				$title = $line;
+			}
+		}else{
+			my $line = substr $_, 2, length($_) - 4;
+			$line =~ s/^[ \t]+|[ \t]+$//g;
+			next if($line eq "");
+			$content .= " " if($content ne "");
+			$content .= $line;
 		}
 	}
 
@@ -1301,6 +1316,8 @@ sub create_figure{
 		$figure = "<figure>\n";
 	}else{
 		$figure = "<figure id=\"$id\">\n";
+		my $enc_id = encode_url($id);
+		$lof .= "<li><a href=\"#$enc_id\">$title</a></li>\n";
 	}
 	$figure .= "$content\n" if($content ne "");
 	$figure .= "<figcaption>$figcaption</figcaption>\n"
@@ -1715,6 +1732,8 @@ file_uploaded => q(%s: File uploaded. Copy and paste the link below:<pre id="fil
 page_files => q(Files belonging to <a href="../%s">%1$s</a>),
 
 table_of_contents => q(Contents),
+list_of_tables => q(Tables),
+list_of_figures => q(Figures),
 );
 EOT_UNIQKI
 	my $file = $MESSAGES_FILE eq "" ? "u.msg" : $MESSAGES_FILE;
@@ -2421,6 +2440,16 @@ textarea {
 	font-weight:		bold;
 }
 .toc-list {
+}
+.lot-heading {
+	font-weight:		bold;
+}
+.lot-list {
+}
+.lof-heading {
+	font-weight:		bold;
+}
+.lof-list {
 }
 .text-left {
 	text-align:		left;
@@ -3717,8 +3746,9 @@ sub parse_file{
 
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
 		$code_block, $syntax_block, @syntax_blocks, $re_i_start, $re_i,
-		@re, @re_sub, $toc, $notoc, %h_i, $h_top, $h_prev, $p, $pre,
-		$pre_code, $list, $table, $figure);
+		@re, @re_sub, $toc, $notoc, %h_i, $h_top, $h_prev, $lot,
+		$nolot, $lof, $nolof, $p, $pre, $pre_code, $list, $table,
+		$figure);
 	my ($header_file, $footer_file);
 
 	unless($wiki){
@@ -3748,8 +3778,9 @@ sub parse_block{
 	my $txt = shift;
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
 		$code_block, $syntax_block, @syntax_blocks, $re_i_start, $re_i,
-		@re, @re_sub, $toc, $notoc, %h_i, $h_top, $h_prev, $p, $pre,
-		$pre_code, $list, $table, $figure);
+		@re, @re_sub, $toc, $notoc, %h_i, $h_top, $h_prev, $lot,
+		$nolot, $lof, $nolof, $p, $pre, $pre_code, $list, $table,
+		$figure);
 
 	$begin_parsing = \&begin_parsing unless(defined($begin_parsing));
 	$parse_line = \&parse_line unless(defined($parse_line));
@@ -3809,6 +3840,10 @@ sub begin_parsing{
 	%h_i = ();
 	$h_top = 0;
 	$h_prev = 0;
+	$lot = "";
+	$nolot = 1;
+	$lof = "";
+	$nolof = 1;
 	$p = 0;
 	$pre = 0;
 	$pre_code = "";
@@ -3822,8 +3857,8 @@ sub parse_line{
 	# \x01: &
 	# \x02: <
 	# \x03: >
-	# \x04: place holder for auto-generated TOC
-	# \x05: place holder for syntax block
+	# \x04: place holder for syntax block
+	# \x05: place holder for auto-generated table of contents
 	# \x1e: delimiter
 	# ##admin code
 	# #user code
@@ -3831,7 +3866,6 @@ sub parse_line{
 	# %comment
 	local $_ = shift;
 	s/[\r\n]//g;
-#	$text .= "[[$_]]\n";
 
 	# Apply regular expressions where needed
 	if(!$pre && m/^(?!#(?:no)?regex)/){
@@ -3879,7 +3913,7 @@ sub parse_line{
 			my $parsed_block = parse_block($code);
 			chomp $parsed_block;
 			push @syntax_blocks, $parsed_block;
-			$_ = "$begin\x05$end";
+			$_ = "$begin\x04$end";
 		}else{
 			$syntax_block .= "$_\n";
 			return;
@@ -3984,6 +4018,16 @@ sub parse_line{
 		$notoc = 1;
 		return;
 	}
+	# List of tables
+	if("#lot" eq $_){
+		$nolot = 0;
+		return;
+	}
+	# List of figures
+	if("#lof" eq $_){
+		$nolof = 0;
+		return;
+	}
 	# Admin code starts
 	# Include other Uniqki files
 	if(m/^##include (.+)$/){
@@ -4026,12 +4070,13 @@ sub parse_line{
 	}
 	# Close table
 	if($table ne "" &&
-		!(m/^(?:![ \t](?:.*[ \t])?!|[|^][ \t](?:.*[ \t])?(?:[!^]+|\|+_?))$/)){
+		!(m/^(?:!!?[ \t](?:.*[ \t])?!|[|^][ \t](?:.*[ \t])?(?:[!^]+|\|+_?))$/)){
 		$text .= create_table($table);
 		$table = "";
 	}
 	# Close figure
-	if($figure ne "" && !(m/^([@"])[ \t](?:.*[ \t])?\1$/)){
+	if($figure ne "" &&
+		!(m/^(?:"!?[ \t](?:.*[ \t])?"|@[ \t](?:.*[ \t])?@)$/)){
 		$text .= create_figure($figure);
 		$figure = "";
 	}
@@ -4094,7 +4139,7 @@ sub parse_line{
 		return;
 	}
 	# Collect table lines
-	if(m/^(?:![ \t](?:.*[ \t])?!|[|^][ \t](?:.*[ \t])?(?:[!^]+|\|+_?))$/){
+	if(m/^(?:!!?[ \t](?:.*[ \t])?!|[|^][ \t](?:.*[ \t])?(?:[!^]+|\|+_?))$/){
 		if($p){
 			$text .= "</p>\n";
 			$p = 0;
@@ -4103,7 +4148,7 @@ sub parse_line{
 		return;
 	}
 	# Collect figure lines
-	if(m/^([@"])[ \t](?:.*[ \t])?\1$/){
+	if(m/^(?:"!?[ \t](?:.*[ \t])?"|@[ \t](?:.*[ \t])?@)$/){
 		if($p){
 			$text .= "</p>\n";
 			$p = 0;
@@ -4118,18 +4163,12 @@ sub parse_line{
 		$_ = $2;
 		# Inline perl code
 		s/``(.*?)``(?!`)/$1/eeg;
+		s/^[ \t]+|[ \t]+$//g;
 		# Discard NONE characters
 		y/\x00//d;
-		(my $t = $_) =~ s/<[^>]*>//g;
-		$t =~ s/^ *//; $t =~ s/ *$//;
-		my $id = $t;
+		(my $title = $_) =~ s/<[^>]*>//g;
+		my $id = $title;
 		$id =~ s/&amp;/&/g; $id =~ s/&lt;/</g; $id =~ s/&gt;/>/g;
-		$id = convert_page_name($id);
-		my $enc_id = encode_url($id);
-		my $j = $h_i{$id}++;
-		if($j > 0){
-			$id .= ".".($j+1);
-		}
 		if($p){
 			$text .= "</p>\n";
 			$p = 0;
@@ -4139,11 +4178,18 @@ sub parse_line{
 				$TITLE = $_;
 				$TITLE =~ s/<[^>]*>//g;
 			}
-			$text .= qq(<h$i id="$id">$_</h$i>\n);
+			$text .= qq(<h$i>$_</h$i>\n);
 			return;
-		}else{
-			$text .= "\x04" if($toc eq "" && $inc_toc);
+		}elsif($inc_toc){
+			$id = convert_page_name($id);
+			my $j = $h_i{$id}++;
+			if($j > 0){
+				$id .= ".".($j+1);
+			}
+			$text .= "\x05" if($toc eq "");
 			$text .= qq(<h$i id="$id">$_</h$i>\n);
+		}else{
+			$text .= qq(<h$i>$_</h$i>\n);
 		}
 		return unless($inc_toc);
 
@@ -4152,8 +4198,6 @@ sub parse_line{
 				$toc .= "<li><ul>" while($h_prev++<$i);
 				$h_prev--;
 			}else{
-				$toc .= "<ul class=\"toc-list\">";
-				$toc .= "\n" if($i > 1);
 				$toc .= "<li><ul>" while(++$h_prev<$i);
 				$h_top = $i;
 			}
@@ -4164,7 +4208,8 @@ sub parse_line{
 			$h_prev++;
 			$h_top = $i if($i < $h_top);
 		}
-		$toc .= "<li><a href=\"#$enc_id\">$t</a></li>\n";
+		my $enc_id = encode_url($id);
+		$toc .= "<li><a href=\"#$enc_id\">$title</a></li>\n";
 		return;
 	}
 	# Start a new paragraph
@@ -4206,10 +4251,9 @@ sub end_parsing{
 		$text .= "</p>\n";
 		$p = 0;
 	}
-	if($notoc){
-		$text =~ s/\x04//g;
-	}elsif($h_prev){
+	if(!$notoc && $toc ne ""){
 		my $i = $h_prev;
+		$toc = "<ul class=\"toc-list\">\n$toc";
 		$toc .= "</ul></li>" while(--$h_prev>0);
 		$toc .= ($i > 1 ? "\n" : "")."</ul>\n";
 		for(my $i=0; $i<$h_top-1; $i++){
@@ -4223,10 +4267,25 @@ sub end_parsing{
 			"<div class=\"toc-heading\">$heading</div>\n".
 			"$toc</div>\n";
 		$h_prev = 0;
-		$text =~ s/\x04/$toc/g;
+		$text =~ s/\x05/$toc\x05/g;
 	}
+	if(!$nolot && $lot ne ""){
+		my $heading = get_msg("list_of_tables");
+		$lot = "<div id=\"lot\">\n".
+			"<div class=\"lot-heading\">$heading</div>\n".
+			"<ul class=\"lot-list\">\n$lot</ul>\n</div>\n";
+		$text =~ s/\x05/$lot\x05/g;
+	}
+	if(!$nolof && $lof ne ""){
+		my $heading = get_msg("list_of_figures");
+		$lof = "<div id=\"lof\">\n".
+			"<div class=\"lof-heading\">$heading</div>\n".
+			"<ul class=\"lof-list\">\n$lof</ul>\n</div>\n";
+		$text =~ s/\x05/$lof\x05/g;
+	}
+	$text =~ s/\x05//g;
 	my $i = 0;
-	$text =~ s/\x05/@{[$syntax_blocks[$i++]]}/g;
+	$text =~ s/\x04/@{[$syntax_blocks[$i++]]}/g;
 	$text =~ s#<(i|b|code|su|mark)>([ \t\n]*)</\1>#$2#g;
 	$text =~ s#\n*(<(?:p|li|dd)>)\n*#\n$1#g;
 	$text =~ s#\n*(</(?:p|li|dd)>)\n*#$1\n#g;
