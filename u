@@ -801,14 +801,14 @@ sub link_page{
 
 	if($enc_page eq ""){
 		return "" if($enc_section eq "");
-		return qq(<a href="#$enc_section">#$section</a>) if($title eq "");
+		return qq(<a href="#$enc_section">$section</a>) if($title eq "");
 		return qq(<a href="#$enc_section">$title</a>);
 	}
 	if($enc_section eq ""){
 		return qq(<a href="$enc_page.html">$page</a>) if($title eq "");
 		return qq(<a href="$enc_page.html">$title</a>);
 	}
-	return qq(<a href="$enc_page.html#$enc_section">$page#$section</a>) if($title eq "");
+	return qq(<a href="$enc_page.html#$enc_section">$section</a>) if($title eq "");
 	return qq(<a href="$enc_page.html#$enc_section">$title</a>);
 }
 
@@ -1132,7 +1132,7 @@ sub create_table{
 			(my $line = $1) =~ s/^[ \t]+|[ \t]+$//g;
 			$caption .= " " if($caption ne "");
 			$caption .= $line;
-			$id = convert_page_name($line) if($id eq "");
+			$id = convert_page_name("table $line") if($id eq "");
 		}elsif($end eq "^"){
 			$thead .= create_table_row($_);
 		}elsif($end eq "!"){
@@ -1162,7 +1162,7 @@ sub create_table{
 	if($id eq ""){
 		$table = "<table>\n";
 	}else{
-		$table = "<table id=\"table.$id\">\n";
+		$table = "<table id=\"$id\">\n";
 	}
 	$table .= "<caption>$caption</caption>\n" if($caption ne "");
 	$table .= "<thead>\n$thead</thead>\n" if($thead ne "");
@@ -1291,7 +1291,7 @@ sub create_figure{
 		}else{
 			$figcaption .= " " if($figcaption ne "");
 			$figcaption .= $line;
-			$id = convert_page_name($line) if($id eq "");
+			$id = convert_page_name("figure $line") if($id eq "");
 		}
 	}
 
@@ -1300,7 +1300,7 @@ sub create_figure{
 	if($id eq ""){
 		$figure = "<figure>\n";
 	}else{
-		$figure = "<figure id=\"figure.$id\">\n";
+		$figure = "<figure id=\"$id\">\n";
 	}
 	$figure .= "$content\n" if($content ne "");
 	$figure .= "<figcaption>$figcaption</figcaption>\n"
@@ -4129,7 +4129,7 @@ sub parse_line{
 				$TITLE = $_;
 				$TITLE =~ s/<[^>]*>//g;
 			}
-			$text .= qq(<h$i>$_</h$i>\n);
+			$text .= qq(<h$i id="$id">$_</h$i>\n);
 			return;
 		}else{
 			$text .= "\x04" if($toc eq "" && $inc_toc);
