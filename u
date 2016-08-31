@@ -2609,7 +2609,15 @@ function process_menu(xml_request){
 		wiki_menu.style.display = 'block';
 }
 
-ajax_request('[[CGI]]/[[PAGE]]?user_info', null, process_menu);
+function window_onload(func){
+	if(window.addEventListener){
+		window.addEventListener('load', func);
+	}else{
+		window.attachEvent('onload', func);
+	}
+}
+
+window_onload(ajax_request('[[CGI]]/[[PAGE]]?user_info', null, process_menu));
 EOT_UNIQKI
 }
 
