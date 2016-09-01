@@ -3453,7 +3453,7 @@ sub handle_session{
 
 sub clear_password_reset_token{
 	my $token = shift;
-	return unless(-f $PASSWORD_FILE);
+	return if($token eq "" || !-f $PASSWORD_FILE);
 
 	my $new_pw = "";
 	my $cleared = 0;
