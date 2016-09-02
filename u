@@ -156,7 +156,7 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 		die "-r and -s are mutually exclusive";
 	}
 	my $u = $0;
-	if($u =~ m#^(.*)[\\/]([^\\/]+)#){
+	if($u =~ m#^(.*)[\\/](.+)#){
 		chdir $1;
 		$u = $2;
 	}
@@ -4379,11 +4379,13 @@ if($QUERY_STRING eq "login"){
 if($QUERY_STRING eq "css"){
 #-------------------------------------------------------------------------------
 # u?css			Print CSS
+# u/PAGE?css		Print CSS
 	print_css(2);
 	die;
 }elsif($QUERY_STRING eq "js"){
 #-------------------------------------------------------------------------------
 # u?js			Print JavaScript
+# u/PAGE?js		Print JavaScript
 	print_js(2);
 	die;
 }elsif($QUERY_STRING eq "user_info"){
