@@ -1398,7 +1398,7 @@ $LOCALE = '';
 $TIME_ZONE = '';
 
 # Time format interpreted by the POSIX::strftime function
-$TIME_FORMAT = '%a %b %e %H:%M:%S %Y';
+$TIME_FORMAT = '%a %b %e %H:%M:%S %Y %Z';
 
 # Share cookies: [subdomains:][EMPTY|subpaths|all_paths]
 # * subdomains: http://example.com/u shares cookies with
