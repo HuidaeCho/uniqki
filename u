@@ -1540,7 +1540,7 @@ $READ_ACCESS = 'open';
 $WRITE_ACCESS = 'open';
 
 # Regular expression for page names that are not allowed
-$PAGES_NOT_ALLOWED = q(^robots$);
+$PAGES_NOT_ALLOWED = q();
 
 # Header and footer files for the parser
 $HEADER_FILE = '';
