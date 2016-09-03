@@ -83,7 +83,7 @@ use vars qw(
 	$READ_ACCESS $WRITE_ACCESS
 	$HEADER_FILE $FOOTER_FILE
 	$WIKI_HEADER_FILE $WIKI_FOOTER_FILE
-	$WIKI_ALLOWED_PAGES $WIKI_ALLOWED_FILES
+	$WIKI_PAGES_ALLOWED $WIKI_FILES_ALLOWED
 
 	%MESSAGES
 );
@@ -1533,26 +1533,29 @@ $READ_ACCESS = 'open';
 # * closed: Requires a login to edit or create wiki pages.
 # * admin: Requires admin rights to edit or create wiki pages.
 #
-# Creating new wiki pages also depends on $WIKI_ALLOWED_PAGES.  For security
+# Creating new wiki pages also depends on $WIKI_PAGES_ALLOWED.  For security
 # reasons, non-wiki pages are writable only by admin users and this variable
 # cannot affect that behavior.
 $WRITE_ACCESS = 'open';
+
+# Regular expression for page names that are not allowed
+$PAGES_NOT_ALLOWED = q(^robots$);
 
 # Header and footer files for the parser
 $HEADER_FILE = '';
 $FOOTER_FILE = '';
 
-# Header and footer files for the wiki parser
-$WIKI_HEADER_FILE = '';
-$WIKI_FOOTER_FILE = '';
-
 # Regular expression for wiki page names that are allowed to be created by
 # non-admin users
-$WIKI_ALLOWED_PAGES = q();
+$WIKI_PAGES_ALLOWED = q();
 
 # Regular expression for file names that are allowed to be uploaded by
 # non-admin users to a wiki page
-$WIKI_ALLOWED_FILES = q(\.(png|gif|jpg|jpeg|txt|zip)$);
+$WIKI_FILES_ALLOWED = q(\.(png|gif|jpg|jpeg|txt|zip)$);
+
+# Header and footer files for the wiki parser
+$WIKI_HEADER_FILE = '';
+$WIKI_FOOTER_FILE = '';
 EOT_UNIQKI
 	my $file = $CFG eq "" ? "u.cfg" : $CFG;
 	if($mode == 1){
@@ -1689,6 +1692,7 @@ reset_password_email_subject => q(%s: Reset password),
 reset_password_email_text => q(Please reset your password for username %s at %s by visiting %s within %d minutes.),
 email_notification_failed => q(Email notification failed for user %s <%s>.),
 
+page_not_allowed => q(%s: Page not allowed.),
 page_not_found => q(%s: Page not found.),
 create_page => q(%s: Page not found. <a href="?edit">Create this page.</a>),
 not_wiki_page => q(%s: This page is not a wiki page.),
@@ -1728,6 +1732,7 @@ comment_tag_not_found => q(%s: Comment tag not found.),
 invalid_comment_tag => q(%s: Invalid comment tag.),
 
 current_version => q(The current version of <a href="%s">%1$s</a> is %d.),
+wiki_file_not_allowed => q(%s: File not allowed.),
 wiki_file_uploaded => q(%s: File uploaded. Copy and paste the link below:<pre id="file-link-example">{{%s|%1$s}}</pre>),
 file_uploaded => q(%s: File uploaded. Copy and paste the link below:<pre id="file-link-example">{{%1$s}}</pre>),
 page_files => q(Files belonging to <a href="../%s">%1$s</a>),
@@ -4309,6 +4314,8 @@ if($PAGE eq $CGI && $FILE ne ""){
 }
 
 $PAGE = convert_page_name($PAGE);
+die_message("page_not_allowed", $PAGE)
+	if($PAGES_NOT_ALLOWED ne "" && $PAGE =~ m/$PAGES_NOT_ALLOWED/o);
 
 ################################################################################
 # Login, logout
@@ -4369,8 +4376,8 @@ if($QUERY_STRING eq "login"){
 			open FH, "$page.txt";
 			$wiki = 1 if(<FH> eq "#!wiki\n");
 			close FH;
-		}elsif($WIKI_ALLOWED_PAGES ne "" &&
-			$page =~ m/$WIKI_ALLOWED_PAGES/o){
+		}elsif($WIKI_PAGES_ALLOWED ne "" &&
+			$page =~ m/$WIKI_PAGES_ALLOWED/o){
 			$wiki = 1;
 		}
 	}
@@ -4709,9 +4716,7 @@ if($QUERY_STRING eq "css"){
 # u/PAGE?diff		Diff current and previous version
 # u/PAGE?diff=([0-9]+)	Diff current and \1 version
 # u/PAGE?diff=-([0-9]+)	Diff current and current-\1 version
-	unless(-f "$PAGE.txt"){
-		die_message("page_not_found", $PAGE);
-	}
+	die_message("page_not_found", $PAGE) unless(-f "$PAGE.txt");
 
 	my $current_version = get_version($PAGE);
 	my $version = $1 > 0 ? $1 : $current_version + ($1 < 0 ? $1 : -1);
@@ -4874,6 +4879,9 @@ if($QUERY_STRING eq "css"){
 	foreach(<$glob.txt>){
 		next if(substr($_,0,1) eq "." || index($_,"/") >= 0 || !-f $_);
 		s/\.txt$//;
+		if($PAGES_NOT_ALLOWED ne "" && m/$PAGES_NOT_ALLOWED/o){
+			next;
+		}
 		my $page = $_;
 		my $title = $page;
 		my @t = localtime((stat "$page.txt")[9]);
@@ -4956,6 +4964,9 @@ if($QUERY_STRING eq "css"){
 	foreach(<$glob.txt>){
 		next if(substr($_,0,1) eq "." || index($_,"/") >= 0 || !-f $_);
 		s/\.txt$//;
+		if($PAGES_NOT_ALLOWED ne "" && m/$PAGES_NOT_ALLOWED/o){
+			next;
+		}
 		my $t = (stat "$_.txt")[9];
 		my @t = split / +/, scalar gmtime($t);
 		$list[$i++] = sprintf "%d %s, %02d %s %d %s GMT %s",
@@ -5299,9 +5310,11 @@ EOT
 	if($QUERY_STRING eq "wiki_upload"){
 #-------------------------------------------------------------------------------
 # Wiki upload
-		die if($WIKI_ALLOWED_FILES eq "" || !-f "$PAGE.txt" ||
-			$var{file} eq "" ||
-			$var{file} !~ m/$WIKI_ALLOWED_FILES/oi);
+		die_message("internal_errors") if($var{file} eq "");
+		die_message("page_not_found", $PAGE) unless(-f "$PAGE.txt");
+		die_message("wiki_file_not_allowed", $var{file})
+			if($WIKI_FILES_ALLOWED eq "" ||
+				$var{file} !~ m/$WIKI_FILES_ALLOWED/oi);
 
 		open FH, "$PAGE.txt";
 		if(<FH> ne "#!wiki\n"){
@@ -5330,7 +5343,7 @@ EOT
 		print_updated();
 		die;
 	}
-	if($var{file} ne "" && $var{file} =~ m/$WIKI_ALLOWED_FILES/oi){
+	if($var{file} ne "" && $var{file} =~ m/$WIKI_FILES_ALLOWED/oi){
 		mkdir $PAGE, 0755 if(!-d $PAGE);
 		write_file("$PAGE/$t.$var{file}", $var{"file="}, 1);
 		chmod 0755, "$PAGE/$t.$var{file}" if($hosting eq "awardspace");
@@ -5448,6 +5461,9 @@ EOT
 	foreach($glob eq "" ? (<.*.txt>, <*.txt>) : <$glob.txt>){
 		next if(index($_, "/") >= 0 || !-f $_);
 		s/\.txt$//;
+		if($PAGES_NOT_ALLOWED ne "" && m/$PAGES_NOT_ALLOWED/o){
+			next;
+		}
 		$PAGE = $_;
 		make_html($PAGE);
 		undef $begin_parsing;
