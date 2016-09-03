@@ -502,7 +502,7 @@ if($TIME_ZONE ne ""){
 	if($TIME_ZONE =~ m/^gmt([+-])([0-9]+)$/i){
 		$TIME_ZONE = "GMT".($1 eq "+" ? "-" : "+").$2;
 	}
-	$ENV{TIME_ZONE} = $TIME_ZONE;
+	$ENV{TZ} = $TIME_ZONE;
 }
 
 eval "use POSIX qw(setlocale LC_ALL tzset strftime);";
