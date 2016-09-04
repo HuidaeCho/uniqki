@@ -1055,7 +1055,7 @@ sub create_blockquote{
 	}
 	while(--$q_i >= 0){
 		if($cite[$q_i] ne ""){
-			$blockquote .= "<footer><cite>$cite[$q_i]</cite><footer>\n";
+			$blockquote .= "<footer><cite>$cite[$q_i]</cite></footer>\n";
 			$cite[$q_i] = "";
 		}
 		$blockquote .= "</blockquote>\n";
