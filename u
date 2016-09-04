@@ -970,7 +970,7 @@ sub decode_url{
 sub create_blockquote{
 	my @lines = split /\n/, shift;
 	my $blockquote = "";
-	my $cite = "";
+	my @cite = ();
 	my $q_i = 0;
 	my $use_p = 0;
 	my $p = 0;
@@ -983,6 +983,10 @@ sub create_blockquote{
 				if($p){
 					$blockquote .= "</p>\n";
 					$p = 0;
+				}
+				if($cite[$q_i] ne ""){
+					$blockquote .= "<cite>$cite[$q_i]</cite>\n";
+					$cite[$q_i] = "";
 				}
 				while(--$q_i >= $i){
 					$blockquote .= "</blockquote>\n";
@@ -998,8 +1002,8 @@ sub create_blockquote{
 				next;
 			}
 			if($3 =~ m/^\([ \t]*(.*?)[ \t]*\)$/){
-				$cite .= " " if($cite ne "");
-				$cite .= $1;
+				$cite[$i] .= " " if($cite[$i] ne "");
+				$cite[$i] .= $1;
 			}else{
 				if($use_p && !$p){
 					$blockquote .= "<p>";
@@ -1008,10 +1012,6 @@ sub create_blockquote{
 				$blockquote .= "$3\n";
 			}
 			next;
-		}
-		if($cite ne ""){
-			$blockquote .= "<cite>$cite</cite>\n";
-			$cite = "";
 		}
 		$use_p = 0;
 		if($p){
@@ -1023,11 +1023,19 @@ sub create_blockquote{
 				$blockquote .= "<blockquote>\n";
 			}
 		}elsif($i < $q_i){
+			if($cite[$q_i] ne ""){
+				$blockquote .= "<cite>$cite[$q_i]</cite>\n";
+				$cite[$q_i] = "";
+			}
 			while(--$q_i >= $i){
 				$blockquote .= "</blockquote>\n";
 			}
 			$q_i++;
 		}else{
+			if($cite[$q_i] ne ""){
+				$blockquote .= "<cite>$cite[$q_i]</cite>\n";
+				$cite[$q_i] = "";
+			}
 			$blockquote .= "</blockquote>\n";
 		}
 
@@ -1037,9 +1045,9 @@ sub create_blockquote{
 		$blockquote .= "</p>\n";
 		$p = 0;
 	}
-	if($cite ne ""){
-		$blockquote .= "<cite>$cite</cite>\n";
-		$cite = "";
+	if($cite[$q_i] ne ""){
+		$blockquote .= "<cite>$cite[$q_i]</cite>\n";
+		$cite[$q_i] = "";
 	}
 	while(--$q_i >= 0){
 		$blockquote .= "</blockquote>\n";
