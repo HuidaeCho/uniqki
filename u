@@ -988,7 +988,7 @@ sub create_blockquote{
 				}
 				while(--$q_i >= $i - 1){
 					if($cite[$q_i] ne ""){
-						$blockquote .= "<cite>$cite[$q_i]</cite>\n";
+						$blockquote .= "<footer><cite>$cite[$q_i]</cite></footer>\n";
 						$cite[$q_i] = "";
 					}
 					$blockquote .= "</blockquote>\n";
@@ -1032,7 +1032,7 @@ sub create_blockquote{
 		}elsif($i < $q_i){
 			while(--$q_i >= $i){
 				if($cite[$q_i] ne ""){
-					$blockquote .= "<cite>$cite[$q_i]</cite>\n";
+					$blockquote .= "<footer><cite>$cite[$q_i]</cite></footer>\n";
 					$cite[$q_i] = "";
 				}
 				$blockquote .= "</blockquote>\n";
@@ -1040,7 +1040,7 @@ sub create_blockquote{
 			$q_i++;
 		}else{
 			if($cite[$q_i-1] ne ""){
-				$blockquote .= "<cite>$cite[$q_i-1]</cite>\n";
+				$blockquote .= "<footer><cite>$cite[$q_i-1]</cite></footer>\n";
 				$cite[$q_i-1] = "";
 			}
 			$blockquote .= "</blockquote>\n<blockquote>\n";
@@ -1055,7 +1055,7 @@ sub create_blockquote{
 	}
 	while(--$q_i >= 0){
 		if($cite[$q_i] ne ""){
-			$blockquote .= "<cite>$cite[$q_i]</cite>\n";
+			$blockquote .= "<footer><cite>$cite[$q_i]</cite><footer>\n";
 			$cite[$q_i] = "";
 		}
 		$blockquote .= "</blockquote>\n";
