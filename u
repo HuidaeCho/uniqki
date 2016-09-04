@@ -976,11 +976,11 @@ sub create_blockquote{
 	my $p = 0;
 
 	foreach(@lines){
-		m/^( *)(&gt; )?(.*)$/;
+		m/^( *)(&gt;[ \t])?(.*)$/;
 		my $i = length($1) / 2 + 1;
 		my $start = $2 ne "" ? 1 : 0;
 		my $line = $3;
-		if(!$start || $line =~ m/^\([ \t]*.*?[ \t]*\)$/){
+		if(!$start || $line =~ m/^\(.*\)$/){
 			if($i - 1 < $q_i){
 				if($p){
 					$blockquote .= "</p>\n";
@@ -1012,7 +1012,8 @@ sub create_blockquote{
 					$blockquote .= "<p>";
 					$p = 1;
 				}
-				$line =~ s# \([ \t]*(.*?)[ \t]*\)$# <cite>$1</cite>#;
+				$line =~ s#([ \t])\([ \t]*(.*?)[ \t]*\)$#$1<cite>$2</cite>#;
+				$line =~ s/^[ \t]*(.*?)[ \t]*$/$1/;
 				$blockquote .= "$line\n";
 			}
 			next unless($start);
@@ -1046,7 +1047,8 @@ sub create_blockquote{
 			$blockquote .= "</blockquote>\n<blockquote>\n";
 		}
 
-		$line =~ s# \([ \t]*(.*?)[ \t]*\)$# <cite>$1</cite>#;
+		$line =~ s#([ \t])\([ \t]*(.*?)[ \t]*\)$#$1<cite>$2</cite>#;
+		$line =~ s/^[ \t]*(.*?)[ \t]*$/$1/;
 		$blockquote .= "$line\n" if($line ne "");
 	}
 	if($p){
@@ -1079,7 +1081,7 @@ sub create_list{
 	my $p = 0;
 
 	foreach(@lines){
-		m/^( *)(?:([*+-]|: (.*?):) )?(.*)$/;
+		m/^( *)(?:([*+-]|: (.*?):)[ \t])?[ \t]*(.*?)[ \t]*$/;
 		my $i = length($1) / 2 + 1;
 		if($2 eq ""){
 			if(--$i < $li_i){
@@ -4178,12 +4180,12 @@ sub parse_line{
 		return;
 	}
 	# Close blockquote
-	if($blockquote ne "" && !(m/^((?:  ){0,})(> )?/ && "$1$2" ne "")){
+	if($blockquote ne "" && !(m/^((?:  ){0,})(>[ \t])?/ && "$1$2" ne "")){
 		$text .= create_blockquote($blockquote);
 		$blockquote = "";
 	}
 	# Close list
-	if($list ne "" && !(m/^((?:  ){0,})((?:[*+-]|: .*?:) )?/ &&
+	if($list ne "" && !(m/^((?:  ){0,})((?:[*+-]|: .*?:)[ \t])?/ &&
 			"$1$2" ne "")){
 		$text .= create_list($list);
 		$list = "";
@@ -4249,7 +4251,8 @@ sub parse_line{
 	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+)#<a class="auto-title" href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
 	s/\x01/&amp;/g; s/\x02/&lt;/g; s/\x03/&gt;/g;
 	# Collect quote lines
-	if(m/^((?:  ){0,})(&gt; )?/ && "$1$2" ne "" && "$2$blockquote" ne ""){
+	if(m/^((?:  ){0,})(&gt;[ \t])?/ && "$1$2" ne "" &&
+		"$2$blockquote" ne ""){
 		if($p){
 			$text .= "</p>\n";
 			$p = 0;
@@ -4258,7 +4261,7 @@ sub parse_line{
 		return;
 	}
 	# Collect list lines
-	if(m/^((?:  ){0,})((?:[*+-]|: .*?:) )?/ && "$1$2" ne "" &&
+	if(m/^((?:  ){0,})((?:[*+-]|: .*?:)[ \t])?/ && "$1$2" ne "" &&
 		"$2$list" ne ""){
 		if($p){
 			$text .= "</p>\n";
