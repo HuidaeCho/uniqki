@@ -4884,6 +4884,8 @@ if($QUERY_STRING eq "css"){
 			next;
 		}
 		my $page = $_;
+		next unless(-f "$page.html");
+
 		my $title = $page;
 		my @t = localtime((stat "$page.txt")[9]);
 		my $time = sprintf "%d-%02d-%02d %02d:%02d:%02d",
@@ -4968,10 +4970,13 @@ if($QUERY_STRING eq "css"){
 		if($PAGES_NOT_ALLOWED ne "" && m/$PAGES_NOT_ALLOWED/o){
 			next;
 		}
-		my $t = (stat "$_.txt")[9];
+		my $page = $_;
+		next unless(-f "$page.html");
+
+		my $t = (stat "$page.txt")[9];
 		my @t = split / +/, scalar gmtime($t);
 		$list[$i++] = sprintf "%d %s, %02d %s %d %s GMT %s",
-			$t, $t[0], $t[2], $t[1], $t[4], $t[3], $_;
+			$t, $t[0], $t[2], $t[1], $t[4], $t[3], $page;
 	}
 	my $n = 10;
 	$n = $1 if($var{rss} =~ m/^([0-9]+)$/);
@@ -5072,33 +5077,36 @@ EOT
 
 	$_ = $var{search};
 	s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
-	my $query = $_;
-	my $title;
+
+	local $TITLE;
 	if($var{glob} eq ""){
-		$title = get_msg("search", $query);
+		$TITLE = get_msg("search", $_);
 	}else{
-		$title = get_msg("search_matching", $var{glob}, $query);
+		$TITLE = get_msg("search_matching", $var{glob}, $_);
 	}
-
-	local $TITLE = $title;
 	print_header();
-	print qq(<div id="search">\n<h1>$title</h1>\n);
+	print qq(<div id="search">\n<h1>$TITLE</h1>\n);
 
-	foreach(<$glob.html>){
+	foreach(<$glob.txt>){
 		next if(substr($_,0,1) eq "." || index($_,"/") >= 0 || !-f $_);
-		s/\.html$//;
-		my $page = $query = $_;
+		s/\.txt$//;
+		if($PAGES_NOT_ALLOWED ne "" && m/$PAGES_NOT_ALLOWED/o){
+			next;
+		}
+		my $page = $_;
+		next unless(-f "$page.html");
 
 		my $text = read_file("$page.html");
 		next if($text eq "");
 
+		my $page_name = $page;
 		$text =~ s/^.*<!-- start text -->|<!-- end text -->.*$//sgi;
 		$text =~ s#<(script|style).*?</\1>##sgi;
 
 		if($var{title} eq "1" && $text =~ m#<h1[^>]*>(.+?)</h1>#si){
 			$_ = $1;
 			s/<[^>]*>//g; s/[<>]//g;
-			$query = $_;
+			$page_name = $_;
 		}
 		my ($i, $line, $search, $found, @found, @result);
 		if($var{link} eq "1"){
@@ -5144,13 +5152,13 @@ EOT
 		}
 		next if($i <= $#search);
 		if($var{nomatch} eq "1"){
-			print qq(<div><a href="$page.html">$query</a></div>\n);
+			print qq(<div><a href="$page.html">$page_name</a></div>\n);
 			next;
 		}
 		foreach(@result){
 			s#\x01#<span class="search-highlight">#g;
 			s#\x02#</span>#g;
-			print qq(<div><a href="$page.html">$query</a>: $_</div>\n);
+			print qq(<div><a href="$page.html">$page_name</a>: $_</div>\n);
 		}
 	}
 
