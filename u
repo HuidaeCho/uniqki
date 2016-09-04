@@ -103,8 +103,8 @@ use vars qw(
 use vars qw(
 	$text $protocol $protocol_char $protocol_punct $image_ext $code_block
 	$syntax_block @syntax_blocks $re_i_start $re_i @re @re_sub $toc $notoc
-	%h_i $h_top $h_prev $lot $nolot $lof $nolof $p $pre $pre_code $list
-	$table $figure
+	%h_i $h_top $h_prev $lot $nolot $lof $nolof $p $pre $pre_code
+	$blockquote $list $table $figure
 );
 
 umask 022;
@@ -967,6 +967,92 @@ sub decode_url{
 	return $url;
 }
 
+sub create_blockquote{
+	my @lines = split /\n/, shift;
+	my $blockquote = "";
+	my $cite = "";
+	my $q_i = 0;
+	my $use_p = 0;
+	my $p = 0;
+
+	foreach(@lines){
+		m/^( *)(&gt; )?(.*)$/;
+		my $i = length($1) / 2 + 1;
+		if($2 eq ""){
+			if(--$i < $q_i){
+				if($p){
+					$blockquote .= "</p>\n";
+					$p = 0;
+				}
+				while(--$q_i >= $i){
+					$blockquote .= "</blockquote>\n";
+				}
+				$q_i++;
+			}
+			if($3 eq "" || $3 eq "..."){
+				$use_p = 1;
+				if($p){
+					$blockquote .= "</p>\n";
+					$p = 0;
+				}
+				next;
+			}
+			if($3 =~ m/^\([ \t]*(.*?)[ \t]*\)$/){
+				$cite .= " " if($cite ne "");
+				$cite .= $1;
+			}else{
+				if($use_p && !$p){
+					$blockquote .= "<p>";
+					$p = 1;
+				}
+				$blockquote .= "$3\n";
+			}
+			next;
+		}
+		if($cite ne ""){
+			$blockquote .= "<cite>$cite</cite>\n";
+			$cite = "";
+		}
+		$use_p = 0;
+		if($p){
+			$blockquote .= "</p>\n";
+			$p = 0;
+		}
+		if($i > $q_i){
+			while($q_i++ < $i - 1){
+				$blockquote .= "<blockquote>\n";
+			}
+		}elsif($i < $q_i){
+			while(--$q_i >= $i){
+				$blockquote .= "</blockquote>\n";
+			}
+			$q_i++;
+		}else{
+			$blockquote .= "</blockquote>\n";
+		}
+
+		$blockquote .= "<blockquote>\n$3\n";
+	}
+	if($p){
+		$blockquote .= "</p>\n";
+		$p = 0;
+	}
+	if($cite ne ""){
+		$blockquote .= "<cite>$cite</cite>\n";
+		$cite = "";
+	}
+	while(--$q_i >= 0){
+		$blockquote .= "</blockquote>\n";
+	}
+
+	# Inline perl code
+	$blockquote =~ s/``(.*?)``(?!`)/$1/eeg;
+	# Discard NONE characters
+	$blockquote =~ y/\x00//d;
+
+	return $blockquote;
+}
+
 sub create_list{
 	my @lines = split /\n/, shift;
 	my $list = "";
@@ -978,14 +1064,14 @@ sub create_list{
 
 	foreach(@lines){
 		m/^( *)(?:([*+-]|: (.*?):) )?(.*)$/;
-		my $i = length($1)/2+1;
+		my $i = length($1) / 2 + 1;
 		if($2 eq ""){
 			if(--$i < $li_i){
 				if($p){
 					$list .= "</p>\n";
 					$p = 0;
 				}
-				while(--$li_i>=$i){
+				while(--$li_i >= $i){
 					if($li[$li_i] eq "dl"){
 						$list .= "</dd>\n";
 					}else{
@@ -1012,7 +1098,7 @@ sub create_list{
 		}
 		$use_p = 0;
 		if($p){
-			$list .= "4</p>\n";
+			$list .= "</p>\n";
 			$p = 0;
 		}
 		my $tag = substr $2, 0, 1;
@@ -1030,7 +1116,7 @@ sub create_list{
 			$tag = "dl";
 		}
 		if($i > $li_i){
-			for(; $li_i<$i-1; $li_i++){
+			for(; $li_i < $i - 1; $li_i++){
 				$list .= "<$tag>\n";
 				if($tag eq "dl"){
 					$list .= "<dd>";
@@ -1044,7 +1130,7 @@ sub create_list{
 			$li[$li_i] = $tag;
 			$li_attr[$li_i++] = $attr;
 		}elsif($i < $li_i){
-			while(--$li_i>=$i){
+			while(--$li_i >= $i){
 				if($li[$li_i] eq "dl"){
 					$list .= "</dd>\n";
 				}else{
@@ -1060,7 +1146,7 @@ sub create_list{
 				}
 				$li_i++;
 			}else{
-				for(; $li_i>=0 && ($li[$li_i] ne $tag ||
+				for(; $li_i >= 0 && ($li[$li_i] ne $tag ||
 					$li_attr[$li_i] ne $attr); $li_i--){
 					if($li[$li_i] eq "dl"){
 						$list .= "</dd>\n";
@@ -1069,7 +1155,7 @@ sub create_list{
 					}
 					$list .= "</$li[$li_i]>\n";
 				}
-				while(++$li_i<$i-1){
+				while(++$li_i < $i-1){
 					$list .= "<$tag>\n";
 					$li[$li_i] = $tag;
 					$li_attr[$li_i] = "";
@@ -1103,7 +1189,7 @@ sub create_list{
 		$list .= "</p>\n";
 		$p = 0;
 	}
-	while(--$li_i>=0){
+	while(--$li_i >= 0){
 		if($li[$li_i] eq "dl"){
 			$list .= "</dd>\n";
 		}else{
@@ -2665,16 +2751,16 @@ sub lcs{
 	my ($c0, $c1) = @_;
 	my @lcs;
 	my $s;
-	for($s=0; $s<=$#$c0&&$s<=$#$c1; $s++){
+	for($s = 0; $s <= $#$c0 && $s <= $#$c1; $s++){
 		last if($$c0[$s] ne $$c1[$s]);
 	}
 	my ($e0, $e1);
-	for($e0=$#$c0,$e1=$#$c1; $e0>$s&&$e1>$s; $e0--,$e1--){
+	for($e0 = $#$c0, $e1 = $#$c1; $e0 > $s && $e1 > $s; $e0--, $e1--){
 		last if($$c0[$e0] ne $$c1[$e1]);
 	}
 	my ($m, $n);
-	for($m=$s; $m<=$e0; $m++){
-		for($n=$s; $n<=$e1; $n++){
+	for($m = $s; $m <= $e0; $m++){
+		for($n = $s; $n <= $e1; $n++){
 			if($$c0[$m] eq $$c1[$n]){
 				if($m && $n){
 					$lcs[$m][$n] = $lcs[$m-1][$n-1] + 1;
@@ -2695,7 +2781,7 @@ sub lcs{
 	my $i = $lcs[$e0][$e1];
 	my @delta;
 	$delta[$i] = ($e0+1).",".($e1+1);
-	for($m=$e0,$n=$e1; $i>0&&$m>=$s&&$n>=$s; $m--,$n--){
+	for($m = $e0, $n = $e1; $i > 0 && $m >= $s && $n >= $s; $m--, $n--){
 		if($$c0[$m] eq $$c1[$n]){
 			$delta[--$i] = "$m,$n";
 		}elsif($lcs[$m][$n-1] > $lcs[$m-1][$n]){
@@ -2713,15 +2799,15 @@ sub diff{
 	my ($s, @delta) = lcs(\@line0, \@line1);
 	my ($m, $n) = ($s, $s);
 	my $diff = "";
-	for(my $i=0; $i<=$#delta; $i++,$m++,$n++){
+	for(my $i = 0; $i <= $#delta; $i++, $m++, $n++){
 		my ($x, $y) = split /,/, $delta[$i];
 		if($x > $m){
-			for(; $m<$x; $m++){
+			for(; $m < $x; $m++){
 				$diff .= "-$m\n";
 			}
 		}
 		if($y > $n){
-			for(; $n<$y; $n++){
+			for(; $n < $y; $n++){
 				$diff .= "+$m $line1[$n]\n";
 			}
 		}
@@ -2733,7 +2819,7 @@ sub patch{
 	my @line0 = split /\n/, $_[0], -1; $#line0--;
 	my @lined = split /\n/, $_[1];
 	my $line0p = "";
-	for(my $i=0; $i<=$#lined; $i++){
+	for(my $i = 0; $i <= $#lined; $i++){
 		if($lined[$i] =~ m/^\+/){
 			my $p = index $lined[$i], " ";
 			my $j = substr $lined[$i], 1, $p-1;
@@ -3755,8 +3841,8 @@ sub parse_file{
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
 		$code_block, $syntax_block, @syntax_blocks, $re_i_start, $re_i,
 		@re, @re_sub, $toc, $notoc, %h_i, $h_top, $h_prev, $lot,
-		$nolot, $lof, $nolof, $p, $pre, $pre_code, $list, $table,
-		$figure);
+		$nolot, $lof, $nolof, $p, $pre, $pre_code, $blockquote, $list,
+		$table, $figure);
 	my ($header_file, $footer_file);
 
 	unless($wiki){
@@ -3787,8 +3873,8 @@ sub parse_block{
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
 		$code_block, $syntax_block, @syntax_blocks, $re_i_start, $re_i,
 		@re, @re_sub, $toc, $notoc, %h_i, $h_top, $h_prev, $lot,
-		$nolot, $lof, $nolof, $p, $pre, $pre_code, $list, $table,
-		$figure);
+		$nolot, $lof, $nolof, $p, $pre, $pre_code, $blockquote, $list,
+		$table, $figure);
 
 	$begin_parsing = \&begin_parsing unless(defined($begin_parsing));
 	$parse_line = \&parse_line unless(defined($parse_line));
@@ -3855,6 +3941,7 @@ sub begin_parsing{
 	$p = 0;
 	$pre = 0;
 	$pre_code = "";
+	$blockquote = "";
 	$list = "";
 	$table = "";
 	$figure = "";
@@ -3877,7 +3964,7 @@ sub parse_line{
 
 	# Apply regular expressions where needed
 	if(!$pre && m/^(?!#(?:no)?regex)/){
-		for(my $i=$re_i_start; $i<$re_i; $i++){
+		for(my $i = $re_i_start; $i < $re_i; $i++){
 			if(m/^(?!#(?:no)?regex)/){
 				eval "s\x1e$re[$i]\x1e$re_sub[$i]\x1eg;";
 			}
@@ -3940,6 +4027,10 @@ sub parse_line{
 			}
 			$pre = 0;
 		}else{
+			if($blockquote ne ""){
+				$text .= create_blockquote($blockquote);
+				$blockquote = "";
+			}
 			if($list ne ""){
 				$text .= create_list($list);
 				$list = "";
@@ -3984,7 +4075,7 @@ sub parse_line{
 				    index($3, '@{[') != -1));
 
 		my $i;
-		for($i=0; $i<$re_i; $i++){
+		for($i = 0; $i < $re_i; $i++){
 			last if($re[$i] eq $2);
 		}
 		$re[$re_i++] = $2 if($i == $re_i);
@@ -4002,10 +4093,10 @@ sub parse_line{
 			$re_i = 0;
 			$#re = $#re_sub = -1;
 		}else{
-			for(my $i=0; $i<$re_i; $i++){
+			for(my $i = 0; $i < $re_i; $i++){
 				if($re[$i] eq $2){
 					$re_i--;
-					for(; $i<$re_i; $i++){
+					for(; $i < $re_i; $i++){
 						$re[$i] = $re[$i+1];
 						$re_sub[$i] = $re_sub[$i+1];
 					}
@@ -4070,21 +4161,26 @@ sub parse_line{
 		$syntax_block = (substr $_, 0, length($_) - 2)."\n";
 		return;
 	}
+	# Close blockquote
+	if($blockquote ne "" && !(m/^((?:  ){0,})(> )?/ && "$1$2" ne "")){
+		$text .= create_blockquote($blockquote);
+		$blockquote = "";
+	}
 	# Close list
-	if($list ne "" && !(m/^( *)((?:[*+-]|: .*?:) )?/ && length($1)%2 == 0 &&
+	if($list ne "" && !(m/^((?:  ){0,})((?:[*+-]|: .*?:) )?/ &&
 			"$1$2" ne "")){
 		$text .= create_list($list);
 		$list = "";
 	}
 	# Close table
 	if($table ne "" &&
-		!(m/^(?:!!?[ \t](?:.*[ \t])?!|[|^][ \t](?:.*[ \t])?(?:[!^]+|\|+_?))$/)){
+		!m/^(?:!!?[ \t](?:.*[ \t])?!|[|^][ \t](?:.*[ \t])?(?:[!^]+|\|+_?))$/){
 		$text .= create_table($table);
 		$table = "";
 	}
 	# Close figure
 	if($figure ne "" &&
-		!(m/^(?:"!?[ \t](?:.*[ \t])?"|@[ \t](?:.*[ \t])?@)$/)){
+		!m/^(?:"!?[ \t](?:.*[ \t])?"|@[ \t](?:.*[ \t])?@)$/){
 		$text .= create_figure($figure);
 		$figure = "";
 	}
@@ -4136,9 +4232,18 @@ sub parse_line{
 	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+)(?=[$protocol_punct](?:[ \t]|$))#<a class="auto-title" href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
 	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+)#<a class="auto-title" href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
 	s/\x01/&amp;/g; s/\x02/&lt;/g; s/\x03/&gt;/g;
+	# Collect quote lines
+	if(m/^((?:  ){0,})(&gt; )?/ && "$1$2" ne "" && "$2$blockquote" ne ""){
+		if($p){
+			$text .= "</p>\n";
+			$p = 0;
+		}
+		$blockquote .= "$_\n";
+		return;
+	}
 	# Collect list lines
-	if(m/^( *)((?:[*+-]|: .*?:) )?/ && length($1)%2 == 0 && "$1$2" ne "" &&
-		($list ne "" || $2 ne "")){
+	if(m/^((?:  ){0,})((?:[*+-]|: .*?:) )?/ && "$1$2" ne "" &&
+		"$2$list" ne ""){
 		if($p){
 			$text .= "</p>\n";
 			$p = 0;
@@ -4221,7 +4326,7 @@ sub parse_line{
 		return;
 	}
 	# Start a new paragraph
-	if(!$p && !$pre && $list eq "" && $table eq ""){
+	if(!$p && !$pre && $blockquote eq "" && $list eq "" && $table eq ""){
 		$text .= "<p>";
 		$p = 1;
 	}
@@ -4233,6 +4338,10 @@ sub parse_line{
 }
 
 sub end_parsing{
+	if($blockquote ne ""){
+		$text .= create_blockquote($blockquote);
+		$blockquote = "";
+	}
 	if($list ne ""){
 		$text .= create_list($list);
 		$list = "";
@@ -4264,7 +4373,7 @@ sub end_parsing{
 		$toc = "<ul class=\"toc-list\">\n$toc";
 		$toc .= "</ul></li>" while(--$h_prev>0);
 		$toc .= ($i > 1 ? "\n" : "")."</ul>\n";
-		for(my $i=0; $i<$h_top-1; $i++){
+		for(my $i = 0; $i < $h_top - 1; $i++){
 			$toc =~ s#^(.*\n)<li><ul>#\1#;
 			$toc =~ s#</ul></li>(\n.*)$#\1#;
 		}
@@ -4748,17 +4857,17 @@ if($QUERY_STRING eq "css"){
 	my ($s, @delta) = lcs(\@line0, \@line1);
 	my $m = $s;
 	my $n;
-	for($n=0; $n<$s; $n++){
+	for($n = 0; $n < $s; $n++){
 		$_ = $line1[$n];
 		s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
 		print qq(<div class="diff-unchanged">= $_</div>\n);
 	}
 	eval "use Encode qw(decode);";
 	my $encode = $@ ? 0 : 1;
-	for(my $i=0; $i<=$#delta; $i++,$m++,$n++){
+	for(my $i = 0; $i <= $#delta; $i++, $m++, $n++){
 		my ($x, $y) = split /,/, $delta[$i];
 		if($x > $m && $y > $n){
-			for(; $m<$x&&$n<$y; $m++,$n++){
+			for(; $m < $x && $n < $y; $m++, $n++){
 				print qq(<div class="diff-modified">* );
 				my $l0 = $line0[$m];
 				my $l1 = $line1[$n];
@@ -4771,7 +4880,7 @@ if($QUERY_STRING eq "css"){
 				my ($is, @idelta) = lcs(\@l0, \@l1);
 				my $im = $is;
 				my $in;
-				for($in=0; $in<$is; $in++){
+				for($in = 0; $in < $is; $in++){
 					$_ = $l1[$in];
 					s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
 					print;
@@ -4781,7 +4890,7 @@ if($QUERY_STRING eq "css"){
 					if($ix > $im){
 						print qq(<span class="diff-modified-deleted">);
 						$_ = "";
-						for(; $im<$ix; $im++){
+						for(; $im < $ix; $im++){
 							$_ .= $l0[$im];
 						}
 						s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
@@ -4790,7 +4899,7 @@ if($QUERY_STRING eq "css"){
 					if($iy > $in){
 						print qq(<span class="diff-modified-added">);
 						$_ = "";
-						for(; $in<$iy; $in++){
+						for(; $in < $iy; $in++){
 							$_ .= $l1[$in];
 						}
 						s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
@@ -4802,7 +4911,7 @@ if($QUERY_STRING eq "css"){
 						print;
 					}
 				}
-				for(; $in<=$#l1; $in++){
+				for(; $in <= $#l1; $in++){
 					$_ = $l1[$in];
 					s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
 					print;
@@ -4811,14 +4920,14 @@ if($QUERY_STRING eq "css"){
 			}
 		}
 		if($x > $m){
-			for(; $m<$x; $m++){
+			for(; $m < $x; $m++){
 				$_ = $line0[$m];
 				s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
 				print qq(<div class="diff-deleted">- $_</div>\n);
 			}
 		}
 		if($y > $n){
-			for(; $n<$y; $n++){
+			for(; $n < $y; $n++){
 				$_ = $line1[$n];
 				s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
 				print qq(<div class="diff-added">+ $_</div>\n);
@@ -4830,7 +4939,7 @@ if($QUERY_STRING eq "css"){
 			print qq(<div class="diff-unchanged">= $_</div>\n);
 		}
 	}
-	for(; $n<=$#line1; $n++){
+	for(; $n <= $#line1; $n++){
 		$_ = $line1[$n];
 		s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
 		print qq(<div class="diff-unchanged">= $_</div>\n);
@@ -5113,7 +5222,7 @@ EOT
 			foreach(split /\n/, $text){
 				$line = $_;
 				$found = "";
-				for($i=0; $i<=$#search; $i++){
+				for($i = 0; $i <= $#search; $i++){
 					$search = $search[$i];
 					$search = "(?i)$search"
 						if($var{icase} eq "1");
@@ -5134,7 +5243,7 @@ EOT
 			foreach(split /\n/, $text){
 				$line = $_;
 				$found = "";
-				for($i=0; $i<=$#search; $i++){
+				for($i = 0; $i <= $#search; $i++){
 					$search = $search[$i];
 					$search = "(?i)$search"
 						if($var{icase} eq "1");
@@ -5147,7 +5256,7 @@ EOT
 				push @result, $found if($found ne "");
 			}
 		}
-		for($i=0; $i<=$#search; $i++){
+		for($i = 0; $i <= $#search; $i++){
 			last if(!$found[$i]);
 		}
 		next if($i <= $#search);
