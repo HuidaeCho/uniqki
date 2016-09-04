@@ -1012,7 +1012,7 @@ sub create_blockquote{
 					$blockquote .= "<p>";
 					$p = 1;
 				}
-				$line =~ s#\([ \t]*(.*?)[ \t]*\)$#<cite>$1</cite>#;
+				$line =~ s# \([ \t]*(.*?)[ \t]*\)$# <cite>$1</cite>#;
 				$blockquote .= "$line\n";
 			}
 			next unless($start);
@@ -1046,7 +1046,7 @@ sub create_blockquote{
 			$blockquote .= "</blockquote>\n<blockquote>\n";
 		}
 
-		$line =~ s#\([ \t]*(.*?)[ \t]*\)$#<cite>$1</cite>#;
+		$line =~ s# \([ \t]*(.*?)[ \t]*\)$# <cite>$1</cite>#;
 		$blockquote .= "$line\n" if($line ne "");
 	}
 	if($p){
