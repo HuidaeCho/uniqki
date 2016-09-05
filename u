@@ -1081,7 +1081,7 @@ sub create_list{
 	my $p = 0;
 
 	foreach(@lines){
-		m/^( *)(?:([*+-]|: (.*?):)[ \t])?[ \t]*(.*?)[ \t]*$/;
+		m/^( *)(?:([*+-]|: [ \t]*(.*?)[ \t]*:)[ \t])?[ \t]*(.*?)[ \t]*$/;
 		my $i = length($1) / 2 + 1;
 		if($2 eq ""){
 			if(--$i < $li_i){
@@ -1137,7 +1137,7 @@ sub create_list{
 			for(; $li_i < $i - 1; $li_i++){
 				$list .= "<$tag>\n";
 				if($tag eq "dl"){
-					$list .= "<dd>";
+					$list .= "<dt></dt>\n<dd>";
 				}else{
 					$list .= "<li>";
 				}
