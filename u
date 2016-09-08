@@ -1236,16 +1236,19 @@ sub create_table{
 
 	foreach(@lines){
 		my $end = substr $_, -1;
-		if(m/^!(!)?[ \t](.*[ \t])?!$/){
+		if(m/^!(!)?[ \t](.*[ \t])?(!)?!$/){
 			my $inc_lot = $1 eq "" ? 1 : 0;
 			(my $line = $2) =~ s/^[ \t]+|[ \t]+$//g;
+			my $del_punct_from_title = $3 ne "" ? 1 : 0;
 			next if($line eq "");
 			$caption .= "\n" if($caption ne "");
 			$caption .= $line;
 			if($inc_lot && $id eq ""){
-				$line =~ s/\.$//;
-				$id = convert_page_name("table $line");
-				$title = $line;
+				$line =~ s/.$// if($del_punct_from_title);
+				if($line ne ""){
+					$id = convert_page_name("table $line");
+					$title = $line;
+				}
 			}
 		}elsif($end eq "^"){
 			$thead .= create_table_row($_);
@@ -1398,16 +1401,19 @@ sub create_figure{
 	my $figure = "";
 
 	foreach(@lines){
-		if(m/^"(!)?[ \t](.*[ \t])?"$/){
+		if(m/^"(!)?[ \t](.*[ \t])?(!)?"$/){
 			my $inc_lof = $1 eq "" ? 1 : 0;
 			(my $line = $2) =~ s/^[ \t]+|[ \t]+$//g;
+			my $del_punct_from_title = $3 ne "" ? 1 : 0;
 			next if($line eq "");
 			$figcaption .= "\n" if($figcaption ne "");
 			$figcaption .= $line;
 			if($inc_lof && $id eq ""){
-				$line =~ s/\.$//;
-				$id = convert_page_name("figure $line");
-				$title = $line;
+				$line =~ s/.$// if($del_punct_from_title);
+				if($line ne ""){
+					$id = convert_page_name("figure $line");
+					$title = $line;
+				}
 			}
 		}else{
 			my $line = substr $_, 2, length($_) - 4;
@@ -4194,13 +4200,13 @@ sub parse_line{
 	}
 	# Close table
 	if($table ne "" &&
-		!m/^(?:!!?[ \t](?:.*[ \t])?!|[|^][ \t](?:.*[ \t])?(?:[!^]+|\|+_?))$/){
+		!m/^(?:!!?[ \t](?:.*[ \t])?!?!|[|^][ \t](?:.*[ \t])?(?:[!^]+|\|+_?))$/){
 		$text .= create_table($table);
 		$table = "";
 	}
 	# Close figure
 	if($figure ne "" &&
-		!m/^(?:"!?[ \t](?:.*[ \t])?"|@[ \t](?:.*[ \t])?@)$/){
+		!m/^(?:"!?[ \t](?:.*[ \t])?!?"|@[ \t](?:.*[ \t])?@)$/){
 		$text .= create_figure($figure);
 		$figure = "";
 	}
@@ -4273,7 +4279,7 @@ sub parse_line{
 		return;
 	}
 	# Collect table lines
-	if(m/^(?:!!?[ \t](?:.*[ \t])?!|[|^][ \t](?:.*[ \t])?(?:[!^]+|\|+_?))$/){
+	if(m/^(?:!!?[ \t](?:.*[ \t])?!?!|[|^][ \t](?:.*[ \t])?(?:[!^]+|\|+_?))$/){
 		if($p){
 			$text .= "</p>\n";
 			$p = 0;
@@ -4282,7 +4288,7 @@ sub parse_line{
 		return;
 	}
 	# Collect figure lines
-	if(m/^(?:"!?[ \t](?:.*[ \t])?"|@[ \t](?:.*[ \t])?@)$/){
+	if(m/^(?:"!?[ \t](?:.*[ \t])?!?"|@[ \t](?:.*[ \t])?@)$/){
 		if($p){
 			$text .= "</p>\n";
 			$p = 0;
