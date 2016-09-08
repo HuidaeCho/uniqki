@@ -1238,13 +1238,14 @@ sub create_table{
 		my $end = substr $_, -1;
 		if(m/^!(!)?[ \t](.*[ \t])?(!)?!$/){
 			my $inc_lot = $1 eq "" ? 1 : 0;
-			my $del_punct_from_title = $3 ne "" ? 1 : 0;
+			my $del_punct_from_title = $3 eq "" ? 1 : 0;
 			(my $line = $2) =~ s/^[ \t]+|[ \t]+$//g;
 			next if($line eq "");
 			$caption .= "\n" if($caption ne "");
 			$caption .= $line;
 			if($inc_lot && $id eq ""){
-				$line =~ s/.$// if($del_punct_from_title);
+				$line =~ s/[`~!@#\$%^&*-_=+\\|;:,.\/?]+$//
+					if($del_punct_from_title);
 				if($line ne ""){
 					$id = convert_page_name("table $line");
 					$title = $line;
@@ -1403,13 +1404,14 @@ sub create_figure{
 	foreach(@lines){
 		if(m/^"(!)?[ \t](.*[ \t])?(!)?"$/){
 			my $inc_lof = $1 eq "" ? 1 : 0;
-			my $del_punct_from_title = $3 ne "" ? 1 : 0;
+			my $del_punct_from_title = $3 eq "" ? 1 : 0;
 			(my $line = $2) =~ s/^[ \t]+|[ \t]+$//g;
 			next if($line eq "");
 			$figcaption .= "\n" if($figcaption ne "");
 			$figcaption .= $line;
 			if($inc_lof && $id eq ""){
-				$line =~ s/.$// if($del_punct_from_title);
+				$line =~ s/[`~!@#\$%^&*-_=+\\|;:,.\/?]+$//
+					if($del_punct_from_title);
 				if($line ne ""){
 					$id = convert_page_name("figure $line");
 					$title = $line;
