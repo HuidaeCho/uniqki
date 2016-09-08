@@ -1243,6 +1243,7 @@ sub create_table{
 			$caption .= "\n" if($caption ne "");
 			$caption .= $line;
 			if($inc_lot && $id eq ""){
+				$line =~ s/\.$//;
 				$id = convert_page_name("table $line");
 				$title = $line;
 			}
@@ -1404,6 +1405,7 @@ sub create_figure{
 			$figcaption .= "\n" if($figcaption ne "");
 			$figcaption .= $line;
 			if($inc_lof && $id eq ""){
+				$line =~ s/\.$//;
 				$id = convert_page_name("figure $line");
 				$title = $line;
 			}
