@@ -1639,7 +1639,7 @@ $MIME_TYPE_COMMAND = '/usr/bin/file --brief --mime-type';
 # RewriteRule ^$ u [R,L]
 # RewriteRule ^([^/]*)\.html$ u/$1 [R,L]
 # RewriteRule ^(u/[^/]*)\.html$ $1 [R,L]
-# RewriteCond %{REQUEST_URI} !/u($|[/?])
+# RewriteCond %{REQUEST_URI} !^/u($|[/?])
 # RewriteRule .* "-" [F]
 $READ_ACCESS = 'open';
 
