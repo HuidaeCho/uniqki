@@ -1606,9 +1606,10 @@ $RESET_PASSWORD_TIMEOUT = 1;
 # 'you@example.com'.  Make sure to use single quotes instead of double quotes.
 $EMAIL_ADDRESS = '';
 
-# SMTP settings: If this variable is empty, email will be sent using sendmail.
-# The format of this variable is 'server:port:username:password'.  The password
-# may contain colons (:), but the username cannot.
+# SMTP settings for user notifications: If this variable is empty, email will
+# be sent using sendmail.  The format of this variable is
+# 'server:port:username:password'.  The password may contain colons (:), but
+# the username cannot.
 $SMTP = '';
 
 # Fallback MIME type command: This command will be used to determine the MIME
