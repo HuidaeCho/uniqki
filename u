@@ -1516,7 +1516,7 @@ $TIME_FORMAT = '%a %b %e %H:%M:%S %Y %Z';
 
 # Share cookies: [subdomains:][EMPTY|subpaths|all_paths]
 # * subdomains: http://example.com/u shares cookies with
-#		http://www.example.com.
+#		http://www.example.com/u.
 # * EMPTY: http://example.com/path1/u does not share cookies with
 #	   http://example.com/u, http://example.com/path2/u, nor
 #	   http://example.com/path1/subpath1/u.
