@@ -1619,8 +1619,8 @@ $SMTP = '';
 $MIME_TYPE_COMMAND = '/usr/bin/file --brief --mime-type';
 
 # Read access control
-# * open: Opens both non-wiki and wiki pages to the public and anyone will be
-#	  able to read those pages with or without a login.
+# * open (default): Opens both non-wiki and wiki pages to the public and anyone
+#		    will be able to read those pages with or without a login.
 # * closed: Requires a login to perform any read actions including search, diff,
 #	    etc.  In addition, the following directives in .htaccess will
 #	    prevent direct access to *.html files, effectively making the
@@ -1645,7 +1645,8 @@ $MIME_TYPE_COMMAND = '/usr/bin/file --brief --mime-type';
 $READ_ACCESS = 'open';
 
 # Write access control
-# * open: Allows anyone to edit or create wiki pages with or without a login.
+# * open (default): Allows anyone to edit or create wiki pages with or without
+#		    a login.
 # * closed: Requires a login to edit or create wiki pages.
 # * admin: Requires admin rights to edit or create wiki pages.
 #
