@@ -1621,20 +1621,20 @@ $MIME_TYPE_COMMAND = '/usr/bin/file --brief --mime-type';
 # Read access control
 # * open (default): Opens both non-wiki and wiki pages to the public and anyone
 #		    will be able to read those pages with or without a login.
-# * closed: Requires a login to perform any read actions including search, diff,
-#	    etc.  In addition, the following directives in .htaccess will
+# * closed: Requires a login to perform any read actions including search,
+#	    diff, etc.  The directives in .htaccess shown below are required to
 #	    prevent direct access to *.html files, effectively making the
 #	    entire site read-secured.
 # * admin: Allows only admin users access to non-wiki and wiki pages.  The
-#	   .htaccess directives are required.
+#	   .htaccess directives below are required.
 #
 # Non-wiki and wiki pages can have different settings separated by a colon.
 # For example, closed:open means closed non-wiki and open wiki pages.  One
 # setting applies to both non-wiki and wiki pages.  That is, open is the same
 # as open:open (open non-wiki and open wiki).
 #
-# Unless this variable is open:open, the following .htaccess directives are
-# required to secure *.html files:
+# Unless this variable is open or open:open, the following .htaccess directives
+# are required to secure *.html files:
 # RewriteEngine On
 # RewriteBase /
 # RewriteRule ^$ u [R,L]
