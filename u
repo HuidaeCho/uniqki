@@ -102,9 +102,9 @@ use vars qw(
 # parse_file() local variables
 use vars qw(
 	$text $protocol $protocol_char $protocol_punct $image_ext $code_block
-	$syntax_block @syntax_blocks $re_i_start $re_i @re @re_sub $toc $notoc
-	%h_i $h_top $h_prev $lot $nolot $lof $nolof $p $pre $pre_code
-	$blockquote $list $table $figure
+	$syntax_block @syntax_blocks $re_i_start $re_i @re @re_sub %h_i $h_top
+	$h_prev $p $pre $pre_code $blockquote $list $table $figure $toc $notoc
+	$lot $nolot $lof $nolof
 );
 
 umask 022;
@@ -3876,9 +3876,9 @@ sub parse_file{
 
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
 		$code_block, $syntax_block, @syntax_blocks, $re_i_start, $re_i,
-		@re, @re_sub, $toc, $notoc, %h_i, $h_top, $h_prev, $lot,
-		$nolot, $lof, $nolof, $p, $pre, $pre_code, $blockquote, $list,
-		$table, $figure);
+		@re, @re_sub, %h_i, $h_top, $h_prev, $lot, $p, $pre, $pre_code,
+		$blockquote, $list, $table, $figure, $toc, $notoc, $nolot,
+		$lof, $nolof);
 	my ($header_file, $footer_file);
 
 	unless($wiki){
@@ -3908,9 +3908,9 @@ sub parse_block{
 	my $txt = shift;
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
 		$code_block, $syntax_block, @syntax_blocks, $re_i_start, $re_i,
-		@re, @re_sub, $toc, $notoc, %h_i, $h_top, $h_prev, $lot,
-		$nolot, $lof, $nolof, $p, $pre, $pre_code, $blockquote, $list,
-		$table, $figure);
+		@re, @re_sub, %h_i, $h_top, $h_prev, $lot, $p, $pre, $pre_code,
+		$blockquote, $list, $table, $figure, $toc, $notoc, $nolot,
+		$lof, $nolof);
 
 	$begin_parsing = \&begin_parsing unless(defined($begin_parsing));
 	$parse_line = \&parse_line unless(defined($parse_line));
@@ -3965,15 +3965,9 @@ sub begin_parsing{
 	$re_i = 0;
 	@re = ();
 	@re_sub = ();
-	$toc = "";
-	$notoc = 0;
 	%h_i = ();
 	$h_top = 0;
 	$h_prev = 0;
-	$lot = "";
-	$nolot = 1;
-	$lof = "";
-	$nolof = 1;
 	$p = 0;
 	$pre = 0;
 	$pre_code = "";
@@ -3981,6 +3975,12 @@ sub begin_parsing{
 	$list = "";
 	$table = "";
 	$figure = "";
+	$toc = "";
+	$notoc = 0;
+	$lot = "";
+	$nolot = 1;
+	$lof = "";
+	$nolof = 1;
 }
 
 sub parse_line{
