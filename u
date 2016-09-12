@@ -4446,7 +4446,7 @@ sub parse_line{
 			$id = convert_page_name($id);
 			my $j = $h_i{$id}++;
 			if($j > 0){
-				$id .= ".".($j+1);
+				$id .= ".".($j + 1);
 			}
 			$text .= "\x05" if($toc eq "");
 			$text .= qq(<h$i id="$id">$_</h$i>\n);
@@ -4457,15 +4457,15 @@ sub parse_line{
 
 		if($i > $h_prev){
 			if($h_prev){
-				$toc .= "<li><ul>" while($h_prev++<$i);
+				$toc .= "<li><ul>" while($h_prev++ < $i);
 				$h_prev--;
 			}else{
-				$toc .= "<li><ul>" while(++$h_prev<$i);
+				$toc .= "<li><ul>" while(++$h_prev < $i);
 				$h_top = $i;
 			}
 			$toc .= "\n";
 		}elsif($i < $h_prev){
-			$toc .= "</ul></li>" while(--$h_prev>=$i);
+			$toc .= "</ul></li>" while(--$h_prev >= $i);
 			$toc .= "\n";
 			$h_prev++;
 			$h_top = $i if($i < $h_top);
