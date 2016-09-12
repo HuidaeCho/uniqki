@@ -102,9 +102,9 @@ use vars qw(
 # parse_file() local variables
 use vars qw(
 	$text $protocol $protocol_char $protocol_punct $image_ext $code_block
-	$syntax_block @syntax_blocks $re_i_start $re_i @re @re_sub %h_i $h_top
-	$h_prev $p $pre $pre_code $blockquote $list $table $figure $toc $notoc
-	$lot $nolot $lof $nolof
+	$child_block $syntax_block @parsed_blocks $re_i_start $re_i @re @re_sub
+	$p $pre $pre_code $blockquote $list $table $figure %h_i $h_top $h_prev
+	$toc $notoc $lot $nolot $lof $nolof
 );
 
 umask 022;
@@ -3875,10 +3875,10 @@ sub parse_file{
 	close UNIQKI_FH;
 
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
-		$code_block, $syntax_block, @syntax_blocks, $re_i_start, $re_i,
-		@re, @re_sub, %h_i, $h_top, $h_prev, $lot, $p, $pre, $pre_code,
-		$blockquote, $list, $table, $figure, $toc, $notoc, $nolot,
-		$lof, $nolof);
+		$code_block, $child_block, $syntax_block, @parsed_blocks,
+		$re_i_start, $re_i, @re, @re_sub, $p, $pre, $pre_code,
+		$blockquote, $list, $table, $figure, %h_i, $h_top, $h_prev,
+		$toc, $notoc, $lot, $nolot, $lof, $nolof);
 	my ($header_file, $footer_file);
 
 	unless($wiki){
@@ -3904,13 +3904,13 @@ sub parse_file{
 	return $text;
 }
 
-sub parse_block{
+sub parse_child{
 	my $txt = shift;
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
-		$code_block, $syntax_block, @syntax_blocks, $re_i_start, $re_i,
-		@re, @re_sub, %h_i, $h_top, $h_prev, $lot, $p, $pre, $pre_code,
-		$blockquote, $list, $table, $figure, $toc, $notoc, $nolot,
-		$lof, $nolof);
+		$code_block, $child_block, $syntax_block, @parsed_blocks,
+		$re_i_start, $re_i, @re, @re_sub, $p, $pre, $pre_code,
+		$blockquote, $list, $table, $figure, %h_i, $h_top, $h_prev,
+		$toc, $notoc, $lot, $nolot, $lof, $nolof);
 
 	$begin_parsing = \&begin_parsing unless(defined($begin_parsing));
 	$parse_line = \&parse_line unless(defined($parse_line));
@@ -3919,6 +3919,24 @@ sub parse_block{
 	$begin_parsing->();
 	$parse_line->($_) foreach(split /\n/, $txt, -1);
 	$end_parsing->();
+
+	return $text;
+}
+
+sub parse_block{
+	my $txt = shift;
+	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
+		$code_block, $child_block, $syntax_block, @parsed_blocks,
+		$re_i_start, $re_i, @re, @re_sub, $p, $pre, $pre_code,
+		$blockquote, $list, $table, $figure);
+
+	$begin_parsing = \&begin_parsing unless(defined($begin_parsing));
+	$parse_line = \&parse_line unless(defined($parse_line));
+	$end_parsing = \&end_parsing unless(defined($end_parsing));
+
+	$begin_parsing->(1);
+	$parse_line->($_) foreach(split /\n/, $txt, -1);
+	$end_parsing->(1);
 
 	return $text;
 }
@@ -3952,6 +3970,7 @@ sub verify_input{
 }
 
 sub begin_parsing{
+	my $append_toc_lot_lof = shift;
 	$protocol = 'https?://|ftp://|news://|telnet://|gopher://|wais://|mailto:|file://';
 	$protocol_char = 'a-zA-Z0-9:@/~%.,_$?=&;#+-';
 	$protocol_punct = '.,;:!?';
@@ -3960,14 +3979,11 @@ sub begin_parsing{
 	$text = "";
 	$code_block = "";
 	$syntax_block = "";
-	@syntax_blocks = ();
+	@parsed_blocks = ();
 	$re_i_start = 0;
 	$re_i = 0;
 	@re = ();
 	@re_sub = ();
-	%h_i = ();
-	$h_top = 0;
-	$h_prev = 0;
 	$p = 0;
 	$pre = 0;
 	$pre_code = "";
@@ -3975,12 +3991,18 @@ sub begin_parsing{
 	$list = "";
 	$table = "";
 	$figure = "";
-	$toc = "";
-	$notoc = 0;
-	$lot = "";
-	$nolot = 1;
-	$lof = "";
-	$nolof = 1;
+
+	if(!$append_toc_lot_lof){
+		%h_i = ();
+		$h_top = 0;
+		$h_prev = 0;
+		$toc = "";
+		$notoc = 0;
+		$lot = "";
+		$nolot = 1;
+		$lof = "";
+		$nolof = 1;
+	}
 }
 
 sub parse_line{
@@ -3999,7 +4021,7 @@ sub parse_line{
 	s/[\r\n]//g;
 
 	# Apply regular expressions where needed
-	if(!$pre && m/^(?!#(?:no)?regex)/){
+	if(!$pre && $child_block eq "" && m/^(?!#(?:no)?regex)/){
 		for(my $i = $re_i_start; $i < $re_i; $i++){
 			if(m/^(?!#(?:no)?regex)/){
 				eval "s\x1e$re[$i]\x1e$re_sub[$i]\x1eg;";
@@ -4031,6 +4053,25 @@ sub parse_line{
 		$code_block .= "$_\n";
 		return;
 	}
+	# Process child block
+	if($child_block ne ""){
+		if(")))" eq substr($_, 0, 3) && "_" ne substr($_, 3, 1)){
+			my $i = index $child_block, "\n";
+			my $begin = substr $child_block, 0, $i;
+			my $end = substr $_, 3;
+			my $code = substr $child_block, $i + 1;
+			undef $child_block;
+			$code =~ s/(\(\(\(_*)_$/$1/mg;
+			$code =~ s/^(\)\)\)_*)_/$1/mg;
+			my $parsed_block = parse_child($code);
+			chomp $parsed_block;
+			push @parsed_blocks, $parsed_block;
+			$_ = "$begin\x04$end";
+		}else{
+			$child_block .= "$_\n";
+			return;
+		}
+	}
 	# Process syntax block
 	if($syntax_block ne ""){
 		if("))" eq substr($_, 0, 2) && "_" ne substr($_, 2, 1)){
@@ -4039,11 +4080,11 @@ sub parse_line{
 			my $end = substr $_, 2;
 			my $code = substr $syntax_block, $i + 1;
 			undef $syntax_block;
-			$code =~ s/(\(\(_*)_$/$1/mg;
+			$code =~ s/(?<!\()(\(\(_*)_$/$1/mg;
 			$code =~ s/^(\)\)_*)_/$1/mg;
 			my $parsed_block = parse_block($code);
 			chomp $parsed_block;
-			push @syntax_blocks, $parsed_block;
+			push @parsed_blocks, $parsed_block;
 			$_ = "$begin\x04$end";
 		}else{
 			$syntax_block .= "$_\n";
@@ -4189,6 +4230,12 @@ sub parse_line{
 	}
 	# Ignore other lines starting with #
 	if("#" eq substr $_, 0, 1){
+		return;
+	}
+	# Child block
+	if("(((" eq substr $_, -3){
+		# Process the first line later
+		$child_block = (substr $_, 0, length($_) - 3)."\n";
 		return;
 	}
 	# Syntax block
@@ -4377,6 +4424,7 @@ sub parse_line{
 }
 
 sub end_parsing{
+	my $append_toc_lot_lof = shift;
 	if($blockquote ne ""){
 		$text .= create_blockquote($blockquote);
 		$blockquote = "";
@@ -4407,41 +4455,44 @@ sub end_parsing{
 		$text .= "</p>\n";
 		$p = 0;
 	}
-	if(!$notoc && $toc ne ""){
-		my $i = $h_prev;
-		$toc = "<ul class=\"toc-list\">\n$toc";
-		$toc .= "</ul></li>" while(--$h_prev>0);
-		$toc .= ($i > 1 ? "\n" : "")."</ul>\n";
-		for(my $i = 0; $i < $h_top - 1; $i++){
-			$toc =~ s#^(.*\n)<li><ul>#\1#;
-			$toc =~ s#</ul></li>(\n.*)$#\1#;
+	if(!$append_toc_lot_lof){
+		$text = "\x05$text" unless($text =~ m/\x05/);
+		if(!$notoc && $toc ne ""){
+			my $i = $h_prev;
+			$toc = "<ul class=\"toc-list\">\n$toc";
+			$toc .= "</ul></li>" while(--$h_prev>0);
+			$toc .= ($i > 1 ? "\n" : "")."</ul>\n";
+			for(my $i = 0; $i < $h_top - 1; $i++){
+				$toc =~ s#^(.*\n)<li><ul>#\1#;
+				$toc =~ s#</ul></li>(\n.*)$#\1#;
+			}
+			$toc =~ s#</li>\n<li>(<ul>)#\n\1#g;
+			$toc =~ s#\n+#\n#g;
+			my $heading = get_msg("table_of_contents");
+			$toc = "<div id=\"toc\">\n".
+				"<div class=\"toc-heading\">$heading</div>\n".
+				"$toc</div>\n";
+			$h_prev = 0;
+			$text =~ s/\x05/$toc\x05/g;
 		}
-		$toc =~ s#</li>\n<li>(<ul>)#\n\1#g;
-		$toc =~ s#\n+#\n#g;
-		my $heading = get_msg("table_of_contents");
-		$toc = "<div id=\"toc\">\n".
-			"<div class=\"toc-heading\">$heading</div>\n".
-			"$toc</div>\n";
-		$h_prev = 0;
-		$text =~ s/\x05/$toc\x05/g;
-	}
-	if(!$nolot && $lot ne ""){
-		my $heading = get_msg("list_of_tables");
-		$lot = "<div id=\"lot\">\n".
-			"<div class=\"lot-heading\">$heading</div>\n".
-			"<ul class=\"lot-list\">\n$lot</ul>\n</div>\n";
-		$text =~ s/\x05/$lot\x05/g;
-	}
-	if(!$nolof && $lof ne ""){
-		my $heading = get_msg("list_of_figures");
-		$lof = "<div id=\"lof\">\n".
-			"<div class=\"lof-heading\">$heading</div>\n".
-			"<ul class=\"lof-list\">\n$lof</ul>\n</div>\n";
-		$text =~ s/\x05/$lof\x05/g;
+		if(!$nolot && $lot ne ""){
+			my $heading = get_msg("list_of_tables");
+			$lot = "<div id=\"lot\">\n".
+				"<div class=\"lot-heading\">$heading</div>\n".
+				"<ul class=\"lot-list\">\n$lot</ul>\n</div>\n";
+			$text =~ s/\x05/$lot\x05/g;
+		}
+		if(!$nolof && $lof ne ""){
+			my $heading = get_msg("list_of_figures");
+			$lof = "<div id=\"lof\">\n".
+				"<div class=\"lof-heading\">$heading</div>\n".
+				"<ul class=\"lof-list\">\n$lof</ul>\n</div>\n";
+			$text =~ s/\x05/$lof\x05/g;
+		}
 	}
 	$text =~ s/\x05//g;
 	my $i = 0;
-	$text =~ s/\x04/@{[$syntax_blocks[$i++]]}/g;
+	$text =~ s/\x04/@{[$parsed_blocks[$i++]]}/g;
 	$text =~ s#<([ibsu]|code|mark)>([ \t\n]*)</\1>#$2#g;
 	$text =~ s#[ \t\n]*(<(?:p|li|dd)>)[ \t\n]*#\n$1#g;
 	$text =~ s#[ \t\n]*(</(?:p|li|dd)>)[ \t\n]*#$1\n#g;
