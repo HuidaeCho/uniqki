@@ -1008,10 +1008,12 @@ sub create_blockquote{
 				$cite[$qi] .= "\n" if($cite[$qi] ne "");
 				$cite[$qi] .= $1;
 			}else{
-				if($use_p && !$p){
+				if($use_p){
 					$line =~ s#\x04#</p>\x04<p>#g;
-					$blockquote .= "<p>";
-					$p = 1;
+					if(!$p){
+						$blockquote .= "<p>";
+						$p = 1;
+					}
 				}
 				$line =~ s#([ \t])\([ \t]*(.*?)[ \t]*\)$#$1<cite>$2</cite>#;
 				$line =~ s/^[ \t]*(.*?)[ \t]*$/$1/;
@@ -1109,10 +1111,12 @@ sub create_list{
 				}
 				next;
 			}
-			if($use_p && !$p){
+			if($use_p){
 				$line =~ s#\x04#</p>\x04<p>#g;
-				$list .= "<p>";
-				$p = 1;
+				if(!$p){
+					$list .= "<p>";
+					$p = 1;
+				}
 			}
 			$list .= "$line\n";
 			next;
@@ -4040,7 +4044,11 @@ sub parse_line{
 			my $parsed_block = parse_block($code);
 			chomp $parsed_block;
 			push @syntax_blocks, $parsed_block;
-			$_ = "$begin\x04$end";
+			if($p){
+				$_ = "$begin\x00</p\x00>\x04\x00<p\x00>$end";
+			}else{
+				$_ = "$begin\x04$end";
+			}
 		}else{
 			$syntax_block .= "$_\n";
 			return;
