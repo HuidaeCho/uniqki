@@ -102,8 +102,8 @@ use vars qw(
 # parse_file() local variables
 use vars qw(
 	$text $protocol $protocol_char $protocol_punct $image_ext $code_block
-	$child_block $syntax_block @parsed_blocks $re_i_start $re_i @re @re_sub
-	$p $nosyntax $pre $pre_code $blockquote $list $table $figure %h_i
+	$child_block $syntax_block @parsed_blocks $re_start $re_n @re @re_sub
+	$p $nosyntax $pre $pre_code $blockquote $list $table $figure %h_n
 	$h_top $h_prev $toc $notoc $lot $nolot $lof $nolof
 );
 
@@ -3912,9 +3912,9 @@ sub parse_file{
 
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
 		$code_block, $child_block, $syntax_block, @parsed_blocks,
-		$re_i_start, $re_i, @re, @re_sub, $p, $nosyntax, $pre,
-		$pre_code, $blockquote, $list, $table, $figure, %h_i, $h_top,
-		$h_prev, $toc, $notoc, $lot, $nolot, $lof, $nolof);
+		$re_start, $re_n, @re, @re_sub, $p, $nosyntax, $pre, $pre_code,
+		$blockquote, $list, $table, $figure, %h_n, $h_top, $h_prev,
+		$toc, $notoc, $lot, $nolot, $lof, $nolof);
 	my ($header_file, $footer_file);
 
 	unless($wiki){
@@ -3944,9 +3944,9 @@ sub parse_child{
 	my $txt = shift;
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
 		$code_block, $child_block, $syntax_block, @parsed_blocks,
-		$re_i_start, $re_i, @re, @re_sub, $p, $nosyntax, $pre,
-		$pre_code, $blockquote, $list, $table, $figure, %h_i, $h_top,
-		$h_prev, $toc, $notoc, $lot, $nolot, $lof, $nolof);
+		$re_start, $re_n, @re, @re_sub, $p, $nosyntax, $pre, $pre_code,
+		$blockquote, $list, $table, $figure, %h_n, $h_top, $h_prev,
+		$toc, $notoc, $lot, $nolot, $lof, $nolof);
 
 	$begin_parsing = \&begin_parsing unless(defined($begin_parsing));
 	$parse_line = \&parse_line unless(defined($parse_line));
@@ -4077,11 +4077,11 @@ sub begin_parsing{
 	$figure = "";
 
 	if(!$block_level){
-		$re_i_start = 0;
-		$re_i = 0;
+		$re_start = 0;
+		$re_n = 0;
 		@re = ();
 		@re_sub = ();
-		%h_i = ();
+		%h_n = ();
 		$h_top = 0;
 		$h_prev = 0;
 		$toc = "";
@@ -4110,13 +4110,13 @@ sub parse_line{
 
 	# Apply regular expressions where needed
 	if(!$nosyntax && !$pre && $child_block eq "" && m/^(?!#(?:no)?regex)/){
-		for(my $i = $re_i_start; $i < $re_i; $i++){
+		for(my $i = $re_start; $i < $re_n; $i++){
 			if(m/^(?!#(?:no)?regex)/){
 				eval "s\x1e$re[$i]\x1e$re_sub[$i]\x1eg;";
 			}
 		}
 		if(m/\n/){
-			local $re_i_start = $re_i;
+			local $re_start = $re_n;
 			my @lines = split /\n/, $_, -1;
 			$parse_line->($_) foreach(@lines);
 			return;
@@ -4217,10 +4217,10 @@ sub parse_line{
 				    index($3, '@{[') != -1));
 
 		my $i;
-		for($i = 0; $i < $re_i; $i++){
+		for($i = 0; $i < $re_n; $i++){
 			last if($re[$i] eq $2);
 		}
-		$re[$re_i++] = $2 if($i == $re_i);
+		$re[$re_n++] = $2 if($i == $re_n);
 		$_ = $3;
 		# Treat a single backslash as an escape character.
 		s/\\(?![\\a-zA-Z0-9])/\x00/g;
@@ -4232,17 +4232,17 @@ sub parse_line{
 	# Clear regular expressions
 	if(m/^#noregex(?:| (.)(.+)(?<!\\)\1)$/){
 		if($2 eq ""){
-			$re_i = 0;
+			$re_n = 0;
 			$#re = $#re_sub = -1;
 		}else{
-			for(my $i = 0; $i < $re_i; $i++){
+			for(my $i = 0; $i < $re_n; $i++){
 				if($re[$i] eq $2){
-					$re_i--;
-					for(; $i < $re_i; $i++){
+					$re_n--;
+					for(; $i < $re_n; $i++){
 						$re[$i] = $re[$i+1];
 						$re_sub[$i] = $re_sub[$i+1];
 					}
-					$#re = $#re_sub = $re_i-1;
+					$#re = $#re_sub = $re_n-1;
 					last;
 				}
 			}
@@ -4444,7 +4444,7 @@ sub parse_line{
 			return;
 		}elsif($inc_toc){
 			$id = convert_page_name($id);
-			my $j = $h_i{$id}++;
+			my $j = $h_n{$id}++;
 			if($j > 0){
 				$id .= ".".($j + 1);
 			}
@@ -4525,11 +4525,11 @@ sub end_parsing{
 			$text =~ s/\x05/$lof\x05/g;
 		}
 
-		$re_i_start = 0;
-		$re_i = 0;
+		$re_start = 0;
+		$re_n = 0;
 		@re = ();
 		@re_sub = ();
-		%h_i = ();
+		%h_n = ();
 		$h_top = 0;
 		$h_prev = 0;
 		$toc = "";
