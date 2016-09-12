@@ -80,6 +80,10 @@ use vars qw(
 	$PAGE_NAME_STYLE
 	$SECTION_NUMBER_PREFIX $SECTION_NUMBER_SEPARATOR $SECTION_NUMBER_SUFFIX
 	$SECTION_REFERENCE_PREFIX $SECTION_REFERENCE_SUFFIX
+	$TABLE_NUMBER_PREFIX $TABLE_NUMBER_SUFFIX
+	$TABLE_REFERENCE_PREFIX $TABLE_REFERENCE_SUFFIX
+	$FIGURE_NUMBER_PREFIX $FIGURE_NUMBER_SUFFIX
+	$FIGURE_REFERENCE_PREFIX $FIGURE_REFERENCE_SUFFIX
 	$INACTIVE_TIMEOUT $SET_PASSWORD_TIMEOUT $RESET_PASSWORD_TIMEOUT
 	$EMAIL_ADDRESS $SMTP $MIME_TYPE_COMMAND
 	$READ_ACCESS $WRITE_ACCESS
@@ -106,7 +110,8 @@ use vars qw(
 	$text $protocol $protocol_char $protocol_punct $image_ext $code_block
 	$child_block $syntax_block @parsed_blocks $re_start $re_n @re @re_sub
 	$p $nosyntax $pre $pre_code $blockquote $list $table $figure %h_n
-	$h_top $h_prev %h_secs %secs $toc $notoc $lot $nolot $lof $nolof
+	$h_top $h_prev %h_secs %secs_no $toc $notoc $tab_no %tabs_n %tabs $lot
+	$nolot $fig_no %figs_n %figs $lof $nolof
 );
 
 umask 022;
@@ -1292,6 +1297,11 @@ sub create_table{
 					if($del_punct_from_title);
 				if($line ne ""){
 					$id = convert_page_name("table $line");
+					my $j = $tabs_n{$id}++;
+					if($j > 0){
+						$id .= $j + 1;
+						$tabs_n{$id}++;
+					}
 					$title = $line;
 				}
 			}
@@ -1324,9 +1334,10 @@ sub create_table{
 	if($id eq ""){
 		$table = "<table>\n";
 	}else{
+		$tabs{$id} = ++$tab_no;
 		$table = "<table id=\"$id\">\n";
 		my $enc_id = encode_url($id);
-		$lot .= "<li><a href=\"#$enc_id\">$title</a></li>\n";
+		$lot .= "<li><a href=\"#$enc_id\">$TABLE_NUMBER_PREFIX$tab_no$TABLE_NUMBER_SUFFIX$title</a></li>\n";
 	}
 	$table .= "<caption>$caption</caption>\n" if($caption ne "");
 	$table .= "<thead>\n$thead</thead>\n" if($thead ne "");
@@ -1458,6 +1469,11 @@ sub create_figure{
 					if($del_punct_from_title);
 				if($line ne ""){
 					$id = convert_page_name("figure $line");
+					my $j = $figs_n{$id}++;
+					if($j > 0){
+						$id .= $j + 1;
+						$figs_n{$id}++;
+					}
 					$title = $line;
 				}
 			}
@@ -1475,9 +1491,10 @@ sub create_figure{
 	if($id eq ""){
 		$figure = "<figure>\n";
 	}else{
+		$figs{$id} = ++$fig_no;
 		$figure = "<figure id=\"$id\">\n";
 		my $enc_id = encode_url($id);
-		$lof .= "<li><a href=\"#$enc_id\">$title</a></li>\n";
+		$lof .= "<li><a href=\"#$enc_id\">$FIGURE_NUMBER_PREFIX$fig_no$FIGURE_NUMBER_SUFFIX$title</a></li>\n";
 	}
 	$figure .= "$content\n" if($content ne "");
 	$figure .= "<figcaption>$figcaption</figcaption>\n"
@@ -1642,13 +1659,37 @@ $SECTION_NUMBER_PREFIX = '';
 $SECTION_NUMBER_SEPARATOR = '.';
 
 # Section number suffix
-$SECTION_NUMBER_SUFFIX = '&nbsp;&nbsp;';
+$SECTION_NUMBER_SUFFIX = '&nbsp;&nbsp;&nbsp;';
 
 # Section reference prefix
 $SECTION_REFERENCE_PREFIX = 'Section ';
 
 # Section reference suffix
 $SECTION_REFERENCE_SUFFIX = '';
+
+# Table number prefix
+$TABLE_NUMBER_PREFIX = 'Table ';
+
+# Table number suffix
+$TABLE_NUMBER_SUFFIX = ': ';
+
+# Table reference prefix
+$TABLE_REFERENCE_PREFIX = 'Table ';
+
+# Table reference suffix
+$TABLE_REFERENCE_SUFFIX = '';
+
+# Figure number prefix
+$FIGURE_NUMBER_PREFIX = 'Figure ';
+
+# Figure number suffix
+$FIGURE_NUMBER_SUFFIX = ': ';
+
+# Figure reference prefix
+$FIGURE_REFERENCE_PREFIX = 'Figure ';
+
+# Figure reference suffix
+$FIGURE_REFERENCE_SUFFIX = '';
 
 # Login session will be extended by this number of minutes whenever any action
 # is taken by the user.
@@ -3931,7 +3972,8 @@ sub parse_file{
 		$code_block, $child_block, $syntax_block, @parsed_blocks,
 		$re_start, $re_n, @re, @re_sub, $p, $nosyntax, $pre, $pre_code,
 		$blockquote, $list, $table, $figure, %h_n, $h_top, $h_prev,
-		%h_secs, %secs, $toc, $notoc, $lot, $nolot, $lof, $nolof);
+		%h_secs, %secs_no, $toc, $notoc, $tab_no, %tabs_n, %tabs, $lot,
+		$nolot, $fig_no, %figs_n, %figs, $lof, $nolof);
 	my ($header_file, $footer_file);
 
 	unless($wiki){
@@ -3963,7 +4005,8 @@ sub parse_child{
 		$code_block, $child_block, $syntax_block, @parsed_blocks,
 		$re_start, $re_n, @re, @re_sub, $p, $nosyntax, $pre, $pre_code,
 		$blockquote, $list, $table, $figure, %h_n, $h_top, $h_prev,
-		%h_secs, %secs, $toc, $notoc, $lot, $nolot, $lof, $nolof);
+		%h_secs, %secs_no, $toc, $notoc, $tab_no, %tabs_n, %tabs, $lot,
+		$nolot, $fig_no, %figs_n, %figs, $lof, $nolof);
 
 	$begin_parsing = \&begin_parsing unless(defined($begin_parsing));
 	$parse_line = \&parse_line unless(defined($parse_line));
@@ -4102,11 +4145,17 @@ sub begin_parsing{
 		$h_top = 0;
 		$h_prev = 0;
 		%h_secs = ();
-		%secs = ();
+		%secs_no = ();
 		$toc = "";
 		$notoc = 0;
+		$tab_no = 0;
+		%tabs_n = ();
+		%tabs = ();
 		$lot = "";
 		$nolot = 1;
+		$fig_no = 0;
+		%figs_n = ();
+		%figs = ();
 		$lof = "";
 		$nolof = 1;
 	}
@@ -4474,16 +4523,16 @@ sub parse_line{
 			$h_n{$id}++;
 		}
 
-		$secs{$i}++;
+		$secs_no{$i}++;
 		for($j = $i + 1; $j <= 6; $j++){
-			$secs{$j} = 0;
+			$secs_no{$j} = 0;
 		}
 
 		my $sec = "";
 		for($j = 2; $j <= $i; $j++){
-			next unless($secs{$j});
+			next unless($secs_no{$j});
 			$sec .= $SECTION_NUMBER_SEPARATOR if($sec ne "");
-			$sec .= $secs{$j};
+			$sec .= $secs_no{$j};
 		}
 		$h_secs{$id} = $sec;
 		$sec = "$SECTION_NUMBER_PREFIX$sec$SECTION_NUMBER_SUFFIX";
@@ -4558,12 +4607,22 @@ sub end_parsing{
 				"<ul class=\"lot-list\">\n$lot</ul>\n</div>\n";
 			$text =~ s/\x05/$lot\x05/g;
 		}
+		foreach(keys %tabs){
+			my $enc_id = encode_url($_);
+			my $tab = $tabs{$_};
+			$text =~ s/(<a class="auto-title" href="#$enc_id">)[^<]*(<\/a>)/\1$TABLE_REFERENCE_PREFIX$tab$TABLE_REFERENCE_SUFFIX\2/g;
+		}
 		if(!$nolof && $lof ne ""){
 			my $heading = get_msg("list_of_figures");
 			$lof = "<div id=\"lof\">\n".
 				"<div class=\"lof-heading\">$heading</div>\n".
 				"<ul class=\"lof-list\">\n$lof</ul>\n</div>\n";
 			$text =~ s/\x05/$lof\x05/g;
+		}
+		foreach(keys %figs){
+			my $enc_id = encode_url($_);
+			my $fig = $figs{$_};
+			$text =~ s/(<a class="auto-title" href="#$enc_id">)[^<]*(<\/a>)/\1$FIGURE_REFERENCE_PREFIX$fig$FIGURE_REFERENCE_SUFFIX\2/g;
 		}
 
 		$re_start = 0;
@@ -4574,11 +4633,17 @@ sub end_parsing{
 		$h_top = 0;
 		$h_prev = 0;
 		%h_secs = ();
-		%secs = ();
+		%secs_no = ();
 		$toc = "";
 		$notoc = 0;
+		$tab_no = 0;
+		%tabs_n = ();
+		%tabs = ();
 		$lot = "";
 		$nolot = 1;
+		$fig_no = 0;
+		%figs_n = ();
+		%figs = ();
 		$lof = "";
 		$nolof = 1;
 	}
