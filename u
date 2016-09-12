@@ -1009,6 +1009,7 @@ sub create_blockquote{
 				$cite[$qi] .= $1;
 			}else{
 				if($use_p && !$p){
+					$line =~ s#\x04#</p>\x04<p>#g;
 					$blockquote .= "<p>";
 					$p = 1;
 				}
@@ -1083,6 +1084,7 @@ sub create_list{
 	foreach(@lines){
 		m/^( *)(?:([*+-]|: [ \t]*(.*?)[ \t]*:)[ \t])?[ \t]*(.*?)[ \t]*$/;
 		my $i = length($1) / 2 + 1;
+		my $line = $4;
 		if($2 eq ""){
 			if(--$i < $li_i){
 				if($p){
@@ -1099,7 +1101,7 @@ sub create_list{
 				}
 				$li_i++;
 			}
-			if($4 eq "" || $4 eq "..."){
+			if($line eq "" || $line eq "..."){
 				$use_p = 1;
 				if($p){
 					$list .= "</p>\n";
@@ -1108,10 +1110,11 @@ sub create_list{
 				next;
 			}
 			if($use_p && !$p){
+				$line =~ s#\x04#</p>\x04<p>#g;
 				$list .= "<p>";
 				$p = 1;
 			}
-			$list .= "$4\n";
+			$list .= "$line\n";
 			next;
 		}
 		$use_p = 0;
@@ -1121,7 +1124,6 @@ sub create_list{
 		}
 		my $tag = substr $2, 0, 1;
 		my $term = $3;
-		my $item = $4;
 		my $attr = "";
 		if($tag eq "*"){
 			$tag = "ul";
@@ -1198,9 +1200,9 @@ sub create_list{
 		}
 
 		if($tag eq "dl"){
-			$list .= "<dt>$term</dt>\n<dd>$item\n";
+			$list .= "<dt>$term</dt>\n<dd>$line\n";
 		}else{
-			$list .= "<li>$item\n";
+			$list .= "<li>$line\n";
 		}
 	}
 	if($p){
@@ -4358,6 +4360,7 @@ sub parse_line{
 	}
 	# Start a new paragraph
 	if(!$p && !$pre && $blockquote eq "" && $list eq "" && $table eq ""){
+		s#\x04#</p>\x04<p>#g;
 		$text .= "<p>";
 		$p = 1;
 	}
