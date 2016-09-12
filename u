@@ -78,6 +78,8 @@ use vars qw(
 	$SHARE_COOKIES
 	$PASSWORD_FILE $SESSIONS_FILE $MESSAGES_FILE $TEMPLATE_DIRECTORY
 	$PAGE_NAME_STYLE
+	$SECTION_NUMBER_PREFIX $SECTION_NUMBER_SEPARATOR $SECTION_NUMBER_SUFFIX
+	$SECTION_REFERENCE_PREFIX $SECTION_REFERENCE_SUFFIX
 	$INACTIVE_TIMEOUT $SET_PASSWORD_TIMEOUT $RESET_PASSWORD_TIMEOUT
 	$EMAIL_ADDRESS $SMTP $MIME_TYPE_COMMAND
 	$READ_ACCESS $WRITE_ACCESS
@@ -104,7 +106,7 @@ use vars qw(
 	$text $protocol $protocol_char $protocol_punct $image_ext $code_block
 	$child_block $syntax_block @parsed_blocks $re_start $re_n @re @re_sub
 	$p $nosyntax $pre $pre_code $blockquote $list $table $figure %h_n
-	$h_top $h_prev $toc $notoc $lot $nolot $lof $nolof
+	$h_top $h_prev %h_secs %secs $toc $notoc $lot $nolot $lof $nolof
 );
 
 umask 022;
@@ -1632,6 +1634,21 @@ $TEMPLATE_DIRECTORY = 'u.tpl';
 # start_case style will create and link to Page-In-A-Uniqki-Site.html.  The
 # same page name in the upper_camel_case style will use PageInAUniqkiSite.html.
 $PAGE_NAME_STYLE = 'lower_case:dots:hyphens';
+
+# Section number prefix
+$SECTION_NUMBER_PREFIX = '';
+
+# Section number separator
+$SECTION_NUMBER_SEPARATOR = '.';
+
+# Section number suffix
+$SECTION_NUMBER_SUFFIX = '&nbsp;&nbsp;';
+
+# Section reference prefix
+$SECTION_REFERENCE_PREFIX = 'Section ';
+
+# Section reference suffix
+$SECTION_REFERENCE_SUFFIX = '';
 
 # Login session will be extended by this number of minutes whenever any action
 # is taken by the user.
@@ -3914,7 +3931,7 @@ sub parse_file{
 		$code_block, $child_block, $syntax_block, @parsed_blocks,
 		$re_start, $re_n, @re, @re_sub, $p, $nosyntax, $pre, $pre_code,
 		$blockquote, $list, $table, $figure, %h_n, $h_top, $h_prev,
-		$toc, $notoc, $lot, $nolot, $lof, $nolof);
+		%h_secs, %secs, $toc, $notoc, $lot, $nolot, $lof, $nolof);
 	my ($header_file, $footer_file);
 
 	unless($wiki){
@@ -3946,7 +3963,7 @@ sub parse_child{
 		$code_block, $child_block, $syntax_block, @parsed_blocks,
 		$re_start, $re_n, @re, @re_sub, $p, $nosyntax, $pre, $pre_code,
 		$blockquote, $list, $table, $figure, %h_n, $h_top, $h_prev,
-		$toc, $notoc, $lot, $nolot, $lof, $nolof);
+		%h_secs, %secs, $toc, $notoc, $lot, $nolot, $lof, $nolof);
 
 	$begin_parsing = \&begin_parsing unless(defined($begin_parsing));
 	$parse_line = \&parse_line unless(defined($parse_line));
@@ -4084,6 +4101,8 @@ sub begin_parsing{
 		%h_n = ();
 		$h_top = 0;
 		$h_prev = 0;
+		%h_secs = ();
+		%secs = ();
 		$toc = "";
 		$notoc = 0;
 		$lot = "";
@@ -4428,9 +4447,6 @@ sub parse_line{
 		s/^[ \t]+|[ \t]+$//g;
 		# Discard NONE characters
 		y/\x00//d;
-		(my $title = $_) =~ s/<[^>]*>//g;
-		my $id = $title;
-		$id =~ s/&amp;/&/g; $id =~ s/&lt;/</g; $id =~ s/&gt;/>/g;
 		if($p){
 			$text .= "</p>\n";
 			$p = 0;
@@ -4442,18 +4458,38 @@ sub parse_line{
 			}
 			$text .= qq(<h$i>$_</h$i>\n);
 			return;
-		}elsif($inc_toc){
-			$id = convert_page_name($id);
-			my $j = $h_n{$id}++;
-			if($j > 0){
-				$id .= ".".($j + 1);
-			}
-			$text .= "\x05" if($toc eq "");
-			$text .= qq(<h$i id="$id">$_</h$i>\n);
-		}else{
+		}elsif(!$inc_toc){
 			$text .= qq(<h$i>$_</h$i>\n);
+			return;
 		}
-		return unless($inc_toc);
+
+		(my $title = $_) =~ s/<[^>]*>//g;
+
+		my $id = $title;
+		$id =~ s/&amp;/&/g; $id =~ s/&lt;/</g; $id =~ s/&gt;/>/g;
+		$id = convert_page_name($id);
+		my $j = $h_n{$id}++;
+		if($j > 0){
+			$id .= $j + 1;
+			$h_n{$id}++;
+		}
+
+		$secs{$i}++;
+		for($j = $i + 1; $j <= 6; $j++){
+			$secs{$j} = 0;
+		}
+
+		my $sec = "";
+		for($j = 2; $j <= $i; $j++){
+			next unless($secs{$j});
+			$sec .= $SECTION_NUMBER_SEPARATOR if($sec ne "");
+			$sec .= $secs{$j};
+		}
+		$h_secs{$id} = $sec;
+		$sec = "$SECTION_NUMBER_PREFIX$sec$SECTION_NUMBER_SUFFIX";
+
+		$text .= "\x05" if($toc eq "");
+		$text .= qq(<h$i id="$id">$sec$_</h$i>\n);
 
 		if($i > $h_prev){
 			if($h_prev){
@@ -4471,7 +4507,7 @@ sub parse_line{
 			$h_top = $i if($i < $h_top);
 		}
 		my $enc_id = encode_url($id);
-		$toc .= "<li><a href=\"#$enc_id\">$title</a></li>\n";
+		$toc .= "<li><a href=\"#$enc_id\">$sec$title</a></li>\n";
 		return;
 	}
 	# Handle <p> tags around syntax blocks
@@ -4510,6 +4546,11 @@ sub end_parsing{
 				"$toc</div>\n";
 			$text =~ s/\x05/$toc\x05/g;
 		}
+		foreach(keys %h_secs){
+			my $enc_id = encode_url($_);
+			my $sec = $h_secs{$_};
+			$text =~ s/(<a class="auto-title" href="#$enc_id">)[^<]*(<\/a>)/\1$SECTION_REFERENCE_PREFIX$sec$SECTION_REFERENCE_SUFFIX\2/g;
+		}
 		if(!$nolot && $lot ne ""){
 			my $heading = get_msg("list_of_tables");
 			$lot = "<div id=\"lot\">\n".
@@ -4532,6 +4573,8 @@ sub end_parsing{
 		%h_n = ();
 		$h_top = 0;
 		$h_prev = 0;
+		%h_secs = ();
+		%secs = ();
 		$toc = "";
 		$notoc = 0;
 		$lot = "";
