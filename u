@@ -3926,9 +3926,8 @@ sub parse_child{
 sub parse_block{
 	my $txt = shift;
 	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
-		$code_block, $child_block, $syntax_block, @parsed_blocks,
-		$re_i_start, $re_i, @re, @re_sub, $p, $pre, $pre_code,
-		$blockquote, $list, $table, $figure);
+		$code_block, $child_block, $syntax_block, @parsed_blocks, $p,
+		$pre, $pre_code, $blockquote, $list, $table, $figure);
 
 	$begin_parsing = \&begin_parsing unless(defined($begin_parsing));
 	$parse_line = \&parse_line unless(defined($parse_line));
@@ -3970,20 +3969,17 @@ sub verify_input{
 }
 
 sub begin_parsing{
-	my $append_toc_lot_lof = shift;
+	my $block_level = shift;
 	$protocol = 'https?://|ftp://|news://|telnet://|gopher://|wais://|mailto:|file://';
 	$protocol_char = 'a-zA-Z0-9:@/~%.,_$?=&;#+-';
 	$protocol_punct = '.,;:!?';
 	$image_ext = 'png|gif|jpg|jpeg';
 
 	$text = "";
+
 	$code_block = "";
 	$syntax_block = "";
 	@parsed_blocks = ();
-	$re_i_start = 0;
-	$re_i = 0;
-	@re = ();
-	@re_sub = ();
 	$p = 0;
 	$pre = 0;
 	$pre_code = "";
@@ -3992,7 +3988,11 @@ sub begin_parsing{
 	$table = "";
 	$figure = "";
 
-	if(!$append_toc_lot_lof){
+	if(!$block_level){
+		$re_i_start = 0;
+		$re_i = 0;
+		@re = ();
+		@re_sub = ();
 		%h_i = ();
 		$h_top = 0;
 		$h_prev = 0;
@@ -4424,38 +4424,21 @@ sub parse_line{
 }
 
 sub end_parsing{
-	my $append_toc_lot_lof = shift;
-	if($blockquote ne ""){
-		$text .= create_blockquote($blockquote);
-		$blockquote = "";
-	}
-	if($list ne ""){
-		$text .= create_list($list);
-		$list = "";
-	}
-	if($table ne ""){
-		$text .= create_table($table);
-		$table = "";
-	}
-	if($figure ne ""){
-		$text .= create_figure($figure);
-		$figure = "";
-	}
+	my $block_level = shift;
+	$text .= create_blockquote($blockquote) if($blockquote ne "");
+	$text .= create_list($list) if($list ne "");
+	$text .= create_table($table) if($table ne "");
+	$text .= create_figure($figure) if($figure ne "");
 	if($pre){
 		chomp $text;
 		if($pre_code eq ""){
 			$text .= "</pre>\n";
 		}else{
 			$text .= "</code></pre>\n";
-			$pre_code = "";
 		}
-		$pre = 0;
 	}
-	if($p){
-		$text .= "</p>\n";
-		$p = 0;
-	}
-	if(!$append_toc_lot_lof){
+	$text .= "</p>\n" if($p);
+	if(!$block_level){
 		$text = "\x05$text" unless($text =~ m/\x05/);
 		if(!$notoc && $toc ne ""){
 			my $i = $h_prev;
@@ -4472,7 +4455,6 @@ sub end_parsing{
 			$toc = "<div id=\"toc\">\n".
 				"<div class=\"toc-heading\">$heading</div>\n".
 				"$toc</div>\n";
-			$h_prev = 0;
 			$text =~ s/\x05/$toc\x05/g;
 		}
 		if(!$nolot && $lot ne ""){
@@ -4489,6 +4471,20 @@ sub end_parsing{
 				"<ul class=\"lof-list\">\n$lof</ul>\n</div>\n";
 			$text =~ s/\x05/$lof\x05/g;
 		}
+
+		$re_i_start = 0;
+		$re_i = 0;
+		@re = ();
+		@re_sub = ();
+		%h_i = ();
+		$h_top = 0;
+		$h_prev = 0;
+		$toc = "";
+		$notoc = 0;
+		$lot = "";
+		$nolot = 1;
+		$lof = "";
+		$nolof = 1;
 	}
 	$text =~ s/\x05//g;
 	my $i = 0;
@@ -4498,6 +4494,17 @@ sub end_parsing{
 	$text =~ s#[ \t\n]*(</(?:p|li|dd)>)[ \t\n]*#$1\n#g;
 	$text =~ s#<p></p>\n##g;
 	$text =~ s#^\n+|\n+$##g;
+
+	$code_block = "";
+	$syntax_block = "";
+	@parsed_blocks = ();
+	$p = 0;
+	$pre = 0;
+	$pre_code = "";
+	$blockquote = "";
+	$list = "";
+	$table = "";
+	$figure = "";
 }
 
 ################################################################################
