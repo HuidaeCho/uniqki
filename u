@@ -4044,11 +4044,7 @@ sub parse_line{
 			my $parsed_block = parse_block($code);
 			chomp $parsed_block;
 			push @syntax_blocks, $parsed_block;
-			if($p){
-				$_ = "$begin\x00</p\x00>\x04\x00<p\x00>$end";
-			}else{
-				$_ = "$begin\x04$end";
-			}
+			$_ = "$begin\x04$end";
 		}else{
 			$syntax_block .= "$_\n";
 			return;
@@ -4366,9 +4362,10 @@ sub parse_line{
 		$toc .= "<li><a href=\"#$enc_id\">$title</a></li>\n";
 		return;
 	}
+	# Handle <p> tags around syntax blocks
+	s#\x04#</p>\x04<p>#g;
 	# Start a new paragraph
-	if(!$p && !$pre && $blockquote eq "" && $list eq "" && $table eq ""){
-		s#\x04#</p>\x04<p>#g;
+	if(!$p){
 		$text .= "<p>";
 		$p = 1;
 	}
