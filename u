@@ -1331,15 +1331,17 @@ sub create_table{
 	$thead = update_table_rowspan($thead);
 	$tfoot = update_table_rowspan($tfoot);
 
+	my $tab = "";
 	if($id eq ""){
 		$table = "<table>\n";
 	}else{
 		$tabs{$id} = ++$tab_no;
+		$tab = "$TABLE_NUMBER_PREFIX$tab_no$TABLE_NUMBER_SUFFIX";
 		$table = "<table id=\"$id\">\n";
 		my $enc_id = encode_url($id);
-		$lot .= "<li><a href=\"#$enc_id\">$TABLE_NUMBER_PREFIX$tab_no$TABLE_NUMBER_SUFFIX$title</a></li>\n";
+		$lot .= "<li><a href=\"#$enc_id\">$tab$title</a></li>\n";
 	}
-	$table .= "<caption>$caption</caption>\n" if($caption ne "");
+	$table .= "<caption>$tab$caption</caption>\n" if($caption ne "");
 	$table .= "<thead>\n$thead</thead>\n" if($thead ne "");
 	$table .= $tbodies if($tbodies ne "");
 	$table .= "<tfoot>\n$tfoot</tfoot>\n" if($tfoot ne "");
@@ -1488,16 +1490,18 @@ sub create_figure{
 
 	return $figure if($content eq "" && $figcaption eq "");
 
+	my $fig = "";
 	if($id eq ""){
 		$figure = "<figure>\n";
 	}else{
 		$figs{$id} = ++$fig_no;
+		$fig = "$FIGURE_NUMBER_PREFIX$fig_no$FIGURE_NUMBER_SUFFIX";
 		$figure = "<figure id=\"$id\">\n";
 		my $enc_id = encode_url($id);
-		$lof .= "<li><a href=\"#$enc_id\">$FIGURE_NUMBER_PREFIX$fig_no$FIGURE_NUMBER_SUFFIX$title</a></li>\n";
+		$lof .= "<li><a href=\"#$enc_id\">$fig$title</a></li>\n";
 	}
 	$figure .= "$content\n" if($content ne "");
-	$figure .= "<figcaption>$figcaption</figcaption>\n"
+	$figure .= "<figcaption>$fig$figcaption</figcaption>\n"
 		if($figcaption ne "");
 	$figure .= "</figure>\n";
 
@@ -1652,43 +1656,32 @@ $TEMPLATE_DIRECTORY = 'u.tpl';
 # same page name in the upper_camel_case style will use PageInAUniqkiSite.html.
 $PAGE_NAME_STYLE = 'lower_case:dots:hyphens';
 
-# Section number prefix
+# Section number style in headings and the table of contents: The default style
+# is "1.1&nbsp;&nbsp;&nbsp;".
 $SECTION_NUMBER_PREFIX = '';
-
-# Section number separator
 $SECTION_NUMBER_SEPARATOR = '.';
-
-# Section number suffix
 $SECTION_NUMBER_SUFFIX = '&nbsp;&nbsp;&nbsp;';
 
-# Section reference prefix
+# Section reference style in text: The default style is "Section 1.1".
 $SECTION_REFERENCE_PREFIX = 'Section ';
-
-# Section reference suffix
 $SECTION_REFERENCE_SUFFIX = '';
 
-# Table number prefix
+# Table number style in captions and the list of tables: The default style is
+# "Table 1: ".
 $TABLE_NUMBER_PREFIX = 'Table ';
-
-# Table number suffix
 $TABLE_NUMBER_SUFFIX = ': ';
 
-# Table reference prefix
+# Table reference style in text: The default style is "Table 1".
 $TABLE_REFERENCE_PREFIX = 'Table ';
-
-# Table reference suffix
 $TABLE_REFERENCE_SUFFIX = '';
 
-# Figure number prefix
+# Figure number style in captions and the list of tables: The default style is
+# "Figure 1: ".
 $FIGURE_NUMBER_PREFIX = 'Figure ';
-
-# Figure number suffix
 $FIGURE_NUMBER_SUFFIX = ': ';
 
-# Figure reference prefix
+# Figure reference style in text: The default style is "Figure 1".
 $FIGURE_REFERENCE_PREFIX = 'Figure ';
-
-# Figure reference suffix
 $FIGURE_REFERENCE_SUFFIX = '';
 
 # Login session will be extended by this number of minutes whenever any action
