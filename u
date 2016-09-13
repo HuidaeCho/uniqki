@@ -4042,17 +4042,20 @@ sub parse_lines{
 
 sub close_blocks{
 	if($code_block ne ""){
-		run_code_block("$code_block}");
+		my $block = "$code_block}";
 		$code_block = "";
+		run_code_block($block);
 	}
 	if($child_block ne ""){
-		my $line = create_child_block($child_block);
+		my $block = $child_block;
 		$child_block = "";
+		my $line = create_child_block($block);
 		$parse_line->($line);
 	}
 	if($syntax_block ne ""){
-		my $line = create_syntax_block($syntax_block);
+		my $block = $syntax_block;
 		$syntax_block = "";
+		my $line = create_syntax_block($block);
 		$parse_line->($line);
 	}
 	if($nosyntax){
@@ -4193,8 +4196,9 @@ sub parse_line{
 	# Process code block
 	if($code_block ne ""){
 		if($_ eq "##}"){
-			run_code_block("$code_block}");
+			my $block = "$code_block}";
 			$code_block = "";
+			run_code_block($block);
 		}else{
 			$code_block .= "$_\n";
 		}
@@ -4203,8 +4207,9 @@ sub parse_line{
 	# Process child block
 	if($child_block ne ""){
 		if(")))" eq substr($_, 0, 3) && "_" ne substr($_, 3, 1)){
-			$_ = create_child_block($child_block.substr($_, 3));
+			my $block = $child_block.substr($_, 3);
 			$child_block = "";
+			$_ = create_child_block($block);
 		}else{
 			$child_block .= "$_\n";
 			return;
@@ -4213,8 +4218,9 @@ sub parse_line{
 	# Process syntax block
 	if($syntax_block ne ""){
 		if("))" eq substr($_, 0, 2) && "_" ne substr($_, 2, 1)){
-			$_ = create_syntax_block($syntax_block.substr($_, 2));
+			my $block = $syntax_block.substr($_, 2);
 			$syntax_block = "";
+			$_ = create_syntax_block($block);
 		}else{
 			$syntax_block .= "$_\n";
 			return;
