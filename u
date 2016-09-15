@@ -4442,9 +4442,9 @@ sub parse_line{
 	s#--(.*?)--#<s>$1</s>#g;
 	s#__(.*?)__#<u>$1</u>#g;
 	s#\!\!(.*?)\!\!#<mark>$1</mark>#g;
-	# Protect links inside tags
+	# Protect protocols inside tags
 	s#<([^>]*(?:$protocol)[^>]*)>#<@{[protect_urls($1)]}>#ogi;
-	# Protect links outside tags
+	# Protect protocols outside tags
 	s#(<a [^>]*>)([^<]*(?:$protocol)[^<]*)(</a>)#$1@{[protect_urls($2)]}$3#ogi;
 	# Translate non-protected protocols to links
 	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+\x01[a-z]+;)(?=(?:[ \t]|$))#<a class="auto-title" href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
