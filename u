@@ -69,6 +69,7 @@ use vars qw(
 # Template variables
 use vars qw(
 	$TITLE $TEXT $PREVIEW $VERSION $TIME $PASSWORD_RESET_TOKEN $MESSAGE
+	$PARSING_TIME
 );
 
 # Config and messages variables
@@ -117,6 +118,8 @@ use vars qw(
 umask 022;
 
 my $win = $^O eq "MSWin32" ? 1 : 0;
+eval "use Time::HiRes";
+my $show_parsing_time = $@ ? 0 : 1;
 
 if(!defined $ENV{GATEWAY_INTERFACE}){
 	my $cmd = "";
@@ -1846,6 +1849,7 @@ diff => q(Diff),
 backlinks => q(Backlinks),
 last_modified => q([[TIME]] by [[AUTHOR]]),
 unknown_author => q(Unknown),
+parsing_time => q(Parsing time: [[PARSING_TIME]] seconds),
 xhtml => q(XHTML),
 css => q(CSS),
 
@@ -2037,16 +2041,19 @@ sub process_tpl_tag{
 			SITE_TITLE SITE_DESCRIPTION INDEX_PAGE TITLE LANG
 			CHARSET PAGE VERSION TEXT HTTP_BASE DOC_BASE PREVIEW
 			TIME CGI MESSAGE PASSWORD_RESET_TOKEN NAME AUTHOR
+			PARSING_TIME
 		);
 		my %hash;
 		@hash{@tags} = undef;
 
 		no strict;
 		$txt = $$tag if(exists $hash{$tag});
+	}elsif($tag eq "parsing_time" && !$show_parsing_time){
+		$txt = "";
 	}elsif($tag =~ m/^[a-z_]+$/){
 		$txt = get_msg($tag);
 		my @tags = qw(
-			PAGE TIME AUTHOR
+			PAGE TIME AUTHOR PARSING_TIME
 		);
 
 		no strict;
@@ -2399,6 +2406,7 @@ sub print_view{
 <a class="user" accesskey="l" href="[[CGI]]/[[PAGE]]?logout">[[logout]]</a>
 </div>
 <div id="last_modified">[[last_modified]]</div>
+<div id="parsing_time">[[parsing_time]]</div>
 [[FOOTER]]
 EOT_UNIQKI
 }
@@ -2471,6 +2479,7 @@ sub print_wiki_view{
 <a class="user" accesskey="l" href="[[CGI]]/[[PAGE]]?logout">[[logout]]</a>
 </div>
 <div id="last_modified">[[last_modified]]</div>
+<div id="parsing_time">[[parsing_time]]</div>
 [[FOOTER]]
 EOT_UNIQKI
 }
@@ -2602,6 +2611,10 @@ textarea {
 	display:		none;
 }
 #last_modified {
+	padding-top:		2px;
+	font-size:		smaller;
+}
+#parsing_time {
 	padding-top:		2px;
 	font-size:		smaller;
 }
@@ -3094,7 +3107,10 @@ sub make_html{
 	local $AUTHOR = get_author($PAGE);
 	local $TIME = format_time((stat "$PAGE.txt")[9]);
 	local $TITLE = "";
+	my $start_time = Time::HiRes::time() if($show_parsing_time);
 	local $TEXT = parse_file("$PAGE.txt");
+	local $PARSING_TIME = sprintf "%.3f", Time::HiRes::time() - $start_time
+		if($show_parsing_time);
 	local $wiki;
 	local *FH;
 
