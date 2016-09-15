@@ -3104,6 +3104,7 @@ sub preview{
 
 sub make_html{
 	local $PAGE = shift;
+	local $wiki;
 	local $AUTHOR = get_author($PAGE);
 	local $TIME = format_time((stat "$PAGE.txt")[9]);
 	local $TITLE = "";
@@ -3111,7 +3112,6 @@ sub make_html{
 	local $TEXT = parse_file("$PAGE.txt");
 	local $PARSING_TIME = sprintf "%.3f", Time::HiRes::time() - $start_time
 		if($show_parsing_time);
-	local $wiki;
 	local *FH;
 
 	if($TITLE eq ""){
