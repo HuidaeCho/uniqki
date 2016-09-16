@@ -1868,7 +1868,7 @@ diff => q(Diff),
 backlinks => q(Backlinks),
 last_modified => q([[TIME]] by [[AUTHOR]]),
 unknown_author => q(Unknown),
-parsing_time => q(Parsing time: [[PARSING_TIME]]),
+parsing_time => q(Parsing time: [[PARSING_TIME]] seconds),
 xhtml => q(XHTML),
 css => q(CSS),
 
@@ -2418,7 +2418,7 @@ sub print_view{
 </div>
 <hr />
 <div id="menu">
-<a accesskey="r" href="[[CGI]]/[[PAGE]]?refresh">[[refresh]]</a> .
+<span class="write-access"><a accesskey="r" href="[[CGI]]/[[PAGE]]?refresh">[[refresh]]</a> .</span>
 <span class="write-access"><a accesskey="e" href="[[CGI]]/[[PAGE]]?edit">[[edit]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a class="visitor" accesskey="l" href="[[CGI]]/[[PAGE]]?login">[[login]]</a>
