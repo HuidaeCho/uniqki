@@ -104,9 +104,9 @@ use vars qw(
 # parse_file() global variables
 use vars qw(
 	$wiki
-	$begin_parsing
-	$parse_line
-	$end_parsing
+	@begin_parsing
+	@parse_line
+	@end_parsing
 	@preprocess_line
 	@collect_and_parse_syntax_block
 	@parse_as_is_lines
@@ -3981,6 +3981,16 @@ sub write_file{
 	return 0;
 }
 
+sub parse{
+	local $_ = shift;
+	my @parsers = @_;
+	foreach my $parser (@parsers){
+		$_ = $parser->($_);
+		return unless defined;
+	}
+	return $_;
+}
+
 # Parsing subroutines
 sub parse_file{
 	my $file = shift;
@@ -4005,9 +4015,9 @@ sub parse_file{
 			($WIKI_HEADER_FILE, $WIKI_FOOTER_FILE);
 	}
 
-	$begin_parsing = \&begin_parsing unless defined $begin_parsing;
-	$parse_line = \&parse_line unless defined $parse_line;
-	$end_parsing = \&end_parsing unless defined $end_parsing;
+	push @begin_parsing, \&begin_parsing unless @begin_parsing;
+	push @parse_line, \&parse_line unless @parse_line;
+	push @end_parsing, \&end_parsing unless @end_parsing;
 
 	push @preprocess_line, \&preprocess_line unless @preprocess_line;
 	push @collect_and_parse_syntax_block, \&collect_and_parse_syntax_block
@@ -4034,17 +4044,14 @@ sub parse_file{
 	push @postprocess_line, \&postprocess_line unless @postprocess_line;
 	push @close_all_open, \&close_all_open unless @close_all_open;
 
-	$begin_parsing->();
+	$_->() foreach(@begin_parsing);
 	foreach my $f ($header_file, $file, $footer_file){
 		# "<" is required for the in-memory file
 		next if($f eq "" || !open UNIQKI_FH, "<", $f);
-		while(<UNIQKI_FH>){
-			y/\n//d;
-			$text .= $parse_line->($_);
-		}
+		$text .= parse($_, @parse_line) while(<UNIQKI_FH>);
 		close UNIQKI_FH;
 	}
-	$end_parsing->();
+	$_->() foreach(@end_parsing);
 
 	return $text;
 }
@@ -4058,9 +4065,9 @@ sub parse_child{
 		$notoc, $tab_no, %tabs_n, %tabs, $lot, $nolot, $fig_no,
 		%figs_n, %figs, $lof, $nolof);
 
-	$begin_parsing->();
-	$text .= $parse_line->($_) foreach(split /\n/, $txt, -1);
-	$end_parsing->();
+	$_->() foreach(@begin_parsing);
+	$text .= parse($_, @parse_line) foreach(split /\n/, $txt, -1);
+	$_->() foreach(@end_parsing);
 
 	return $text;
 }
@@ -4071,9 +4078,9 @@ sub parse_block{
 		$syntax_block, @parsed_blocks, $p, $nosyntax, $pre, $pre_code,
 		$blockquote, $list, $table, $figure);
 
-	$begin_parsing->(1);
-	$text .= $parse_line->($_) foreach(split /\n/, $txt, -1);
-	$end_parsing->(1);
+	$_->(1) foreach(@begin_parsing);
+	$text .= parse($_, @parse_line) foreach(split /\n/, $txt, -1);
+	$_->(1) foreach(@end_parsing);
 
 	return $text;
 }
@@ -4081,7 +4088,7 @@ sub parse_block{
 sub parse_lines{
 	my $txt = shift;
 	local $text;
-	$text .= $parse_line->($_) foreach(split /\n/, $txt, -1);
+	$text .= parse($_, @parse_line) foreach(split /\n/, $txt, -1);
 	return $text;
 }
 
@@ -4101,14 +4108,14 @@ sub close_all_open{
 	if($child_block ne ""){
 		my $block = $child_block;
 		$child_block = "";
-		my $line = create_child_block($block);
-		$text .= $parse_line->($line);
+		local $_ = create_child_block($block);
+		$text .= parse($_, @parse_line);
 	}
 	if($syntax_block ne ""){
 		my $block = $syntax_block;
 		$syntax_block = "";
-		my $line = create_syntax_block($block);
-		$text .= $parse_line->($line);
+		local $_ = create_syntax_block($block);
+		$text .= parse($_, @parse_line);
 	}
 	if($nosyntax){
 		$nosyntax = 0;
@@ -4156,8 +4163,8 @@ sub preprocess_line{
 		}
 		if(m/\n/){
 			local $re_start = $re_n;
-			my @lines = split /\n/, $_, -1;
-			$text .= $parse_line->($_) foreach(@lines);
+			$text .= parse($_, @parse_line)
+				foreach(split /\n/, $_, -1);
 			return;
 		}
 	}
@@ -4358,7 +4365,7 @@ sub parse_nonwiki_command{
 	if(m/^##include (.+)$/){
 		local *FH;
 		if(open FH, $1){
-			$text .= $parse_line->($_) while(<FH>);
+			$text .= parse($_, @parse_line) while(<FH>);
 			close FH;
 		}
 		return;
@@ -4727,51 +4734,26 @@ sub parse_line{
 	# ##non-wiki command
 	# ``inline perl code``
 	local $_ = shift;
+	y/\n//d;
 
-	foreach my $parser (@preprocess_line){
-		$_ = $parser->($_); return unless defined;
-	}
-	foreach my $parser (@collect_and_parse_syntax_block){
-		$_ = $parser->($_); return unless defined;
-	}
-	foreach my $parser (@parse_as_is_lines){
-		$_ = $parser->($_); return unless defined;
-	}
-	foreach my $parser (@skip_comment){
-		$_ = $parser->($_); return unless defined;
-	}
-	foreach my $parser (@parse_wiki_command){
-		$_ = $parser->($_); return unless defined;
-	}
-	foreach my $parser (@parse_nonwiki_command){
-		$_ = $parser->($_); return unless defined;
-	}
-	foreach my $parser (@skip_unknown_command){
-		$_ = $parser->($_); return unless defined;
-	}
-	foreach my $parser (@start_syntax_block){
-		$_ = $parser->($_); return unless defined;
-	}
-	foreach my $parser (@parse_collected_lines){
-		$_ = $parser->($_); return unless defined;
-	}
-	foreach my $parser (@parse_paragraph_break){
-		$_ = $parser->($_); return unless defined;
-	}
-	foreach my $parser (@parse_inline_syntax){
-		$_ = $parser->($_); return unless defined;
-	}
-	foreach my $parser (@collect_lines){
-		$_ = $parser->($_); return unless defined;
-	}
-	foreach my $parser (@parse_line_syntax){
-		$_ = $parser->($_); return unless defined;
-	}
-	foreach my $parser (@start_paragraph){
-		$_ = $parser->($_); return unless defined;
-	}
-	foreach my $parser (@postprocess_line){
-		$_ = $parser->($_); return unless defined;
+	foreach my $parser (
+		@preprocess_line,
+		@collect_and_parse_syntax_block,
+		@parse_as_is_lines,
+		@skip_comment,
+		@parse_wiki_command,
+		@parse_nonwiki_command,
+		@skip_unknown_command,
+		@start_syntax_block,
+		@parse_collected_lines,
+		@parse_paragraph_break,
+		@parse_inline_syntax,
+		@collect_lines,
+		@parse_line_syntax,
+		@start_paragraph,
+		@postprocess_line){
+		$_ = $parser->($_);
+		return unless defined;
 	}
 
 	return "$_\n";
@@ -6042,9 +6024,9 @@ EOT
 		}
 		$PAGE = $_;
 		make_html($PAGE);
-		undef $begin_parsing;
-		undef $parse_line;
-		undef $end_parsing;
+		undef @begin_parsing;
+		undef @parse_line;
+		undef @end_parsing;
 		undef @preprocess_line;
 		undef @collect_and_parse_syntax_block;
 		undef @parse_as_is_lines;
