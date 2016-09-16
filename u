@@ -103,16 +103,35 @@ use vars qw(
 
 # parse_file() global variables
 use vars qw(
-	$wiki $begin_parsing $parse_line $end_parsing
+	$wiki
+	$begin_parsing
+	$parse_line
+	$end_parsing
+	@preprocess_line
+	@collect_and_parse_syntax_block
+	@parse_as_is_lines
+	@skip_comment
+	@parse_wiki_command
+	@parse_nonwiki_command
+	@skip_unknown_command
+	@start_syntax_block
+	@parse_collected_lines
+	@parse_paragraph_break
+	@parse_inline_syntax
+	@collect_lines
+	@parse_line_syntax
+	@start_paragraph
+	@postprocess_line
+	@close_all_open
 );
 
 # parse_file() local variables
 use vars qw(
-	$text $protocol $protocol_char $protocol_punct $image_ext $code_block
-	$child_block $syntax_block @parsed_blocks $re_start $re_n @re @re_sub
-	$p $nosyntax $pre $pre_code $blockquote $list $table $figure %h_n
-	$h_top $h_prev %h_secs %secs_no $toc $notoc $tab_no %tabs_n %tabs $lot
-	$nolot $fig_no %figs_n %figs $lof $nolof
+	$text $url_char $url_punct $code_block $child_block $syntax_block
+	@parsed_blocks $re_start $re_n @re @re_sub $p $nosyntax $pre $pre_code
+	$blockquote $list $table $figure %h_n $h_top $h_prev %h_secs %secs_no
+	$toc $notoc $tab_no %tabs_n %tabs $lot $nolot $fig_no %figs_n %figs
+	$lof $nolof
 );
 
 umask 022;
@@ -545,7 +564,7 @@ my ($nonwiki_read_access, $wiki_read_access, $wiki_write_access) =
 process_msg();
 
 ################################################################################
-# hmac_sha1 routine for password hashing
+# hmac_sha1 subroutine for password hashing
 eval "use Digest::HMAC_SHA1 qw(hmac_sha1);";
 die_message("perl_module_not_installed", "Digest::HMAC_SHA1") if($@);
 
@@ -797,7 +816,7 @@ sub escape_comment{
 
 sub escape_inline_syntax{
 	my $text = shift;
-	$text =~ s#([`"/*'_!\[{-]|$protocol)#\x00$1#ogi;
+	$text =~ s#([`"/*'_!\[{-]|[a-z]://)#\x00$1#ogi;
 	$text =~ s/\x00([&<>])/$1/g;
 	return $text;
 }
@@ -947,18 +966,18 @@ sub is_url{
 	$url =~ y/\x03/>/;
 
 	# https://en.wikipedia.org/wiki/Percent-encoding
-	return $url =~ m/^(?:$protocol)[%!*'();:@&=+\$,\/?#\[\]a-z0-9_.~-]+$/oi;
+	return $url =~ m#^(?:[a-z]://)[%!*'();:@&=+\$,/?\#\[\]a-z0-9_.~-]+$#oi;
 }
 
 sub protect_urls{
 	my $text = shift;
-	$text =~ s/($protocol)/\x00$1/ogi;
+	$text =~ s#([a-z]+://)#\x00$1#ogi;
 	return $text;
 }
 
 sub encode_urls{
 	my $text = shift;
-	$text =~ s/(.*?)(.)((?:$protocol).*?)\2/$1$2@{[encode_url($3)]}$2/ogi;
+	$text =~ s#(.*?)(.)((?:[a-z]+://).*?)\2#$1$2@{[encode_url($3)]}$2#ogi;
 	return $text;
 }
 
@@ -971,7 +990,7 @@ sub encode_url{
 	$url =~ y/\x03/>/;
 
 	# https://en.wikipedia.org/wiki/Percent-encoding
-	$url =~ s/([^!*'();:@&=+\$,\/?#\[\]a-zA-Z0-9_.~-])/@{[sprintf "%%%02x", ord($1)]}/g;
+	$url =~ s/([^!*'();:@&=+\$,\/?#\[\]a-zA-Z0-9_.~-])/@{[sprintf "%%%x", ord($1)]}/g;
 	return $url;
 }
 
@@ -999,7 +1018,7 @@ sub create_child_block{
 	my $parsed_block = parse_child($block);
 	chomp $parsed_block;
 	push @parsed_blocks, $parsed_block;
-	return "$begin\x04$end";
+	return "$begin\x05parsed_block\n$end";
 }
 
 sub create_syntax_block{
@@ -1014,7 +1033,7 @@ sub create_syntax_block{
 	my $parsed_block = parse_block($block);
 	chomp $parsed_block;
 	push @parsed_blocks, $parsed_block;
-	return "$begin\x04$end";
+	return "$begin\x05parsed_block\n$end";
 }
 
 sub create_blockquote{
@@ -1059,7 +1078,7 @@ sub create_blockquote{
 				$cite[$qi] .= $1;
 			}else{
 				if($use_p){
-					$line =~ s#\x04#</p>\x04<p>#g;
+					$line =~ s#(\x05parsed_block\n)#</p>$1<p>#g;
 					if(!$p){
 						$blockquote .= "<p>";
 						$p = 1;
@@ -1118,7 +1137,7 @@ sub create_blockquote{
 
 	# Inline perl code
 	$blockquote =~ s/``(.*?)``(?!`)/$1/eeg;
-	# Discard NONE characters
+	# Discard none characters
 	$blockquote =~ y/\x00//d;
 
 	return $blockquote;
@@ -1162,7 +1181,7 @@ sub create_list{
 				next;
 			}
 			if($use_p){
-				$line =~ s#\x04#</p>\x04<p>#g;
+				$line =~ s#(\x05parsed_block\n)#</p>$1<p>#g;
 				if(!$p){
 					$list .= "<p>";
 					$p = 1;
@@ -1274,7 +1293,7 @@ sub create_list{
 
 	# Inline perl code
 	$list =~ s/``(.*?)``(?!`)/$1/eeg;
-	# Discard NONE characters
+	# Discard none characters
 	$list =~ y/\x00//d;
 
 	return $list;
@@ -1356,7 +1375,7 @@ sub create_table{
 
 	# Inline perl code
 	$table =~ s/``(.*?)``(?!`)/$1/eeg;
-	# Discard NONE characters
+	# Discard none characters
 	$table =~ y/\x00//d;
 
 	return $table;
@@ -1514,7 +1533,7 @@ sub create_figure{
 
 	# Inline perl code
 	$figure =~ s/``(.*?)``(?!`)/$1/eeg;
-	# Discard NONE characters
+	# Discard none characters
 	$figure =~ y/\x00//d;
 
 	return $figure;
@@ -1546,7 +1565,7 @@ sub has_write_access{
 
 sub page_exists{
 	my $page = shift;
-	$page = $PAGE unless(defined $page);
+	$page = $PAGE unless defined $page;
 	return -f "$page.txt";
 }
 
@@ -1849,7 +1868,7 @@ diff => q(Diff),
 backlinks => q(Backlinks),
 last_modified => q([[TIME]] by [[AUTHOR]]),
 unknown_author => q(Unknown),
-parsing_time => q(Parsing time: [[PARSING_TIME]] seconds),
+parsing_time => q(Parsing time: [[PARSING_TIME]]),
 xhtml => q(XHTML),
 css => q(CSS),
 
@@ -2074,7 +2093,7 @@ sub process_tpl{
 	my ($file, $mode, $tpl) = @_;
 	my $path = "$TEMPLATE_DIRECTORY/$file";
 
-	start_html() unless(defined $mode);
+	start_html() unless defined $mode;
 	if($mode == 2){
 		if(".css" eq substr $file, -4){
 			print "Content-Type: text/css\n\n";
@@ -3784,7 +3803,7 @@ sub pbkdf2{
 sub hash_password{
 	# hashed password length: 2*8+128=144
 	my ($user, $pw, $salt) = @_;
-	$salt = generate_salt() unless(defined $salt);
+	$salt = generate_salt() unless defined $salt;
 	return unpack("H*", $salt).get_pbkdf2_key("$user:$salt:$pw", $salt);
 
 }
@@ -3855,11 +3874,10 @@ sub create_goto_form{
 EOT
 	if($mode == 1){
 		print $form;
-	}elsif($p){
-		# Forms are not allowed inside a <p> block
-		$text .= "</p>\n";
-		$p = 0;
+		return;
 	}
+	# Forms are not allowed inside a <p> block
+	close_paragraph();
 	return $form;
 }
 
@@ -3890,11 +3908,10 @@ sub create_search_form{
 EOT
 	if($mode == 1){
 		print $form;
-	}elsif($p){
-		# Forms are not allowed inside a <p> block
-		$text .= "</p>\n";
-		$p = 0;
+		return;
 	}
+	# Forms are not allowed inside a <p> block
+	close_paragraph();
 	return $form;
 }
 
@@ -3927,16 +3944,15 @@ sub create_comment_form{
 EOT
 	if($mode == 1){
 		print $form;
-	}elsif($p){
-		# Forms are not allowed inside a <p> block
-		$text .= "</p>\n";
-		$p = 0;
+		return;
 	}
+	# Forms are not allowed inside a <p> block
+	close_paragraph();
 	return $form;
 }
 
 sub verify_input_data{
-	$verify_input = \&verify_input unless(defined($verify_input));
+	$verify_input = \&verify_input unless defined $verify_input;
 	return $verify_input->(@_);
 }
 
@@ -3981,12 +3997,12 @@ sub parse_file{
 	$wiki = <UNIQKI_FH> eq "#!wiki\n" ? 1 : 0;
 	close UNIQKI_FH;
 
-	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
-		$code_block, $child_block, $syntax_block, @parsed_blocks,
-		$re_start, $re_n, @re, @re_sub, $p, $nosyntax, $pre, $pre_code,
-		$blockquote, $list, $table, $figure, %h_n, $h_top, $h_prev,
-		%h_secs, %secs_no, $toc, $notoc, $tab_no, %tabs_n, %tabs, $lot,
-		$nolot, $fig_no, %figs_n, %figs, $lof, $nolof);
+	local ($text, $url_char, $url_punct, $code_block, $child_block,
+		$syntax_block, @parsed_blocks, $re_start, $re_n, @re, @re_sub,
+		$p, $nosyntax, $pre, $pre_code, $blockquote, $list, $table,
+		$figure, %h_n, $h_top, $h_prev, %h_secs, %secs_no, $toc,
+		$notoc, $tab_no, %tabs_n, %tabs, $lot, $nolot, $fig_no,
+		%figs_n, %figs, $lof, $nolof);
 	my ($header_file, $footer_file);
 
 	unless($wiki){
@@ -3996,15 +4012,43 @@ sub parse_file{
 			($WIKI_HEADER_FILE, $WIKI_FOOTER_FILE);
 	}
 
-	$begin_parsing = \&begin_parsing unless(defined($begin_parsing));
-	$parse_line = \&parse_line unless(defined($parse_line));
-	$end_parsing = \&end_parsing unless(defined($end_parsing));
+	$begin_parsing = \&begin_parsing unless defined $begin_parsing;
+	$parse_line = \&parse_line unless defined $parse_line;
+	$end_parsing = \&end_parsing unless defined $end_parsing;
+
+	push @preprocess_line, \&preprocess_line unless @preprocess_line;
+	push @collect_and_parse_syntax_block, \&collect_and_parse_syntax_block
+		unless @collect_and_parse_syntax_block;
+	push @parse_as_is_lines, \&parse_as_is_lines unless @parse_as_is_lines;
+	push @skip_comment, \&skip_comment unless @skip_comment;
+	push @parse_wiki_command, \&parse_wiki_command
+		unless @parse_wiki_command;
+	push @parse_nonwiki_command, \&parse_nonwiki_command
+		unless @parse_nonwiki_command;
+	push @skip_unknown_command, \&skip_unknown_command
+		unless @skip_unknown_command;
+	push @start_syntax_block, \&start_syntax_block
+		unless @start_syntax_block;
+	push @parse_collected_lines, \&parse_collected_lines
+		unless @parse_collected_lines;
+	push @parse_paragraph_break, \&parse_paragraph_break
+		unless @parse_paragraph_break;
+	push @parse_inline_syntax, \&parse_inline_syntax
+		unless @parse_inline_syntax;
+	push @collect_lines, \&collect_lines unless @collect_lines;
+	push @parse_line_syntax, \&parse_line_syntax unless @parse_line_syntax;
+	push @start_paragraph, \&start_paragraph unless @start_paragraph;
+	push @postprocess_line, \&postprocess_line unless @postprocess_line;
+	push @close_all_open, \&close_all_open unless @close_all_open;
 
 	$begin_parsing->();
 	foreach my $f ($header_file, $file, $footer_file){
 		# "<" is required for the in-memory file
 		next if($f eq "" || !open UNIQKI_FH, "<", $f);
-		$parse_line->($_) while(<UNIQKI_FH>);
+		while(<UNIQKI_FH>){
+			y/\n//d;
+			$text .= $parse_line->($_);
+		}
 		close UNIQKI_FH;
 	}
 	$end_parsing->();
@@ -4014,19 +4058,15 @@ sub parse_file{
 
 sub parse_child{
 	my $txt = shift;
-	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
-		$code_block, $child_block, $syntax_block, @parsed_blocks,
-		$re_start, $re_n, @re, @re_sub, $p, $nosyntax, $pre, $pre_code,
-		$blockquote, $list, $table, $figure, %h_n, $h_top, $h_prev,
-		%h_secs, %secs_no, $toc, $notoc, $tab_no, %tabs_n, %tabs, $lot,
-		$nolot, $fig_no, %figs_n, %figs, $lof, $nolof);
-
-	$begin_parsing = \&begin_parsing unless(defined($begin_parsing));
-	$parse_line = \&parse_line unless(defined($parse_line));
-	$end_parsing = \&end_parsing unless(defined($end_parsing));
+	local ($text, $url_char, $url_punct, $code_block, $child_block,
+		$syntax_block, @parsed_blocks, $re_start, $re_n, @re, @re_sub,
+		$p, $nosyntax, $pre, $pre_code, $blockquote, $list, $table,
+		$figure, %h_n, $h_top, $h_prev, %h_secs, %secs_no, $toc,
+		$notoc, $tab_no, %tabs_n, %tabs, $lot, $nolot, $fig_no,
+		%figs_n, %figs, $lof, $nolof);
 
 	$begin_parsing->();
-	$parse_line->($_) foreach(split /\n/, $txt, -1);
+	$text .= $parse_line->($_) foreach(split /\n/, $txt, -1);
 	$end_parsing->();
 
 	return $text;
@@ -4034,17 +4074,12 @@ sub parse_child{
 
 sub parse_block{
 	my $txt = shift;
-	local ($text, $protocol, $protocol_char, $protocol_punct, $image_ext,
-		$code_block, $child_block, $syntax_block, @parsed_blocks, $p,
-		$nosyntax, $pre, $pre_code, $blockquote, $list, $table,
-		$figure);
-
-	$begin_parsing = \&begin_parsing unless(defined($begin_parsing));
-	$parse_line = \&parse_line unless(defined($parse_line));
-	$end_parsing = \&end_parsing unless(defined($end_parsing));
+	local ($text, $url_char, $url_punct, $code_block, $child_block,
+		$syntax_block, @parsed_blocks, $p, $nosyntax, $pre, $pre_code,
+		$blockquote, $list, $table, $figure);
 
 	$begin_parsing->(1);
-	$parse_line->($_) foreach(split /\n/, $txt, -1);
+	$text .= $parse_line->($_) foreach(split /\n/, $txt, -1);
 	$end_parsing->(1);
 
 	return $text;
@@ -4053,14 +4088,18 @@ sub parse_block{
 sub parse_lines{
 	my $txt = shift;
 	local $text;
-
-	$parse_line = \&parse_line unless(defined($parse_line));
-	$parse_line->($_) foreach(split /\n/, $txt, -1);
-
+	$text .= $parse_line->($_) foreach(split /\n/, $txt, -1);
 	return $text;
 }
 
-sub close_blocks{
+sub close_paragraph{
+	if($p){
+		$text .= "</p>\n";
+		$p = 0;
+	}
+}
+
+sub close_all_open{
 	if($code_block ne ""){
 		my $block = "$code_block}";
 		$code_block = "";
@@ -4070,13 +4109,13 @@ sub close_blocks{
 		my $block = $child_block;
 		$child_block = "";
 		my $line = create_child_block($block);
-		$parse_line->($line);
+		$text .= $parse_line->($line);
 	}
 	if($syntax_block ne ""){
 		my $block = $syntax_block;
 		$syntax_block = "";
 		my $line = create_syntax_block($block);
-		$parse_line->($line);
+		$text .= $parse_line->($line);
 	}
 	if($nosyntax){
 		$nosyntax = 0;
@@ -4107,90 +4146,12 @@ sub close_blocks{
 		$text .= create_figure($figure);
 		$figure = "";
 	}
-	if($p){
-		$text .= "</p>\n";
-		$p = 0;
-	}
 }
 
-################################################################################
-# User-replaceable subroutines
-sub verify_input{
-	# return 1 if OK
-	# return 0 otherwise
-	my ($query, $var) = @_;
-	if($query eq "comment"){
-		return 0 if($$var{website} ne "" || $$var{id} >= time - 15);
-		(my $text = $$var{text}) =~ s/[`~!@#\$%^&*_=+\\|;:'",.\/?()\[\]{}<>0-9-]//g;
-		$text =~ s/[ \t\n]+/ /g;
-		$text =~ s/^ | $//g;
-		return 0 if($text eq "");
-
-		$$var{text} =~ s/^[ \t\n]+|[ \t\n]+$//g;
-	}
-	return 1;
-}
-
-sub begin_parsing{
-	my $block_level = shift;
-	$protocol = 'https?://|ftp://|news://|telnet://|gopher://|wais://|mailto:|file://';
-	$protocol_char = 'a-zA-Z0-9:@/~%.,_$?=&;#+-';
-	$protocol_punct = '.,;:!?';
-	$image_ext = 'png|gif|jpg|jpeg';
-
-	$text = "";
-
-	$code_block = "";
-	$syntax_block = "";
-	@parsed_blocks = ();
-	$p = 0;
-	$nosyntax = 0;
-	$pre = 0;
-	$pre_code = "";
-	$blockquote = "";
-	$list = "";
-	$table = "";
-	$figure = "";
-
-	if(!$block_level){
-		$re_start = 0;
-		$re_n = 0;
-		@re = ();
-		@re_sub = ();
-		%h_n = ();
-		$h_top = 0;
-		$h_prev = 0;
-		%h_secs = ();
-		%secs_no = ();
-		$toc = "";
-		$notoc = 0;
-		$tab_no = 0;
-		%tabs_n = ();
-		%tabs = ();
-		$lot = "";
-		$nolot = 1;
-		$fig_no = 0;
-		%figs_n = ();
-		%figs = ();
-		$lof = "";
-		$nolof = 1;
-	}
-}
-
-sub parse_line{
-	# \x00: NONE
-	# \x01: &
-	# \x02: <
-	# \x03: >
-	# \x04: place holder for syntax block
-	# \x05: place holder for auto-generated table of contents
-	# \x1e: delimiter
-	# ##admin code
-	# #user code
-	# ``inline perl code``
-	# %comment
+sub preprocess_line{
+	# return undef to skip to the next line
+	# return the current line for further processing
 	local $_ = shift;
-	s/[\r\n]//g;
 
 	# Apply regular expressions where needed
 	if(!$nosyntax && !$pre && $child_block eq "" && m/^(?!#(?:no)?regex)/){
@@ -4202,7 +4163,7 @@ sub parse_line{
 		if(m/\n/){
 			local $re_start = $re_n;
 			my @lines = split /\n/, $_, -1;
-			$parse_line->($_) foreach(@lines);
+			$text .= $parse_line->($_) foreach(@lines);
 			return;
 		}
 	}
@@ -4224,6 +4185,15 @@ sub parse_line{
 		}
 		return;
 	}
+
+	return $_;
+}
+
+sub collect_and_parse_syntax_block{
+	# return undef to skip to the next line
+	# return the current line for further processing
+	local $_ = shift;
+
 	# Process child block
 	if($child_block ne ""){
 		if(")))" eq substr($_, 0, 3) && "_" ne substr($_, 3, 1)){
@@ -4246,12 +4216,21 @@ sub parse_line{
 			return;
 		}
 	}
+
+	return $_;
+}
+
+sub parse_as_is_lines{
+	# return undef to skip to the next line
+	# return the current line for further processing
+	local $_ = shift;
+
 	# Start or close nosyntax
 	if(m/^("""+)$/ && (!$nosyntax || $nosyntax == length($1))){
 		if($nosyntax){
 			$nosyntax = 0;
 		}else{
-			close_blocks();
+			$_->() foreach(@close_all_open);
 			$nosyntax = length($1);
 		}
 		return;
@@ -4275,7 +4254,7 @@ sub parse_line{
 			}
 			$pre = 0;
 		}else{
-			close_blocks();
+			$_->() foreach(@close_all_open);
 			if($2 eq ""){
 				$text .= "<pre>";
 			}else{
@@ -4292,16 +4271,32 @@ sub parse_line{
 		$text .= "$_\n";
 		return;
 	}
+
+	return $_;
+}
+
+sub skip_comment{
+	# return undef to skip to the next line
+	# return the current line for further processing
+	local $_ = shift;
+
 	# Skip comment
-	if("%" eq substr $_, 0, 1){
-		return;
-	}
+	return if("%" eq substr $_, 0, 1);
+
+	return $_;
+}
+
+sub parse_wiki_command{
+	# return undef to skip to the next line
+	# return the current line for further processing
+	local $_ = shift;
+
 	# Register regular expressions
 	if(m/^#regex (.)(.+)(?<!\\)\1(.*)(?<!\\)\1$/){
 		# Don't allow code embedding in a wiki page
 		return if($wiki && (index($2, '(?{') != -1 ||
-				    index($2, '(??{') != -1 ||
-				    index($3, '@{[') != -1));
+					  index($2, '(??{') != -1 ||
+					  index($3, '@{[') != -1));
 
 		my $i;
 		for($i = 0; $i < $re_n; $i++){
@@ -4356,22 +4351,30 @@ sub parse_line{
 		$nolof = 0;
 		return;
 	}
-	# Admin code starts
-	# Include other Uniqki files
+
+	return $_;
+}
+
+sub parse_nonwiki_command{
+	# return undef to skip to the next line
+	# return the current line for further processing
+	local $_ = shift;
+
+	# Include another Uniqki file
 	if(m/^##include (.+)$/){
 		local *FH;
 		if(open FH, $1){
-			$parse_line->($_) while(<FH>);
+			$text .= $parse_line->($_) while(<FH>);
 			close FH;
 		}
 		return;
 	}
-	# Shell commands
+	# Shell command
 	if(m/^##shell (.+)$/){
 		$text .= `$1`;
 		return;
 	}
-	# Perl subroutines or code
+	# Perl subroutine or code
 	if(m/^##((?:sub |{).*)$/){
 		if("}" eq substr $1, -1){
 			eval $1;
@@ -4380,10 +4383,26 @@ sub parse_line{
 		$code_block = "$1\n";
 		return;
 	}
+
+	return $_;
+}
+
+sub skip_unknown_command{
+	# return undef to skip to the next line
+	# return the current line for further processing
+	local $_ = shift;
+
 	# Ignore other lines starting with #
-	if("#" eq substr $_, 0, 1){
-		return;
-	}
+	return if("#" eq substr $_, 0, 1);
+
+	return $_;
+}
+
+sub start_syntax_block{
+	# return undef to skip to the next line
+	# return the current line for further processing
+	local $_ = shift;
+
 	# Child block
 	if("(((" eq substr $_, -3){
 		# Process the first line later
@@ -4396,41 +4415,70 @@ sub parse_line{
 		$syntax_block = (substr $_, 0, length($_) - 2)."\n";
 		return;
 	}
+
+	return $_;
+}
+
+sub parse_collected_lines{
+	# return undef to skip to the next line
+	# return the current line for further processing
+	local $_ = shift;
+
 	# Close blockquote
 	if($blockquote ne "" && !(m/^((?:  ){0,})(>[ \t])?/ && "$1$2" ne "")){
+		close_paragraph();
 		$text .= create_blockquote($blockquote);
 		$blockquote = "";
 	}
 	# Close list
 	if($list ne "" && !(m/^((?:  ){0,})((?:[*+-]|: .*?:)[ \t])?/ &&
 			"$1$2" ne "")){
+		close_paragraph();
 		$text .= create_list($list);
 		$list = "";
 	}
 	# Close table
 	if($table ne "" &&
 		!m/^(?:!!?[ \t](?:.*[ \t])?!?!|[|^][ \t](?:.*[ \t])?(?:[!^]+|\|+_?))$/){
+		close_paragraph();
 		$text .= create_table($table);
 		$table = "";
 	}
 	# Close figure
 	if($figure ne "" &&
 		!m/^(?:"!?[ \t](?:.*[ \t])?!?"|@[ \t](?:.*[ \t])?@)$/){
+		close_paragraph();
 		$text .= create_figure($figure);
 		$figure = "";
 	}
-	# Close paragraph
+
+	return $_;
+}
+
+sub parse_paragraph_break{
+	# return undef to skip to the next line
+	# return the current line for further processing
+	local $_ = shift;
+
 	if("" eq $_ || m/^___+$/){
-		if($p){
-			$text .= "</p>\n";
-			$p = 0;
-		}
+		# Close the current paragraph or draw a horizontal line
+		close_paragraph();
 		# Horizontal line
 		$text .= "<hr />\n" if($_ ne "");
 		return;
 	}
-	# Escape inline syntax
-	s/""(.)(.*?)\1""/@{[escape_inline_syntax($2)]}/g;
+
+	return $_;
+}
+
+sub parse_inline_syntax{
+	# return undef to skip to the next line
+	# return the current line for further processing
+	# \x01: &
+	# \x02: <
+	# \x03: >
+	local $_ = shift;
+
 	# Regular [&<>] should not be translated to html codes at this point
 	# because page names and links will be affected.  Instead, flag them so
 	# that they can be converted to html later.  This flagging does not
@@ -4438,6 +4486,8 @@ sub parse_line{
 	# from the #regex syntax to enter [&<>] as is without converting them
 	# to &amp, &lt, and &gt.
 	s/(?<!\x00)&/\x01/g; s/(?<!\x00)</\x02/g; s/(?<!\x00)>/\x03/g;
+	# Escape inline syntax
+	s/""(.)(.*?)\1""/@{[escape_inline_syntax($2)]}/g;
 	# Pages
 	s#\[\[(.*?)(?:\#(.*?))?(?:\|(.*?))?\]\]#@{[link_page($1, $2, $3)]}#g;
 	# Images
@@ -4450,61 +4500,63 @@ sub parse_line{
 	s#\x02\x02(.*?)(?:\|(.*?))?\x03\x03#@{[link_url($1, $2)]}#g;
 	# Text styles
 	# Avoid conflicts with //italic//
-	s#($protocol)#$1\x00#ogi;
-	s#//(?!\x00)(.*?)//(?!\x00)#<i>$1</i>#g;
-	s#($protocol)\x00#$1#ogi;
+	s#([a-z]+:/)(/)#$1\x00$2#ogi;
+	s#//(.*?)//#<i>$1</i>#g;
+	s#([a-z]+:/)\x00(/)#$1$2#ogi;
 	s#\*\*(.*?)\*\*#<b>$1</b>#g;
 	s#''(.*?)''(?:\[(.*?)\])?#@{[$2 eq "" ? "<code>$1</code>" : qq(<code class="language-$2">$1</code>)]}#g;
 	s#--(.*?)--#<s>$1</s>#g;
 	s#__(.*?)__#<u>$1</u>#g;
 	s#\!\!(.*?)\!\!#<mark>$1</mark>#g;
 	# Protect protocols inside tags
-	s#<([^>]*(?:$protocol)[^>]*)>#<@{[protect_urls($1)]}>#ogi;
+	s#<([^>]*(?:[a-z]+://)[^>]*)>#<@{[protect_urls($1)]}>#ogi;
 	# Protect protocols outside tags
-	s#(<a [^>]*>)([^<]*(?:$protocol)[^<]*)(</a>)#$1@{[protect_urls($2)]}$3#ogi;
+	s#(<a [^>]*>)([^<]*(?:[a-z]+://)[^<]*)(</a>)#$1@{[protect_urls($2)]}$3#ogi;
 	# Translate non-protected protocols to links
-	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+\x01[a-z]+;)(?=(?:[ \t]|$))#<a class="auto-title" href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
-	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+)(?=[$protocol_punct](?:[ \t]|$))#<a class="auto-title" href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
-	s#(?<![a-zA-Z\x00])((?:$protocol)[\x01$protocol_char]+)#<a class="auto-title" href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
+	s#(?<![a-zA-Z\x00])((?:[a-z]+://)[\x01$url_char]+\x01[a-z]+;)(?=(?:[ \t]|$))#<a class="auto-title" href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
+	s#(?<![a-zA-Z\x00])((?:[a-z]+://)[\x01$url_char]+)(?=[$url_punct](?:[ \t]|$))#<a class="auto-title" href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
+	s#(?<![a-zA-Z\x00])((?:[a-z]+://)[\x01$url_char]+)#<a class="auto-title" href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
 	s/\x01/&amp;/g; s/\x02/&lt;/g; s/\x03/&gt;/g;
+
+	return $_;
+}
+
+sub collect_lines{
+	# return undef to skip to the next line
+	# return the current line for further processing
+	local $_ = shift;
+
 	# Collect quote lines
 	if(m/^((?:  ){0,})(&gt;[ \t])?/ && "$1$2" ne "" &&
 		"$2$blockquote" ne ""){
-		if($p){
-			$text .= "</p>\n";
-			$p = 0;
-		}
 		$blockquote .= "$_\n";
 		return;
 	}
 	# Collect list lines
 	if(m/^((?:  ){0,})((?:[*+-]|: .*?:)[ \t])?/ && "$1$2" ne "" &&
 		"$2$list" ne ""){
-		if($p){
-			$text .= "</p>\n";
-			$p = 0;
-		}
 		$list .= "$_\n";
 		return;
 	}
 	# Collect table lines
 	if(m/^(?:!!?[ \t](?:.*[ \t])?!?!|[|^][ \t](?:.*[ \t])?(?:[!^]+|\|+_?))$/){
-		if($p){
-			$text .= "</p>\n";
-			$p = 0;
-		}
 		$table .= "$_\n";
 		return;
 	}
 	# Collect figure lines
 	if(m/^(?:"!?[ \t](?:.*[ \t])?!?"|@[ \t](?:.*[ \t])?@)$/){
-		if($p){
-			$text .= "</p>\n";
-			$p = 0;
-		}
 		$figure .= "$_\n";
 		return;
 	}
+
+	return $_;
+}
+
+sub parse_line_syntax{
+	# return undef to skip to the next line
+	# return the current line for further processing
+	local $_ = shift;
+
 	# Heading
 	if(m/^(=+)!? (.*)$/ && length($1) <= 6){
 		my $i = length($1);
@@ -4513,12 +4565,9 @@ sub parse_line{
 		# Inline perl code
 		s/``(.*?)``(?!`)/$1/eeg;
 		s/^[ \t]+|[ \t]+$//g;
-		# Discard NONE characters
+		# Discard none characters
 		y/\x00//d;
-		if($p){
-			$text .= "</p>\n";
-			$p = 0;
-		}
+		close_paragraph();
 		if($i == 1){
 			if($TITLE eq ""){
 				$TITLE = $_;
@@ -4532,7 +4581,6 @@ sub parse_line{
 		}
 
 		(my $title = $_) =~ s/<[^>]*>//g;
-
 		my $id = $title;
 		$id =~ s/&amp;/&/g; $id =~ s/&lt;/</g; $id =~ s/&gt;/>/g;
 		$id = convert_page_name($id);
@@ -4556,7 +4604,7 @@ sub parse_line{
 		$h_secs{$id} = $sec;
 		$sec = "$SECTION_NUMBER_PREFIX$sec$SECTION_NUMBER_SUFFIX";
 
-		$text .= "\x05" if($toc eq "");
+		$text .= "\x05toc\n" if($toc eq "");
 		$text .= qq(<h$i id="$id">$sec$_</h$i>\n);
 
 		if($i > $h_prev){
@@ -4578,25 +4626,168 @@ sub parse_line{
 		$toc .= "<li><a href=\"#$enc_id\">$sec$title</a></li>\n";
 		return;
 	}
-	# Handle <p> tags around syntax blocks
-	s#\x04#</p>\x04<p>#g;
+
+	return $_;
+}
+
+sub start_paragraph{
+	# return undef to skip to the next line
+	# return the current line for further processing
+	local $_ = shift;
+
 	# Start a new paragraph
 	if(!$p){
 		$text .= "<p>";
 		$p = 1;
 	}
+
+	return $_;
+}
+
+sub postprocess_line{
+	# return undef to skip to the next line
+	# return the current line for further processing
+	local $_ = shift;
+
+	# Handle <p> tags around syntax blocks
+	s#(\x05parsed_block\n)#</p>$1<p>#g;
 	# Inline perl code
 	s/``(.*?)``(?!`)/$1/eeg;
-	# Discard NONE characters
+	# Discard none characters
 	y/\x00//d;
-	$text .= "$_\n";
+
+	return $_;
+}
+
+################################################################################
+# User-replaceable subroutines
+sub verify_input{
+	# return 1 if OK
+	# return 0 otherwise
+	my ($query, $var) = @_;
+	if($query eq "comment"){
+		return 0 if($$var{website} ne "" || $$var{id} >= time - 15);
+		(my $text = $$var{text}) =~ s/[`~!@#\$%^&*_=+\\|;:'",.\/?()\[\]{}<>0-9-]//g;
+		$text =~ s/[ \t\n]+/ /g;
+		$text =~ s/^ | $//g;
+		return 0 if($text eq "");
+
+		$$var{text} =~ s/^[ \t\n]+|[ \t\n]+$//g;
+	}
+	return 1;
+}
+
+sub begin_parsing{
+	my $block_level = shift;
+
+	$url_char = 'a-zA-Z0-9:@/~%.,_$?=&;#+-';
+	$url_punct = '.,;:!?';
+
+	$text = "";
+
+	$code_block = "";
+	$syntax_block = "";
+	@parsed_blocks = ();
+	$p = 0;
+	$nosyntax = 0;
+	$pre = 0;
+	$pre_code = "";
+	$blockquote = "";
+	$list = "";
+	$table = "";
+	$figure = "";
+
+	if(!$block_level){
+		$re_start = 0;
+		$re_n = 0;
+		@re = ();
+		@re_sub = ();
+		%h_n = ();
+		$h_top = 0;
+		$h_prev = 0;
+		%h_secs = ();
+		%secs_no = ();
+		$toc = "";
+		$notoc = 0;
+		$tab_no = 0;
+		%tabs_n = ();
+		%tabs = ();
+		$lot = "";
+		$nolot = 1;
+		$fig_no = 0;
+		%figs_n = ();
+		%figs = ();
+		$lof = "";
+		$nolof = 1;
+	}
+}
+
+sub parse_line{
+	# \x00: none or escape character
+	# \x01-\x04: temporary characters
+	# \x05something\n: place holder for something
+	# \x1e: delimiter
+	# %comment
+	# #wiki command
+	# ##non-wiki command
+	# ``inline perl code``
+	local $_ = shift;
+
+	foreach my $parser (@preprocess_line){
+		$_ = $parser->($_); return unless defined;
+	}
+	foreach my $parser (@collect_and_parse_syntax_block){
+		$_ = $parser->($_); return unless defined;
+	}
+	foreach my $parser (@parse_as_is_lines){
+		$_ = $parser->($_); return unless defined;
+	}
+	foreach my $parser (@skip_comment){
+		$_ = $parser->($_); return unless defined;
+	}
+	foreach my $parser (@parse_wiki_command){
+		$_ = $parser->($_); return unless defined;
+	}
+	foreach my $parser (@parse_nonwiki_command){
+		$_ = $parser->($_); return unless defined;
+	}
+	foreach my $parser (@skip_unknown_command){
+		$_ = $parser->($_); return unless defined;
+	}
+	foreach my $parser (@start_syntax_block){
+		$_ = $parser->($_); return unless defined;
+	}
+	foreach my $parser (@parse_collected_lines){
+		$_ = $parser->($_); return unless defined;
+	}
+	foreach my $parser (@parse_paragraph_break){
+		$_ = $parser->($_); return unless defined;
+	}
+	foreach my $parser (@parse_inline_syntax){
+		$_ = $parser->($_); return unless defined;
+	}
+	foreach my $parser (@collect_lines){
+		$_ = $parser->($_); return unless defined;
+	}
+	foreach my $parser (@parse_line_syntax){
+		$_ = $parser->($_); return unless defined;
+	}
+	foreach my $parser (@start_paragraph){
+		$_ = $parser->($_); return unless defined;
+	}
+	foreach my $parser (@postprocess_line){
+		$_ = $parser->($_); return unless defined;
+	}
+
+	return "$_\n";
 }
 
 sub end_parsing{
 	my $block_level = shift;
-	close_blocks();
+
+	$_->() foreach(@close_all_open);
 	if(!$block_level){
-		$text = "\x05$text" unless($text =~ m/\x05/);
+		$text = "\x05toc\n$text" unless($text =~ m/\x05toc\n/);
 		if(!$notoc && $toc ne ""){
 			my $i = $h_prev;
 			$toc = "<ul class=\"toc-list\">\n$toc";
@@ -4612,7 +4803,7 @@ sub end_parsing{
 			$toc = "<div id=\"toc\">\n".
 				"<div class=\"toc-heading\">$heading</div>\n".
 				"$toc</div>\n";
-			$text =~ s/\x05/$toc\x05/g;
+			$text =~ s/(\x05toc\n)/$toc$1/g;
 		}
 		foreach(keys %h_secs){
 			my $enc_id = encode_url($_);
@@ -4624,7 +4815,7 @@ sub end_parsing{
 			$lot = "<div id=\"lot\">\n".
 				"<div class=\"lot-heading\">$heading</div>\n".
 				"<ul class=\"lot-list\">\n$lot</ul>\n</div>\n";
-			$text =~ s/\x05/$lot\x05/g;
+			$text =~ s/(\x05toc\n)/$lot$1/g;
 		}
 		foreach(keys %tabs){
 			my $enc_id = encode_url($_);
@@ -4636,7 +4827,7 @@ sub end_parsing{
 			$lof = "<div id=\"lof\">\n".
 				"<div class=\"lof-heading\">$heading</div>\n".
 				"<ul class=\"lof-list\">\n$lof</ul>\n</div>\n";
-			$text =~ s/\x05/$lof\x05/g;
+			$text =~ s/(\x05toc\n)/$lof$1/g;
 		}
 		foreach(keys %figs){
 			my $enc_id = encode_url($_);
@@ -4666,9 +4857,9 @@ sub end_parsing{
 		$lof = "";
 		$nolof = 1;
 	}
-	$text =~ s/\x05//g;
 	my $i = 0;
-	$text =~ s/\x04/@{[$parsed_blocks[$i++]]}/g;
+	$text =~ s/\x05parsed_block\n/@{[$parsed_blocks[$i++]]}/g;
+	$text =~ s/\x05.*\n//g;
 	$text =~ s#<([ibsu]|code|mark)>([ \t\n]*)</\1>#$2#g;
 	$text =~ s#[ \t\n]*(<(?:p|li|dd)>)[ \t\n]*#\n$1#g;
 	$text =~ s#[ \t\n]*(</(?:p|li|dd)>)[ \t\n]*#$1\n#g;
@@ -4871,7 +5062,7 @@ if($QUERY_STRING eq "css"){
 		unless(is_password_reset_token_valid($var{token}));
 	my ($user, $saved_pw, $group, $email, $name) =
 		find_user_info_by_password_reset_token($var{token});
-	die_message("password_reset_token_not_found") unless(defined $user);
+	die_message("password_reset_token_not_found") unless defined $user;
 
 	if($var{pw} ne $var{pw2}){
 		die_message("confirm_password");
@@ -5858,6 +6049,22 @@ EOT
 		undef $begin_parsing;
 		undef $parse_line;
 		undef $end_parsing;
+		undef @preprocess_line;
+		undef @collect_and_parse_syntax_block;
+		undef @parse_as_is_lines;
+		undef @skip_comment;
+		undef @parse_wiki_command;
+		undef @parse_nonwiki_command;
+		undef @skip_unknown_command;
+		undef @start_syntax_block;
+		undef @parse_collected_lines;
+		undef @parse_paragraph_break;
+		undef @parse_inline_syntax;
+		undef @collect_lines;
+		undef @parse_line_syntax;
+		undef @start_paragraph;
+		undef @postprocess_line;
+		undef @close_all_open;
 		print qq(<li><a href="$PAGE.html">$PAGE</a></li>\n);
 	}
 	print qq(</ul>\n</div>\n);
