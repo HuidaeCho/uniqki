@@ -2857,7 +2857,7 @@ function ajax_responseXML(xml_request){
 function remove_elements_by_class_name(class_name){
 	var elements = document.getElementsByClassName(class_name);
 	while(elements.length > 0)
-		elements[0].parentNode.removeChild(elements[i]);
+		elements[0].parentNode.removeChild(elements[0]);
 }
 
 function process_menu(xml_request){
