@@ -4146,6 +4146,7 @@ sub close_all_open{
 		$text .= create_figure($figure);
 		$figure = "";
 	}
+	close_paragraph();
 }
 
 sub preprocess_line{
