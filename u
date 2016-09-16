@@ -4309,8 +4309,8 @@ sub parse_wiki_command{
 	if(m/^#regex (.)(.+)(?<!\\)\1(.*)(?<!\\)\1$/){
 		# Don't allow code embedding in a wiki page
 		return if($wiki && (index($2, '(?{') != -1 ||
-					  index($2, '(??{') != -1 ||
-					  index($3, '@{[') != -1));
+				    index($2, '(??{') != -1 ||
+				    index($3, '@{[') != -1));
 
 		my $i;
 		for($i = 0; $i < $re_n; $i++){
@@ -4322,6 +4322,8 @@ sub parse_wiki_command{
 		s/\\(?![\\a-zA-Z0-9])/\x00/g;
 		# Don't allow access to variables.
 		s/\$/\\\$/g;
+		s/\@/\\\@/g;
+		s/\%/\\\%/g;
 		$re_sub[$i] = $_;
 		return;
 	}
