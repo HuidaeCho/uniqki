@@ -2854,6 +2854,12 @@ function ajax_responseXML(xml_request){
 	return xml;
 }
 
+function remove_elements_by_class_name(class_name){
+	var elements = document.getElementsByClassName(class_name);
+	while(elements.length > 0)
+		elements[0].parentNode.removeChild(elements[i]);
+}
+
 function process_menu(xml_request){
 	var items = xml_request.responseText.split(':');
 	var user = items[0];
@@ -2861,26 +2867,13 @@ function process_menu(xml_request){
 	var has_read_access = items[2];
 	var has_write_access = items[3];
 
-	[].forEach.call(document.getElementsByClassName(
-			user == '' ? 'user' : 'visitor'),
-		function(el){
-			el.parentNode.removeChild(el);
-		});
+	remove_elements_by_class_name(user == '' ? 'user' : 'visitor');
 	if(admin == 0)
-		[].forEach.call(document.getElementsByClassName('admin'),
-			function(el){
-				el.parentNode.removeChild(el);
-			});
+		remove_elements_by_class_name('admin');
 	if(has_read_access == 0)
-		[].forEach.call(document.getElementsByClassName('read-access'),
-			function(el){
-				el.parentNode.removeChild(el);
-			});
+		remove_elements_by_class_name('read-access');
 	if(has_write_access == 0)
-		[].forEach.call(document.getElementsByClassName('write-access'),
-			function(el){
-				el.parentNode.removeChild(el);
-			});
+		remove_elements_by_class_name('write-access');
 
 	var menu = document.getElementById('menu');
 	var wiki_menu = document.getElementById('wiki-menu');
