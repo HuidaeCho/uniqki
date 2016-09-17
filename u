@@ -98,14 +98,8 @@ use vars qw(
 	%MESSAGES
 );
 
-# verify_input()
-use vars qw(
-	$verify_input
-);
-
 # parse_file() global variables
 use vars qw(
-	$wiki
 	@begin_parsing
 	@parse_line
 	@end_parsing
@@ -134,6 +128,12 @@ use vars qw(
 	$blockquote $list $table $figure %h_n $h_top $h_prev %h_secs %secs_no
 	$toc $notoc $tab_no %tabs_n %tabs $lot $nolot $fig_no %figs_n %figs
 	$lof $nolof
+);
+
+# Other global variables
+use vars qw(
+	$wiki
+	$verify_input
 );
 
 umask 022;
@@ -3458,26 +3458,26 @@ sub write_file{
 ################################################################################
 # Parsing subroutines
 sub prepare_parser{
-	push @begin_parsing, \&begin_parsing;
-	push @parse_line, \&parse_line;
-	push @end_parsing, \&end_parsing;
+	@begin_parsing = \&begin_parsing;
+	@parse_line = \&parse_line;
+	@end_parsing = \&end_parsing;
 
-	push @preprocess_line, \&preprocess_line;
-	push @collect_and_parse_syntax_block, \&collect_and_parse_syntax_block;
-	push @parse_asis_lines, \&parse_asis_lines;
-	push @skip_comment, \&skip_comment;
-	push @parse_wiki_command, \&parse_wiki_command;
-	push @parse_nonwiki_command, \&parse_nonwiki_command;
-	push @skip_unknown_command, \&skip_unknown_command;
-	push @start_syntax_block, \&start_syntax_block;
-	push @parse_collected_lines, \&parse_collected_lines;
-	push @parse_paragraph_break, \&parse_paragraph_break;
-	push @parse_inline_syntax, \&parse_inline_syntax;
-	push @collect_lines, \&collect_lines;
-	push @parse_line_syntax, \&parse_line_syntax;
-	push @start_paragraph, \&start_paragraph;
-	push @postprocess_line, \&postprocess_line;
-	push @close_all_open, \&close_all_open;
+	@preprocess_line = \&preprocess_line;
+	@collect_and_parse_syntax_block = \&collect_and_parse_syntax_block;
+	@parse_asis_lines = \&parse_asis_lines;
+	@skip_comment = \&skip_comment;
+	@parse_wiki_command = \&parse_wiki_command;
+	@parse_nonwiki_command = \&parse_nonwiki_command;
+	@skip_unknown_command = \&skip_unknown_command;
+	@start_syntax_block = \&start_syntax_block;
+	@parse_collected_lines = \&parse_collected_lines;
+	@parse_paragraph_break = \&parse_paragraph_break;
+	@parse_inline_syntax = \&parse_inline_syntax;
+	@collect_lines = \&collect_lines;
+	@parse_line_syntax = \&parse_line_syntax;
+	@start_paragraph = \&start_paragraph;
+	@postprocess_line = \&postprocess_line;
+	@close_all_open = \&close_all_open;
 }
 
 sub parse{
@@ -3514,6 +3514,26 @@ sub parse_file{
 			($WIKI_HEADER_FILE, $WIKI_FOOTER_FILE);
 	}
 
+	my @_begin_parsing = @begin_parsing;
+	my @_parse_line = @parse_line;
+	my @_end_parsing = @end_parsing;
+	my @_preprocess_line = @preprocess_line;
+	my @_collect_and_parse_syntax_block = @collect_and_parse_syntax_block;
+	my @_parse_asis_lines = @parse_asis_lines;
+	my @_skip_comment = @skip_comment;
+	my @_parse_wiki_command = @parse_wiki_command;
+	my @_parse_nonwiki_command = @parse_nonwiki_command;
+	my @_skip_unknown_command = @skip_unknown_command;
+	my @_start_syntax_block = @start_syntax_block;
+	my @_parse_collected_lines = @parse_collected_lines;
+	my @_parse_paragraph_break = @parse_paragraph_break;
+	my @_parse_inline_syntax = @parse_inline_syntax;
+	my @_collect_lines = @collect_lines;
+	my @_parse_line_syntax = @parse_line_syntax;
+	my @_start_paragraph = @start_paragraph;
+	my @_postprocess_line = @postprocess_line;
+	my @_close_all_open = @close_all_open;
+
 	do $USER_PARSERS_FILE if(-f $USER_PARSERS_FILE);
 
 	$_->() foreach(@begin_parsing);
@@ -3525,6 +3545,26 @@ sub parse_file{
 		close UNIQKI_FH;
 	}
 	$_->() foreach(@end_parsing);
+
+	@begin_parsing = @_begin_parsing;
+	@parse_line = @_parse_line;
+	@end_parsing = @_end_parsing;
+	@preprocess_line = @_preprocess_line;
+	@collect_and_parse_syntax_block = @_collect_and_parse_syntax_block;
+	@parse_asis_lines = @_parse_asis_lines;
+	@skip_comment = @_skip_comment;
+	@parse_wiki_command = @_parse_wiki_command;
+	@parse_nonwiki_command = @_parse_nonwiki_command;
+	@skip_unknown_command = @_skip_unknown_command;
+	@start_syntax_block = @_start_syntax_block;
+	@parse_collected_lines = @_parse_collected_lines;
+	@parse_paragraph_break = @_parse_paragraph_break;
+	@parse_inline_syntax = @_parse_inline_syntax;
+	@collect_lines = @_collect_lines;
+	@parse_line_syntax = @_parse_line_syntax;
+	@start_paragraph = @_start_paragraph;
+	@postprocess_line = @_postprocess_line;
+	@close_all_open = @_close_all_open;
 
 	return $text;
 }
@@ -6040,25 +6080,6 @@ EOT
 		}
 		$PAGE = $_;
 		make_html($PAGE);
-		undef @begin_parsing;
-		undef @parse_line;
-		undef @end_parsing;
-		undef @preprocess_line;
-		undef @collect_and_parse_syntax_block;
-		undef @parse_asis_lines;
-		undef @skip_comment;
-		undef @parse_wiki_command;
-		undef @parse_nonwiki_command;
-		undef @skip_unknown_command;
-		undef @start_syntax_block;
-		undef @parse_collected_lines;
-		undef @parse_paragraph_break;
-		undef @parse_inline_syntax;
-		undef @collect_lines;
-		undef @parse_line_syntax;
-		undef @start_paragraph;
-		undef @postprocess_line;
-		undef @close_all_open;
 		print qq(<li><a href="$PAGE.html">$PAGE</a></li>\n);
 	}
 	print qq(</ul>\n</div>\n);
