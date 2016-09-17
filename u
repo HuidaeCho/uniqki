@@ -5649,7 +5649,7 @@ EOT
 		$TITLE = get_msg("search_matching", $var{glob}, $_);
 	}
 	print_header();
-	print qq(<div id="search">\n<h1>$TITLE</h1>\n);
+	print qq(<div id="search">\n<h1>$TITLE</h1>\n<ul>\n);
 
 	foreach(<$glob.txt>){
 		next if(substr($_,0,1) eq "." || index($_,"/") >= 0 || !-f $_);
@@ -5716,17 +5716,19 @@ EOT
 		}
 		next if($i <= $#search);
 		if($var{nomatch} eq "1"){
-			print qq(<div><a href="$page.html">$page_name</a></div>\n);
+			print qq(<li><a href="$page.html">$page_name</a></li>\n);
 			next;
 		}
+		print qq(<li><a href="$page.html">$page_name</a>\n<ul>\n);
 		foreach(@result){
 			s#\x01#<span class="search-highlight">#g;
 			s#\x02#</span>#g;
-			print qq(<div><a href="$page.html">$page_name</a>: $_</div>\n);
+			print qq(<li>$_</li>\n);
 		}
+		print qq(</ul>\n);
 	}
 
-	print qq(</div>\n);
+	print qq(</ul>\n</div>\n);
 	print_footer();
 	die;
 }elsif($QUERY_STRING =~ m/^comment(?:[&=].+)?$/){
