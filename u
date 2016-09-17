@@ -111,7 +111,7 @@ use vars qw(
 	@end_parsing
 	@preprocess_line
 	@collect_and_parse_syntax_block
-	@parse_as_is_lines
+	@parse_asis_lines
 	@skip_comment
 	@parse_wiki_command
 	@parse_nonwiki_command
@@ -527,7 +527,11 @@ if($doc_root eq ""){
 }
 
 ################################################################################
-# Config
+# Prepare the default parser
+prepare_parser();
+
+################################################################################
+# Read the config file
 process_cfg();
 $INDEX_PAGE = "index" if($INDEX_PAGE eq "");
 if($TIME_ZONE ne ""){
@@ -1000,545 +1004,6 @@ sub decode_url{
 	my $url = shift;
 	$url =~ s/%(..)/@{[pack "c", hex($1)]}/g;
 	return $url;
-}
-
-sub run_code_block{
-	my $block = shift;
-	$block =~ s/^(##[{}]_*)_$/$1/mg;
-	eval $block;
-}
-
-sub create_child_block{
-	my $block = shift;
-	my $i = index $block, "\n";
-	my $j = rindex $block, "\n";
-	my $begin = substr $block, 0, $i;
-	my $end = substr $block, $j + 1;
-	$block = substr $block, $i + 1, $j - $i - 1;
-	$block =~ s/(\(\(\(_*)_$/$1/mg;
-	$block =~ s/^(\)\)\)_*)_/$1/mg;
-	my $parsed_block = parse_child_block($block);
-	chomp $parsed_block;
-	push @parsed_blocks, $parsed_block;
-	return "$begin\x06$end";
-}
-
-sub create_syntax_block{
-	my $block = shift;
-	my $i = index $block, "\n";
-	my $j = rindex $block, "\n";
-	my $begin = substr $block, 0, $i;
-	my $end = substr $block, $j + 1;
-	$block = substr $block, $i + 1, $j - $i - 1;
-	$block =~ s/(?<!\()(\(\(_*)_$/$1/mg;
-	$block =~ s/^(\)\)_*)_/$1/mg;
-	my $parsed_block = parse_block($block);
-	chomp $parsed_block;
-	push @parsed_blocks, $parsed_block;
-	return "$begin\x06$end";
-}
-
-sub create_blockquote{
-	my @lines = split /\n/, shift;
-	my $blockquote = "";
-	my @cite = ();
-	my $q_i = 0;
-	my $use_p = 0;
-	my $p = 0;
-
-	foreach(@lines){
-		m/^( *)(&gt;[ \t])?(.*)$/;
-		my $i = length($1) / 2 + 1;
-		my $start = $2 ne "" ? 1 : 0;
-		my $line = $3;
-		if(!$start || $line =~ m/^\(.*\)$/){
-			if($i - 1 < $q_i){
-				if($p){
-					$blockquote .= "</p>\n";
-					$p = 0;
-				}
-				while(--$q_i >= $i - 1){
-					if($cite[$q_i] ne ""){
-						$blockquote .= "<footer><cite>$cite[$q_i]</cite></footer>\n";
-						$cite[$q_i] = "";
-					}
-					$blockquote .= "</blockquote>\n";
-				}
-				$q_i++;
-			}
-			if($line eq "" || $line eq "..."){
-				$use_p = 1;
-				if($p){
-					$blockquote .= "</p>\n";
-					$p = 0;
-				}
-				next;
-			}
-			if($line =~ m/^\([ \t]*(.*?)[ \t]*\)$/){
-				my $qi = $start ? $i - 1 : $q_i - 1;
-				$cite[$qi] .= "\n" if($cite[$qi] ne "");
-				$cite[$qi] .= $1;
-			}else{
-				if($use_p){
-					$line =~ s#(\x06)#</p>$1<p>#g;
-					if(!$p){
-						$blockquote .= "<p>";
-						$p = 1;
-					}
-				}
-				$line =~ s#([ \t])\([ \t]*(.*?)[ \t]*\)$#$1<cite>$2</cite>#;
-				$line =~ s/^[ \t]*(.*?)[ \t]*$/$1/;
-				$blockquote .= "$line\n";
-			}
-			next unless($start);
-			$line = "";
-		}
-		$use_p = 0;
-		if($p){
-			$blockquote .= "</p>\n";
-			$p = 0;
-		}
-		if($i > $q_i){
-			for(; $q_i < $i - 1; $q_i++){
-				$blockquote .= "<blockquote>\n";
-			}
-			$q_i++;
-			$blockquote .= "<blockquote>\n";
-		}elsif($i < $q_i){
-			while(--$q_i >= $i){
-				if($cite[$q_i] ne ""){
-					$blockquote .= "<footer><cite>$cite[$q_i]</cite></footer>\n";
-					$cite[$q_i] = "";
-				}
-				$blockquote .= "</blockquote>\n";
-			}
-			$q_i++;
-		}else{
-			if($cite[$q_i-1] ne ""){
-				$blockquote .= "<footer><cite>$cite[$q_i-1]</cite></footer>\n";
-				$cite[$q_i-1] = "";
-			}
-			$blockquote .= "</blockquote>\n<blockquote>\n";
-		}
-
-		$line =~ s#([ \t])\([ \t]*(.*?)[ \t]*\)$#$1<cite>$2</cite>#;
-		$line =~ s/^[ \t]*(.*?)[ \t]*$/$1/;
-		$blockquote .= "$line\n" if($line ne "");
-	}
-	if($p){
-		$blockquote .= "</p>\n";
-		$p = 0;
-	}
-	while(--$q_i >= 0){
-		if($cite[$q_i] ne ""){
-			$blockquote .= "<footer><cite>$cite[$q_i]</cite></footer>\n";
-			$cite[$q_i] = "";
-		}
-		$blockquote .= "</blockquote>\n";
-	}
-
-	# Inline perl code
-	$blockquote =~ s/``(.*?)``(?!`)/$1/eeg;
-	# Discard none characters
-	$blockquote =~ y/\x00//d;
-
-	return $blockquote;
-}
-
-sub create_list{
-	my @lines = split /\n/, shift;
-	my $list = "";
-	my $li_i = 0;
-	my @li = ();
-	my @li_attr = ();
-	my $use_p = 0;
-	my $p = 0;
-
-	foreach(@lines){
-		m/^( *)(?:([*+-]|: [ \t]*(.*?)[ \t]*:)[ \t])?[ \t]*(.*?)[ \t]*$/;
-		my $i = length($1) / 2 + 1;
-		my $line = $4;
-		if($2 eq ""){
-			if(--$i < $li_i){
-				if($p){
-					$list .= "</p>\n";
-					$p = 0;
-				}
-				while(--$li_i >= $i){
-					if($li[$li_i] eq "dl"){
-						$list .= "</dd>\n";
-					}else{
-						$list .= "</li>\n";
-					}
-					$list .= "</$li[$li_i]>\n";
-				}
-				$li_i++;
-			}
-			if($line eq "" || $line eq "..."){
-				$use_p = 1;
-				if($p){
-					$list .= "</p>\n";
-					$p = 0;
-				}
-				next;
-			}
-			if($use_p){
-				$line =~ s#(\x06)#</p>$1<p>#g;
-				if(!$p){
-					$list .= "<p>";
-					$p = 1;
-				}
-			}
-			$list .= "$line\n";
-			next;
-		}
-		$use_p = 0;
-		if($p){
-			$list .= "</p>\n";
-			$p = 0;
-		}
-		my $tag = substr $2, 0, 1;
-		my $term = $3;
-		my $attr = "";
-		if($tag eq "*"){
-			$tag = "ul";
-		}elsif($tag eq "+"){
-			$tag = "ol";
-		}elsif($tag eq "-"){
-			$tag = "ol";
-			$attr = q( reversed="reversed");
-		}else{
-			$tag = "dl";
-		}
-		if($i > $li_i){
-			for(; $li_i < $i - 1; $li_i++){
-				$list .= "<$tag>\n";
-				if($tag eq "dl"){
-					$list .= "<dt></dt>\n<dd>";
-				}else{
-					$list .= "<li>";
-				}
-				$li[$li_i] = $tag;
-				$li_attr[$li_i] = "";
-			}
-			$list .= "<$tag$attr>\n";
-			$li[$li_i] = $tag;
-			$li_attr[$li_i++] = $attr;
-		}elsif($i < $li_i){
-			while(--$li_i >= $i){
-				if($li[$li_i] eq "dl"){
-					$list .= "</dd>\n";
-				}else{
-					$list .= "</li>\n";
-				}
-				$list .= "</$li[$li_i]>\n";
-			}
-			if($li[$li_i] eq $tag && $li_attr[$li_i] eq $attr){
-				if($li[$li_i] eq "dl"){
-					$list .= "</dd>\n";
-				}else{
-					$list .= "</li>\n";
-				}
-				$li_i++;
-			}else{
-				for(; $li_i >= 0 && ($li[$li_i] ne $tag ||
-					$li_attr[$li_i] ne $attr); $li_i--){
-					if($li[$li_i] eq "dl"){
-						$list .= "</dd>\n";
-					}else{
-						$list .= "</li>\n";
-					}
-					$list .= "</$li[$li_i]>\n";
-				}
-				while(++$li_i < $i-1){
-					$list .= "<$tag>\n";
-					$li[$li_i] = $tag;
-					$li_attr[$li_i] = "";
-				}
-				$list .= "<$tag$attr>\n";
-				$li[$li_i] = $tag;
-				$li_attr[$li_i++] = $attr;
-			}
-		}elsif($li[$li_i-1] ne $tag || $li_attr[$li_i-1] ne $attr){
-			if($li[$li_i-1] eq "dl"){
-				$list .= "</dd>\n";
-			}else{
-				$list .= "</li>\n";
-			}
-			$list .= "</$li[$li_i-1]>\n<$tag$attr>\n";
-			$li[$li_i-1] = $tag;
-			$li_attr[$li_i-1] = $attr;
-		}elsif($tag eq "dl"){
-			$list .= "</dd>\n";
-		}else{
-			$list .= "</li>\n";
-		}
-
-		if($tag eq "dl"){
-			$list .= "<dt>$term</dt>\n<dd>$line\n";
-		}else{
-			$list .= "<li>$line\n";
-		}
-	}
-	if($p){
-		$list .= "</p>\n";
-		$p = 0;
-	}
-	while(--$li_i >= 0){
-		if($li[$li_i] eq "dl"){
-			$list .= "</dd>\n";
-		}else{
-			$list .= "</li>\n";
-		}
-		$list .= "</$li[$li_i]>\n";
-	}
-
-	# Inline perl code
-	$list =~ s/``(.*?)``(?!`)/$1/eeg;
-	# Discard none characters
-	$list =~ y/\x00//d;
-
-	return $list;
-}
-
-sub create_table{
-	my @lines = split /\n/, shift;
-	my $id = "";
-	my $title = "";
-	my $caption = "";
-	my $thead = "";
-	my $tfoot = "";
-	my $tbodies = "";
-	my $tbody = "";
-
-	foreach(@lines){
-		my $end = substr $_, -1;
-		if(m/^!(!)?[ \t](.*[ \t])?(!)?!$/){
-			my $inc_lot = $1 eq "" ? 1 : 0;
-			my $del_punct_from_title = $3 eq "" ? 1 : 0;
-			(my $line = $2) =~ s/^[ \t]+|[ \t]+$//g;
-			next if($line eq "");
-			$caption .= "\n" if($caption ne "");
-			$caption .= $line;
-			if($inc_lot && $id eq ""){
-				$line =~ s/[`~!@#\$%^&*-_=+\\|;:,.\/?]+$//
-					if($del_punct_from_title);
-				if($line ne ""){
-					$id = convert_page_name("table $line");
-					my $j = $tabs_n{$id}++;
-					if($j > 0){
-						$id .= $j + 1;
-						$tabs_n{$id}++;
-					}
-					$title = $line;
-				}
-			}
-		}elsif($end eq "^"){
-			$thead .= create_table_row($_);
-		}elsif($end eq "!"){
-			$tfoot .= create_table_row($_);
-		}else{
-			$_ = substr $_, 0, length($_) - 1 if($end eq "_");
-			$tbody .= create_table_row($_);
-			if($end eq "_" && $tbody ne ""){
-				$tbody = update_table_rowspan($tbody);
-				$tbodies .= "<tbody>\n$tbody</tbody>\n";
-				$tbody = "";
-			}
-		}
-	}
-	if($tbody ne ""){
-		$tbody = update_table_rowspan($tbody);
-		$tbodies .= "<tbody>\n$tbody</tbody>\n";
-	}
-
-	my $table = "";
-	return $table if($caption eq "" && $thead eq "" && $tbodies eq "" &&
-		$tfoot eq "");
-
-	$thead = update_table_rowspan($thead);
-	$tfoot = update_table_rowspan($tfoot);
-
-	my $tab = "";
-	if($id eq ""){
-		$table = "<table>\n";
-	}else{
-		$tabs{$id} = ++$tab_no;
-		$tab = "$TABLE_NUMBER_PREFIX$tab_no$TABLE_NUMBER_SUFFIX";
-		$table = "<table id=\"$id\">\n";
-		my $enc_id = encode_url($id);
-		$lot .= "<li><a href=\"#$enc_id\">$tab$title</a></li>\n";
-	}
-	$table .= "<caption>$tab$caption</caption>\n" if($caption ne "");
-	$table .= "<thead>\n$thead</thead>\n" if($thead ne "");
-	$table .= $tbodies if($tbodies ne "");
-	$table .= "<tfoot>\n$tfoot</tfoot>\n" if($tfoot ne "");
-	$table .= "</table>\n";
-
-	# Inline perl code
-	$table =~ s/``(.*?)``(?!`)/$1/eeg;
-	# Discard none characters
-	$table =~ y/\x00//d;
-
-	return $table;
-}
-
-sub create_table_row{
-	my $row = shift;
-
-	$row =~ s/(!+)$/@{["|" x length($1)]}/;
-
-	# Empty cells
-	$row =~ s#([|^])[ \t]+([|^]*)(?=[|^](?:[ \t]|$))#@{[create_table_cell($1, $2)]}#g;
-	# Non-empty cells
-	$row =~ s#([|^])[ \t]([ \t]*)([^ \t].*?)([ \t]*)[ \t]([|^]*)(?=[|^](?:[ \t]|$)|<t[hd] )#@{[create_table_cell($1, $5, $2, $3, $4)]}#g;
-	$row =~ s/[|^]$//;
-
-	return "<tr>$row</tr>\n";
-}
-
-sub create_table_cell{
-	my ($type, $colspan, $left, $content, $right) = @_;
-
-	$type = $type eq "^" ? "th" : "td";
-	$colspan = length($colspan) + 1;
-	$left = length($left);
-	$right = length($right);
-
-	$colspan = $colspan == 1 ? "" : qq( colspan="$colspan");
-	my $align = $left == 0 ? "left" : ($right == 0 ? "right" : "center");
-	return qq(<$type$colspan class="text-$align">$content</$type>);
-}
-
-sub update_table_rowspan{
-	my $rows = shift;
-
-	(my $rowspan = $rows) =~ s#</?tr>##g;
-	$rowspan =~ s#<(t[hd]) [^>]+>\.\.\.</\1>#+#g;
-	$rowspan =~ s#<(t[hd]) [^>]+>.*?</\1>#1#g;
-	# $rowspan example:
-	# 111
-	# 1++
-	# 11+
-
-	my @rs = split /\n/, $rowspan;
-	# Only one row
-	return $rows if($#rs == 0);
-
-	# The first row cannot be spanned from above.
-	$rs[0] = "1" x length($rs[0]);
-	# No row spans
-	return $rows if(index(join("\n", @rs), "+") == -1);
-
-	my @counts;
-	for my $i (0..$#rs){
-		my $c = 0;
-		$counts[$i][$c++] = $_ foreach(split //, $rs[$i]);
-	}
-	# Count the number of row spans.
-	for my $i (0..($#rs-1)){
-		for my $c (0..$#{$counts[$i]}){
-			last if($counts[$i][$c] eq "+");
-			for my $j (($i+1)..$#rs){
-				last if($counts[$j][$c] ne "+");
-				$counts[$i][$c]++;
-			}
-		}
-	}
-
-	# Make it easy to replace back </th> and </td> later.
-	# \x01-\x03 have already been converted to &amp;, &lt;, and &gt;.
-	$rows =~ s#</th>#\x01\x03#g;
-	$rows =~ s#</td>#\x02\x03#g;
-
-	my @cells;
-	my @rows = split /\n/, $rows;
-	for my $i (0..$#rows){
-		my $c = 0;
-		$cells[$i][$c++] = $_ foreach(split /\x03/, $rows[$i]);
-	}
-
-	for my $i (0..$#rs){
-		for my $c (0..$#{$counts[$i]}){
-			if($counts[$i][$c] > 1){
-				$cells[$i][$c] =~ s/(<t[hd])(?=[> ])/$1 rowspan="$counts[$i][$c]"/;
-			}elsif($counts[$i][$c] eq "+"){
-				$cells[$i][$c] =~ s/<t[hd][> ].*[\x01\x02]//;
-			}
-		}
-	}
-
-	$rows = "";
-	for my $i (0..$#rs){
-		$rows .= join("", @{$cells[$i]})."\n";
-	}
-	$rows =~ s#\x01#</th>#g;
-	$rows =~ s#\x02#</td>#g;
-
-	return $rows;
-}
-
-sub create_figure{
-	my @lines = split /\n/, shift;
-	my $id = "";
-	my $title = "";
-	my $content = "";
-	my $figcaption = "";
-	my $figure = "";
-
-	foreach(@lines){
-		if(m/^"(!)?[ \t](.*[ \t])?(!)?"$/){
-			my $inc_lof = $1 eq "" ? 1 : 0;
-			my $del_punct_from_title = $3 eq "" ? 1 : 0;
-			(my $line = $2) =~ s/^[ \t]+|[ \t]+$//g;
-			next if($line eq "");
-			$figcaption .= "\n" if($figcaption ne "");
-			$figcaption .= $line;
-			if($inc_lof && $id eq ""){
-				$line =~ s/[`~!@#\$%^&*-_=+\\|;:,.\/?]+$//
-					if($del_punct_from_title);
-				if($line ne ""){
-					$id = convert_page_name("figure $line");
-					my $j = $figs_n{$id}++;
-					if($j > 0){
-						$id .= $j + 1;
-						$figs_n{$id}++;
-					}
-					$title = $line;
-				}
-			}
-		}else{
-			my $line = substr $_, 2, length($_) - 4;
-			$line =~ s/^[ \t]+|[ \t]+$//g;
-			next if($line eq "");
-			$content .= " " if($content ne "");
-			$content .= $line;
-		}
-	}
-
-	return $figure if($content eq "" && $figcaption eq "");
-
-	my $fig = "";
-	if($id eq ""){
-		$figure = "<figure>\n";
-	}else{
-		$figs{$id} = ++$fig_no;
-		$fig = "$FIGURE_NUMBER_PREFIX$fig_no$FIGURE_NUMBER_SUFFIX";
-		$figure = "<figure id=\"$id\">\n";
-		my $enc_id = encode_url($id);
-		$lof .= "<li><a href=\"#$enc_id\">$fig$title</a></li>\n";
-	}
-	$figure .= "$content\n" if($content ne "");
-	$figure .= "<figcaption>$fig$figcaption</figcaption>\n"
-		if($figcaption ne "");
-	$figure .= "</figure>\n";
-
-	# Inline perl code
-	$figure =~ s/``(.*?)``(?!`)/$1/eeg;
-	# Discard none characters
-	$figure =~ y/\x00//d;
-
-	return $figure;
 }
 
 sub is_logged_in{
@@ -3990,6 +3455,31 @@ sub write_file{
 	return 0;
 }
 
+################################################################################
+# Parsing subroutines
+sub prepare_parser{
+	push @begin_parsing, \&begin_parsing;
+	push @parse_line, \&parse_line;
+	push @end_parsing, \&end_parsing;
+
+	push @preprocess_line, \&preprocess_line;
+	push @collect_and_parse_syntax_block, \&collect_and_parse_syntax_block;
+	push @parse_asis_lines, \&parse_asis_lines;
+	push @skip_comment, \&skip_comment;
+	push @parse_wiki_command, \&parse_wiki_command;
+	push @parse_nonwiki_command, \&parse_nonwiki_command;
+	push @skip_unknown_command, \&skip_unknown_command;
+	push @start_syntax_block, \&start_syntax_block;
+	push @parse_collected_lines, \&parse_collected_lines;
+	push @parse_paragraph_break, \&parse_paragraph_break;
+	push @parse_inline_syntax, \&parse_inline_syntax;
+	push @collect_lines, \&collect_lines;
+	push @parse_line_syntax, \&parse_line_syntax;
+	push @start_paragraph, \&start_paragraph;
+	push @postprocess_line, \&postprocess_line;
+	push @close_all_open, \&close_all_open;
+}
+
 sub parse{
 	local $_ = shift;
 	my @parsers = @_;
@@ -4000,7 +3490,6 @@ sub parse{
 	return $_;
 }
 
-# Parsing subroutines
 sub parse_file{
 	my $file = shift;
 	local *UNIQKI_FH;
@@ -4024,35 +3513,6 @@ sub parse_file{
 		($header_file, $footer_file) =
 			($WIKI_HEADER_FILE, $WIKI_FOOTER_FILE);
 	}
-
-	push @begin_parsing, \&begin_parsing unless @begin_parsing;
-	push @parse_line, \&parse_line unless @parse_line;
-	push @end_parsing, \&end_parsing unless @end_parsing;
-
-	push @preprocess_line, \&preprocess_line unless @preprocess_line;
-	push @collect_and_parse_syntax_block, \&collect_and_parse_syntax_block
-		unless @collect_and_parse_syntax_block;
-	push @parse_as_is_lines, \&parse_as_is_lines unless @parse_as_is_lines;
-	push @skip_comment, \&skip_comment unless @skip_comment;
-	push @parse_wiki_command, \&parse_wiki_command
-		unless @parse_wiki_command;
-	push @parse_nonwiki_command, \&parse_nonwiki_command
-		unless @parse_nonwiki_command;
-	push @skip_unknown_command, \&skip_unknown_command
-		unless @skip_unknown_command;
-	push @start_syntax_block, \&start_syntax_block
-		unless @start_syntax_block;
-	push @parse_collected_lines, \&parse_collected_lines
-		unless @parse_collected_lines;
-	push @parse_paragraph_break, \&parse_paragraph_break
-		unless @parse_paragraph_break;
-	push @parse_inline_syntax, \&parse_inline_syntax
-		unless @parse_inline_syntax;
-	push @collect_lines, \&collect_lines unless @collect_lines;
-	push @parse_line_syntax, \&parse_line_syntax unless @parse_line_syntax;
-	push @start_paragraph, \&start_paragraph unless @start_paragraph;
-	push @postprocess_line, \&postprocess_line unless @postprocess_line;
-	push @close_all_open, \&close_all_open unless @close_all_open;
 
 	do $USER_PARSERS_FILE if(-f $USER_PARSERS_FILE);
 
@@ -4105,61 +3565,550 @@ sub parse_lines{
 	return $text;
 }
 
+sub run_code_block{
+	my $block = shift;
+	$block =~ s/^(##[{}]_*)_$/$1/mg;
+	eval $block;
+}
+
+sub create_child_block{
+	my $block = shift;
+	my $i = index $block, "\n";
+	my $j = rindex $block, "\n";
+	my $begin = substr $block, 0, $i;
+	my $end = substr $block, $j + 1;
+	$block = substr $block, $i + 1, $j - $i - 1;
+	$block =~ s/(\(\(\(_*)_$/$1/mg;
+	$block =~ s/^(\)\)\)_*)_/$1/mg;
+	my $parsed_block = parse_child_block($block);
+	chomp $parsed_block;
+	push @parsed_blocks, $parsed_block;
+	return "$begin\x06$end";
+}
+
+sub create_syntax_block{
+	my $block = shift;
+	my $i = index $block, "\n";
+	my $j = rindex $block, "\n";
+	my $begin = substr $block, 0, $i;
+	my $end = substr $block, $j + 1;
+	$block = substr $block, $i + 1, $j - $i - 1;
+	$block =~ s/(?<!\()(\(\(_*)_$/$1/mg;
+	$block =~ s/^(\)\)_*)_/$1/mg;
+	my $parsed_block = parse_block($block);
+	chomp $parsed_block;
+	push @parsed_blocks, $parsed_block;
+	return "$begin\x06$end";
+}
+
+sub create_blockquote{
+	my @lines = split /\n/, shift;
+	my $blockquote = "";
+	my @cite = ();
+	my $q_i = 0;
+	my $use_p = 0;
+	my $p = 0;
+
+	foreach(@lines){
+		m/^( *)(&gt;[ \t])?(.*)$/;
+		my $i = length($1) / 2 + 1;
+		my $start = $2 ne "" ? 1 : 0;
+		my $line = $3;
+		if(!$start || $line =~ m/^\(.*\)$/){
+			if($i - 1 < $q_i){
+				if($p){
+					$blockquote .= "</p>\n";
+					$p = 0;
+				}
+				while(--$q_i >= $i - 1){
+					if($cite[$q_i] ne ""){
+						$blockquote .= "<footer><cite>$cite[$q_i]</cite></footer>\n";
+						$cite[$q_i] = "";
+					}
+					$blockquote .= "</blockquote>\n";
+				}
+				$q_i++;
+			}
+			if($line eq "" || $line eq "..."){
+				$use_p = 1;
+				if($p){
+					$blockquote .= "</p>\n";
+					$p = 0;
+				}
+				next;
+			}
+			if($line =~ m/^\([ \t]*(.*?)[ \t]*\)$/){
+				my $qi = $start ? $i - 1 : $q_i - 1;
+				$cite[$qi] .= "\n" if($cite[$qi] ne "");
+				$cite[$qi] .= $1;
+			}else{
+				if($use_p){
+					$line =~ s#(\x06)#</p>$1<p>#g;
+					if(!$p){
+						$blockquote .= "<p>";
+						$p = 1;
+					}
+				}
+				$line =~ s#([ \t])\([ \t]*(.*?)[ \t]*\)$#$1<cite>$2</cite>#;
+				$line =~ s/^[ \t]*(.*?)[ \t]*$/$1/;
+				$blockquote .= "$line\n";
+			}
+			next unless($start);
+			$line = "";
+		}
+		$use_p = 0;
+		if($p){
+			$blockquote .= "</p>\n";
+			$p = 0;
+		}
+		if($i > $q_i){
+			for(; $q_i < $i - 1; $q_i++){
+				$blockquote .= "<blockquote>\n";
+			}
+			$q_i++;
+			$blockquote .= "<blockquote>\n";
+		}elsif($i < $q_i){
+			while(--$q_i >= $i){
+				if($cite[$q_i] ne ""){
+					$blockquote .= "<footer><cite>$cite[$q_i]</cite></footer>\n";
+					$cite[$q_i] = "";
+				}
+				$blockquote .= "</blockquote>\n";
+			}
+			$q_i++;
+		}else{
+			if($cite[$q_i-1] ne ""){
+				$blockquote .= "<footer><cite>$cite[$q_i-1]</cite></footer>\n";
+				$cite[$q_i-1] = "";
+			}
+			$blockquote .= "</blockquote>\n<blockquote>\n";
+		}
+
+		$line =~ s#([ \t])\([ \t]*(.*?)[ \t]*\)$#$1<cite>$2</cite>#;
+		$line =~ s/^[ \t]*(.*?)[ \t]*$/$1/;
+		$blockquote .= "$line\n" if($line ne "");
+	}
+	if($p){
+		$blockquote .= "</p>\n";
+		$p = 0;
+	}
+	while(--$q_i >= 0){
+		if($cite[$q_i] ne ""){
+			$blockquote .= "<footer><cite>$cite[$q_i]</cite></footer>\n";
+			$cite[$q_i] = "";
+		}
+		$blockquote .= "</blockquote>\n";
+	}
+
+	# Inline perl code
+	$blockquote =~ s/``(.*?)``(?!`)/$1/eeg;
+	# Discard none characters
+	$blockquote =~ y/\x00//d;
+
+	return $blockquote;
+}
+
+sub create_list{
+	my @lines = split /\n/, shift;
+	my $list = "";
+	my $li_i = 0;
+	my @li = ();
+	my @li_attr = ();
+	my $use_p = 0;
+	my $p = 0;
+
+	foreach(@lines){
+		m/^( *)(?:([*+-]|: [ \t]*(.*?)[ \t]*:)[ \t])?[ \t]*(.*?)[ \t]*$/;
+		my $i = length($1) / 2 + 1;
+		my $line = $4;
+		if($2 eq ""){
+			if(--$i < $li_i){
+				if($p){
+					$list .= "</p>\n";
+					$p = 0;
+				}
+				while(--$li_i >= $i){
+					if($li[$li_i] eq "dl"){
+						$list .= "</dd>\n";
+					}else{
+						$list .= "</li>\n";
+					}
+					$list .= "</$li[$li_i]>\n";
+				}
+				$li_i++;
+			}
+			if($line eq "" || $line eq "..."){
+				$use_p = 1;
+				if($p){
+					$list .= "</p>\n";
+					$p = 0;
+				}
+				next;
+			}
+			if($use_p){
+				$line =~ s#(\x06)#</p>$1<p>#g;
+				if(!$p){
+					$list .= "<p>";
+					$p = 1;
+				}
+			}
+			$list .= "$line\n";
+			next;
+		}
+		$use_p = 0;
+		if($p){
+			$list .= "</p>\n";
+			$p = 0;
+		}
+		my $tag = substr $2, 0, 1;
+		my $term = $3;
+		my $attr = "";
+		if($tag eq "*"){
+			$tag = "ul";
+		}elsif($tag eq "+"){
+			$tag = "ol";
+		}elsif($tag eq "-"){
+			$tag = "ol";
+			$attr = q( reversed="reversed");
+		}else{
+			$tag = "dl";
+		}
+		if($i > $li_i){
+			for(; $li_i < $i - 1; $li_i++){
+				$list .= "<$tag>\n";
+				if($tag eq "dl"){
+					$list .= "<dt></dt>\n<dd>";
+				}else{
+					$list .= "<li>";
+				}
+				$li[$li_i] = $tag;
+				$li_attr[$li_i] = "";
+			}
+			$list .= "<$tag$attr>\n";
+			$li[$li_i] = $tag;
+			$li_attr[$li_i++] = $attr;
+		}elsif($i < $li_i){
+			while(--$li_i >= $i){
+				if($li[$li_i] eq "dl"){
+					$list .= "</dd>\n";
+				}else{
+					$list .= "</li>\n";
+				}
+				$list .= "</$li[$li_i]>\n";
+			}
+			if($li[$li_i] eq $tag && $li_attr[$li_i] eq $attr){
+				if($li[$li_i] eq "dl"){
+					$list .= "</dd>\n";
+				}else{
+					$list .= "</li>\n";
+				}
+				$li_i++;
+			}else{
+				for(; $li_i >= 0 && ($li[$li_i] ne $tag ||
+					$li_attr[$li_i] ne $attr); $li_i--){
+					if($li[$li_i] eq "dl"){
+						$list .= "</dd>\n";
+					}else{
+						$list .= "</li>\n";
+					}
+					$list .= "</$li[$li_i]>\n";
+				}
+				while(++$li_i < $i-1){
+					$list .= "<$tag>\n";
+					$li[$li_i] = $tag;
+					$li_attr[$li_i] = "";
+				}
+				$list .= "<$tag$attr>\n";
+				$li[$li_i] = $tag;
+				$li_attr[$li_i++] = $attr;
+			}
+		}elsif($li[$li_i-1] ne $tag || $li_attr[$li_i-1] ne $attr){
+			if($li[$li_i-1] eq "dl"){
+				$list .= "</dd>\n";
+			}else{
+				$list .= "</li>\n";
+			}
+			$list .= "</$li[$li_i-1]>\n<$tag$attr>\n";
+			$li[$li_i-1] = $tag;
+			$li_attr[$li_i-1] = $attr;
+		}elsif($tag eq "dl"){
+			$list .= "</dd>\n";
+		}else{
+			$list .= "</li>\n";
+		}
+
+		if($tag eq "dl"){
+			$list .= "<dt>$term</dt>\n<dd>$line\n";
+		}else{
+			$list .= "<li>$line\n";
+		}
+	}
+	if($p){
+		$list .= "</p>\n";
+		$p = 0;
+	}
+	while(--$li_i >= 0){
+		if($li[$li_i] eq "dl"){
+			$list .= "</dd>\n";
+		}else{
+			$list .= "</li>\n";
+		}
+		$list .= "</$li[$li_i]>\n";
+	}
+
+	# Inline perl code
+	$list =~ s/``(.*?)``(?!`)/$1/eeg;
+	# Discard none characters
+	$list =~ y/\x00//d;
+
+	return $list;
+}
+
+sub create_table{
+	my @lines = split /\n/, shift;
+	my $id = "";
+	my $title = "";
+	my $caption = "";
+	my $thead = "";
+	my $tfoot = "";
+	my $tbodies = "";
+	my $tbody = "";
+
+	foreach(@lines){
+		my $end = substr $_, -1;
+		if(m/^!(!)?[ \t](.*[ \t])?(!)?!$/){
+			my $inc_lot = $1 eq "" ? 1 : 0;
+			my $del_punct_from_title = $3 eq "" ? 1 : 0;
+			(my $line = $2) =~ s/^[ \t]+|[ \t]+$//g;
+			next if($line eq "");
+			$caption .= "\n" if($caption ne "");
+			$caption .= $line;
+			if($inc_lot && $id eq ""){
+				$line =~ s/[`~!@#\$%^&*-_=+\\|;:,.\/?]+$//
+					if($del_punct_from_title);
+				if($line ne ""){
+					$id = convert_page_name("table $line");
+					my $j = $tabs_n{$id}++;
+					if($j > 0){
+						$id .= $j + 1;
+						$tabs_n{$id}++;
+					}
+					$title = $line;
+				}
+			}
+		}elsif($end eq "^"){
+			$thead .= create_table_row($_);
+		}elsif($end eq "!"){
+			$tfoot .= create_table_row($_);
+		}else{
+			$_ = substr $_, 0, length($_) - 1 if($end eq "_");
+			$tbody .= create_table_row($_);
+			if($end eq "_" && $tbody ne ""){
+				$tbody = update_table_rowspan($tbody);
+				$tbodies .= "<tbody>\n$tbody</tbody>\n";
+				$tbody = "";
+			}
+		}
+	}
+	if($tbody ne ""){
+		$tbody = update_table_rowspan($tbody);
+		$tbodies .= "<tbody>\n$tbody</tbody>\n";
+	}
+
+	my $table = "";
+	return $table if($caption eq "" && $thead eq "" && $tbodies eq "" &&
+		$tfoot eq "");
+
+	$thead = update_table_rowspan($thead);
+	$tfoot = update_table_rowspan($tfoot);
+
+	my $tab = "";
+	if($id eq ""){
+		$table = "<table>\n";
+	}else{
+		$tabs{$id} = ++$tab_no;
+		$tab = "$TABLE_NUMBER_PREFIX$tab_no$TABLE_NUMBER_SUFFIX";
+		$table = "<table id=\"$id\">\n";
+		my $enc_id = encode_url($id);
+		$lot .= "<li><a href=\"#$enc_id\">$tab$title</a></li>\n";
+	}
+	$table .= "<caption>$tab$caption</caption>\n" if($caption ne "");
+	$table .= "<thead>\n$thead</thead>\n" if($thead ne "");
+	$table .= $tbodies if($tbodies ne "");
+	$table .= "<tfoot>\n$tfoot</tfoot>\n" if($tfoot ne "");
+	$table .= "</table>\n";
+
+	# Inline perl code
+	$table =~ s/``(.*?)``(?!`)/$1/eeg;
+	# Discard none characters
+	$table =~ y/\x00//d;
+
+	return $table;
+}
+
+sub create_table_row{
+	my $row = shift;
+
+	$row =~ s/(!+)$/@{["|" x length($1)]}/;
+
+	# Empty cells
+	$row =~ s#([|^])[ \t]+([|^]*)(?=[|^](?:[ \t]|$))#@{[create_table_cell($1, $2)]}#g;
+	# Non-empty cells
+	$row =~ s#([|^])[ \t]([ \t]*)([^ \t].*?)([ \t]*)[ \t]([|^]*)(?=[|^](?:[ \t]|$)|<t[hd] )#@{[create_table_cell($1, $5, $2, $3, $4)]}#g;
+	$row =~ s/[|^]$//;
+
+	return "<tr>$row</tr>\n";
+}
+
+sub create_table_cell{
+	my ($type, $colspan, $left, $content, $right) = @_;
+
+	$type = $type eq "^" ? "th" : "td";
+	$colspan = length($colspan) + 1;
+	$left = length($left);
+	$right = length($right);
+
+	$colspan = $colspan == 1 ? "" : qq( colspan="$colspan");
+	my $align = $left == 0 ? "left" : ($right == 0 ? "right" : "center");
+	return qq(<$type$colspan class="text-$align">$content</$type>);
+}
+
+sub update_table_rowspan{
+	my $rows = shift;
+
+	(my $rowspan = $rows) =~ s#</?tr>##g;
+	$rowspan =~ s#<(t[hd]) [^>]+>\.\.\.</\1>#+#g;
+	$rowspan =~ s#<(t[hd]) [^>]+>.*?</\1>#1#g;
+	# $rowspan example:
+	# 111
+	# 1++
+	# 11+
+
+	my @rs = split /\n/, $rowspan;
+	# Only one row
+	return $rows if($#rs == 0);
+
+	# The first row cannot be spanned from above.
+	$rs[0] = "1" x length($rs[0]);
+	# No row spans
+	return $rows if(index(join("\n", @rs), "+") == -1);
+
+	my @counts;
+	for my $i (0..$#rs){
+		my $c = 0;
+		$counts[$i][$c++] = $_ foreach(split //, $rs[$i]);
+	}
+	# Count the number of row spans.
+	for my $i (0..($#rs-1)){
+		for my $c (0..$#{$counts[$i]}){
+			last if($counts[$i][$c] eq "+");
+			for my $j (($i+1)..$#rs){
+				last if($counts[$j][$c] ne "+");
+				$counts[$i][$c]++;
+			}
+		}
+	}
+
+	# Make it easy to replace back </th> and </td> later.
+	# \x01-\x03 have already been converted to &amp;, &lt;, and &gt;.
+	$rows =~ s#</th>#\x01\x03#g;
+	$rows =~ s#</td>#\x02\x03#g;
+
+	my @cells;
+	my @rows = split /\n/, $rows;
+	for my $i (0..$#rows){
+		my $c = 0;
+		$cells[$i][$c++] = $_ foreach(split /\x03/, $rows[$i]);
+	}
+
+	for my $i (0..$#rs){
+		for my $c (0..$#{$counts[$i]}){
+			if($counts[$i][$c] > 1){
+				$cells[$i][$c] =~ s/(<t[hd])(?=[> ])/$1 rowspan="$counts[$i][$c]"/;
+			}elsif($counts[$i][$c] eq "+"){
+				$cells[$i][$c] =~ s/<t[hd][> ].*[\x01\x02]//;
+			}
+		}
+	}
+
+	$rows = "";
+	for my $i (0..$#rs){
+		$rows .= join("", @{$cells[$i]})."\n";
+	}
+	$rows =~ s#\x01#</th>#g;
+	$rows =~ s#\x02#</td>#g;
+
+	return $rows;
+}
+
+sub create_figure{
+	my @lines = split /\n/, shift;
+	my $id = "";
+	my $title = "";
+	my $content = "";
+	my $figcaption = "";
+	my $figure = "";
+
+	foreach(@lines){
+		if(m/^"(!)?[ \t](.*[ \t])?(!)?"$/){
+			my $inc_lof = $1 eq "" ? 1 : 0;
+			my $del_punct_from_title = $3 eq "" ? 1 : 0;
+			(my $line = $2) =~ s/^[ \t]+|[ \t]+$//g;
+			next if($line eq "");
+			$figcaption .= "\n" if($figcaption ne "");
+			$figcaption .= $line;
+			if($inc_lof && $id eq ""){
+				$line =~ s/[`~!@#\$%^&*-_=+\\|;:,.\/?]+$//
+					if($del_punct_from_title);
+				if($line ne ""){
+					$id = convert_page_name("figure $line");
+					my $j = $figs_n{$id}++;
+					if($j > 0){
+						$id .= $j + 1;
+						$figs_n{$id}++;
+					}
+					$title = $line;
+				}
+			}
+		}else{
+			my $line = substr $_, 2, length($_) - 4;
+			$line =~ s/^[ \t]+|[ \t]+$//g;
+			next if($line eq "");
+			$content .= " " if($content ne "");
+			$content .= $line;
+		}
+	}
+
+	return $figure if($content eq "" && $figcaption eq "");
+
+	my $fig = "";
+	if($id eq ""){
+		$figure = "<figure>\n";
+	}else{
+		$figs{$id} = ++$fig_no;
+		$fig = "$FIGURE_NUMBER_PREFIX$fig_no$FIGURE_NUMBER_SUFFIX";
+		$figure = "<figure id=\"$id\">\n";
+		my $enc_id = encode_url($id);
+		$lof .= "<li><a href=\"#$enc_id\">$fig$title</a></li>\n";
+	}
+	$figure .= "$content\n" if($content ne "");
+	$figure .= "<figcaption>$fig$figcaption</figcaption>\n"
+		if($figcaption ne "");
+	$figure .= "</figure>\n";
+
+	# Inline perl code
+	$figure =~ s/``(.*?)``(?!`)/$1/eeg;
+	# Discard none characters
+	$figure =~ y/\x00//d;
+
+	return $figure;
+}
+
 sub close_paragraph{
 	if($p){
 		$text .= "</p>\n";
 		$p = 0;
 	}
-}
-
-sub close_all_open{
-	if($code_block ne ""){
-		my $block = "$code_block}";
-		$code_block = "";
-		run_code_block($block);
-	}
-	if($child_block ne ""){
-		my $block = $child_block;
-		$child_block = "";
-		local $_ = create_child_block($block);
-		$text .= parse($_, @parse_line);
-	}
-	if($syntax_block ne ""){
-		my $block = $syntax_block;
-		$syntax_block = "";
-		local $_ = create_syntax_block($block);
-		$text .= parse($_, @parse_line);
-	}
-	if($nosyntax){
-		$nosyntax = 0;
-	}
-	if($pre){
-		chomp $text;
-		if($pre_code eq ""){
-			$text .= "</pre>\n";
-		}else{
-			$text .= "</code></pre>\n";
-			$pre_code = "";
-		}
-		$pre = 0;
-	}
-	if($blockquote ne ""){
-		$text .= create_blockquote($blockquote);
-		$blockquote = "";
-	}
-	if($list ne ""){
-		$text .= create_list($list);
-		$list = "";
-	}
-	if($table ne ""){
-		$text .= create_table($table);
-		$table = "";
-	}
-	if($figure ne ""){
-		$text .= create_figure($figure);
-		$figure = "";
-	}
-	close_paragraph();
 }
 
 sub preprocess_line{
@@ -4234,7 +4183,7 @@ sub collect_and_parse_syntax_block{
 	return $_;
 }
 
-sub parse_as_is_lines{
+sub parse_asis_lines{
 	# return undef to skip to the next line
 	# return the current line for further processing
 	local $_ = shift;
@@ -4675,6 +4624,56 @@ sub postprocess_line{
 	return $_;
 }
 
+sub close_all_open{
+	if($code_block ne ""){
+		my $block = "$code_block}";
+		$code_block = "";
+		run_code_block($block);
+	}
+	if($child_block ne ""){
+		my $block = $child_block;
+		$child_block = "";
+		local $_ = create_child_block($block);
+		$text .= parse($_, @parse_line);
+	}
+	if($syntax_block ne ""){
+		my $block = $syntax_block;
+		$syntax_block = "";
+		local $_ = create_syntax_block($block);
+		$text .= parse($_, @parse_line);
+	}
+	if($nosyntax){
+		$nosyntax = 0;
+	}
+	if($pre){
+		chomp $text;
+		if($pre_code eq ""){
+			$text .= "</pre>\n";
+		}else{
+			$text .= "</code></pre>\n";
+			$pre_code = "";
+		}
+		$pre = 0;
+	}
+	if($blockquote ne ""){
+		$text .= create_blockquote($blockquote);
+		$blockquote = "";
+	}
+	if($list ne ""){
+		$text .= create_list($list);
+		$list = "";
+	}
+	if($table ne ""){
+		$text .= create_table($table);
+		$table = "";
+	}
+	if($figure ne ""){
+		$text .= create_figure($figure);
+		$figure = "";
+	}
+	close_paragraph();
+}
+
 ################################################################################
 # User-replaceable subroutines
 sub verify_input{
@@ -4754,7 +4753,7 @@ sub parse_line{
 	foreach my $parser (
 		@preprocess_line,
 		@collect_and_parse_syntax_block,
-		@parse_as_is_lines,
+		@parse_asis_lines,
 		@skip_comment,
 		@parse_wiki_command,
 		@parse_nonwiki_command,
@@ -6046,7 +6045,7 @@ EOT
 		undef @end_parsing;
 		undef @preprocess_line;
 		undef @collect_and_parse_syntax_block;
-		undef @parse_as_is_lines;
+		undef @parse_asis_lines;
 		undef @skip_comment;
 		undef @parse_wiki_command;
 		undef @parse_nonwiki_command;
