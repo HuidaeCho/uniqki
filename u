@@ -1004,6 +1004,7 @@ sub encode_url{
 
 	# https://en.wikipedia.org/wiki/Percent-encoding
 	$url =~ s/([^!*'();:@&=+\$,\/?#\[\]a-zA-Z0-9_.~-])/@{[sprintf "%%%x", ord($1)]}/g;
+	$url =~ s/&/&amp;/g;
 	return $url;
 }
 
