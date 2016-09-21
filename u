@@ -382,7 +382,9 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 				($ENV{REQUEST_METHOD} eq "POST" &&
 					$request_uri !~ m#^$u(?:/.*)?$#)){
 				respond_error($client, "400 Bad Request");
-			}elsif($request_file =~ m/$opt{f}/){
+			}elsif(($opt{c} ne "" && $request_file eq $opt{c}) ||
+			       ($opt{k} ne "" && $request_file eq $opt{k}) ||
+			       $request_file =~ m/$opt{f}/){
 				respond_error($client, "403 Forbidden");
 			}elsif($request_uri =~ m#^$u(/.*)?$#){
 				logger "Executing $u...\n\n";
