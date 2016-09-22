@@ -123,7 +123,7 @@ use vars qw(
 
 # parse_file() local variables
 use vars qw(
-	$text $url_char $url_punct $code_block $child_block $syntax_block
+	$text $url_char $url_punct $asis $code_block $child_block $syntax_block
 	@parsed_blocks $re_start $re_n @re @re_sub $p $nosyntax $pre $pre_code
 	$blockquote $list $table $figure %h_n $h_top $h_prev %h_secs %secs_no
 	$toc $notoc $tab_no %tabs_n %tabs $lot $nolot $fig_no %figs_n %figs
@@ -3506,7 +3506,7 @@ sub parse_file{
 	$wiki = <UNIQKI_FH> eq "#!wiki\n" ? 1 : 0;
 	close UNIQKI_FH;
 
-	local ($text, $url_char, $url_punct, $code_block, $child_block,
+	local ($text, $url_char, $url_punct, $asis, $code_block, $child_block,
 		$syntax_block, @parsed_blocks, $re_start, $re_n, @re, @re_sub,
 		$p, $nosyntax, $pre, $pre_code, $blockquote, $list, $table,
 		$figure, %h_n, $h_top, $h_prev, %h_secs, %secs_no, $toc,
@@ -3579,7 +3579,7 @@ sub parse_file{
 
 sub parse_child_block{
 	my $txt = shift;
-	local ($text, $url_char, $url_punct, $code_block, $child_block,
+	local ($text, $url_char, $url_punct, $asis, $code_block, $child_block,
 		$syntax_block, @parsed_blocks, $re_start, $re_n, @re, @re_sub,
 		$p, $nosyntax, $pre, $pre_code, $blockquote, $list, $table,
 		$figure, %h_n, $h_top, $h_prev, %h_secs, %secs_no, $toc,
@@ -3595,7 +3595,7 @@ sub parse_child_block{
 
 sub parse_block{
 	my $txt = shift;
-	local ($text, $url_char, $url_punct, $code_block, $child_block,
+	local ($text, $url_char, $url_punct, $asis, $code_block, $child_block,
 		$syntax_block, @parsed_blocks, $p, $nosyntax, $pre, $pre_code,
 		$blockquote, $list, $table, $figure);
 
@@ -4164,8 +4164,8 @@ sub preprocess_line{
 	# return the current line for further processing
 	local $_ = shift;
 
-	# Apply regular expressions where needed
-	if(!$nosyntax && !$pre && $child_block eq "" && m/^(?!#(?:no)?regex)/){
+	# Apply regular expressions if not asis
+	if(!$asis && m/^(?!#(?:no)?regex)/){
 		for(my $i = $re_start; $i < $re_n; $i++){
 			if(m/^(?!#(?:no)?regex)/){
 				eval "s\x1e$re[$i]\x1e$re_sub[$i]\x1eg;";
@@ -4178,8 +4178,8 @@ sub preprocess_line{
 			return;
 		}
 	}
-	# Wiki but not nosyntax nor pre
-	if($wiki && !$nosyntax && !$pre){
+	# Wiki but not asis
+	if($wiki && !$asis){
 		# Skip admin code
 		return if("##" eq substr $_, 0, 2);
 		# Escape inline perl code
@@ -4188,6 +4188,7 @@ sub preprocess_line{
 	# Process code block
 	if($code_block ne ""){
 		if($_ eq "##}"){
+			$asis = 0;
 			my $block = "$code_block}";
 			$code_block = "";
 			run_code_block($block);
@@ -4208,6 +4209,7 @@ sub collect_and_parse_syntax_block{
 	# Process child block
 	if($child_block ne ""){
 		if(")))" eq substr($_, 0, 3) && "_" ne substr($_, 3, 1)){
+			$asis = 0;
 			my $block = $child_block.substr($_, 3);
 			$child_block = "";
 			$_ = create_child_block($block);
@@ -4219,6 +4221,7 @@ sub collect_and_parse_syntax_block{
 	# Process syntax block
 	if($syntax_block ne ""){
 		if("))" eq substr($_, 0, 2) && "_" ne substr($_, 2, 1)){
+			$asis = 0;
 			my $block = $syntax_block.substr($_, 2);
 			$syntax_block = "";
 			$_ = create_syntax_block($block);
@@ -4239,9 +4242,11 @@ sub parse_asis_lines{
 	# Start or close nosyntax
 	if(m/^("""+)$/ && (!$nosyntax || $nosyntax == length($1))){
 		if($nosyntax){
+			$asis = 0;
 			$nosyntax = 0;
 		}else{
 			$_->() foreach(@close_all_open);
+			$asis = 1;
 			$nosyntax = length($1);
 		}
 		return;
@@ -4263,6 +4268,7 @@ sub parse_asis_lines{
 				$text .= "</code></pre>\n";
 				$pre_code = "";
 			}
+			$asis = 0;
 			$pre = 0;
 		}else{
 			$_->() foreach(@close_all_open);
@@ -4272,6 +4278,7 @@ sub parse_asis_lines{
 				$text .= qq(<pre><code class="language-$2">);
 				$pre_code = $2;
 			}
+			$asis = 1;
 			$pre = length($1);
 		}
 		return;
@@ -4393,6 +4400,7 @@ sub parse_nonwiki_command{
 			eval $1;
 			return;
 		}
+		$asis = 1;
 		$code_block = "$1\n";
 		return;
 	}
@@ -4418,12 +4426,14 @@ sub start_syntax_block{
 
 	# Child block
 	if("(((" eq substr $_, -3){
+		$asis = 1;
 		# Process the first line later
 		$child_block = (substr $_, 0, length($_) - 3)."\n";
 		return;
 	}
 	# Syntax block
 	if("((" eq substr $_, -2){
+		$asis = 1;
 		# Process the first line later
 		$syntax_block = (substr $_, 0, length($_) - 2)."\n";
 		return;
@@ -4674,23 +4684,27 @@ sub postprocess_line{
 
 sub close_all_open{
 	if($code_block ne ""){
+		$asis = 0;
 		my $block = "$code_block}";
 		$code_block = "";
 		run_code_block($block);
 	}
 	if($child_block ne ""){
+		$asis = 0;
 		my $block = $child_block;
 		$child_block = "";
 		local $_ = create_child_block($block);
 		$text .= parse($_, @parse_line);
 	}
 	if($syntax_block ne ""){
+		$asis = 0;
 		my $block = $syntax_block;
 		$syntax_block = "";
 		local $_ = create_syntax_block($block);
 		$text .= parse($_, @parse_line);
 	}
 	if($nosyntax){
+		$asis = 0;
 		$nosyntax = 0;
 	}
 	if($pre){
@@ -4701,6 +4715,7 @@ sub close_all_open{
 			$text .= "</code></pre>\n";
 			$pre_code = "";
 		}
+		$asis = 0;
 		$pre = 0;
 	}
 	if($blockquote ne ""){
@@ -4748,6 +4763,7 @@ sub begin_parsing{
 
 	$text = "";
 
+	$asis = 0;
 	$code_block = "";
 	$syntax_block = "";
 	@parsed_blocks = ();
