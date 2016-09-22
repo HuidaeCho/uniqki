@@ -101,7 +101,7 @@ use vars qw(
 # parse_file() global variables
 use vars qw(
 	@begin_parsing
-	@process_line
+	@parse_line
 	@end_parsing
 	@process_child_block
 	@preprocess_line
@@ -3468,7 +3468,7 @@ sub write_file{
 # Parsing subroutines
 sub prepare_parser{
 	@begin_parsing = \&begin_parsing;
-	@process_line = \&process_line;
+	@parse_line = \&parse_line;
 	@end_parsing = \&end_parsing;
 
 	@process_child_block = \&process_child_block;
@@ -3525,8 +3525,9 @@ sub parse_file{
 	}
 
 	my @_begin_parsing = @begin_parsing;
-	my @_process_line = @process_line;
+	my @_parse_line = @parse_line;
 	my @_end_parsing = @end_parsing;
+
 	my @_process_child_block = @process_child_block;
 	my @_preprocess_line = @preprocess_line;
 	my @_process_syntax_block = @process_syntax_block;
@@ -3552,14 +3553,15 @@ sub parse_file{
 		$FOOTER_FILE){
 		# "<" is required for the in-memory file
 		next if($f eq "" || !open UNIQKI_FH, "<", $f);
-		$text .= parse($_, @process_line) while(<UNIQKI_FH>);
+		$text .= parse($_, @parse_line) while(<UNIQKI_FH>);
 		close UNIQKI_FH;
 	}
 	$_->() foreach(@end_parsing);
 
 	@begin_parsing = @_begin_parsing;
-	@process_line = @_process_line;
+	@parse_line = @_parse_line;
 	@end_parsing = @_end_parsing;
+
 	@process_child_block = @_process_child_block;
 	@preprocess_line = @_preprocess_line;
 	@process_syntax_block = @_process_syntax_block;
@@ -3591,7 +3593,7 @@ sub parse_child_block{
 		%figs_n, %figs, $lof, $nolof);
 
 	$_->() foreach(@begin_parsing);
-	$text .= process_lines($txt);
+	$text .= parse_lines($txt);
 	$_->() foreach(@end_parsing);
 
 	return $text;
@@ -3604,16 +3606,16 @@ sub parse_block{
 		$pre_code, $blockquote, $list, $table, $figure);
 
 	$_->(1) foreach(@begin_parsing);
-	$text .= process_lines($txt);
+	$text .= parse_lines($txt);
 	$_->(1) foreach(@end_parsing);
 
 	return $text;
 }
 
-sub process_lines{
+sub parse_lines{
 	my $txt = shift;
 	local $text;
-	$text .= parse($_, @process_line) foreach(split /\n/, $txt, -1);
+	$text .= parse($_, @parse_line) foreach(split /\n/, $txt, -1);
 	return $text;
 }
 
@@ -4203,7 +4205,7 @@ sub preprocess_line{
 		}
 		if(m/\n/){
 			local $re_start = $re_n;
-			$text .= parse($_, @process_line)
+			$text .= parse($_, @parse_line)
 				foreach(split /\n/, $_, -1);
 			return;
 		}
@@ -4400,7 +4402,7 @@ sub process_nonwiki_command{
 	if(m/^##include (.+)$/){
 		local *FH;
 		if(open FH, $1){
-			$text .= parse($_, @process_line) while(<FH>);
+			$text .= parse($_, @parse_line) while(<FH>);
 			close FH;
 		}
 		return;
@@ -4694,7 +4696,7 @@ sub close_all_open{
 		my $block = $child_block;
 		$child_block = "";
 		local $_ = create_child_block($block);
-		$text .= parse($_, @process_line);
+		$text .= parse($_, @parse_line);
 	}
 	if($code_block ne ""){
 		my $block = "$code_block}";
@@ -4705,7 +4707,7 @@ sub close_all_open{
 		my $block = $syntax_block;
 		$syntax_block = "";
 		local $_ = create_syntax_block($block);
-		$text .= parse($_, @process_line);
+		$text .= parse($_, @parse_line);
 	}
 	if($nosyntax){
 		$asis = 0;
@@ -4806,7 +4808,7 @@ sub begin_parsing{
 	}
 }
 
-sub process_line{
+sub parse_line{
 	# \x00: none or escape character
 	# \x01-\x04: temporary characters
 	# \x05: place holder for TOC
