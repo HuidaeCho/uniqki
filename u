@@ -114,6 +114,7 @@ use vars qw(
 	@start_syntax_block
 	@process_collected_lines
 	@process_paragraph_break
+	@escape_inline_syntax
 	@process_inline_syntax
 	@collect_lines
 	@process_line_syntax
@@ -827,13 +828,6 @@ sub escape_comment{
 	return $text;
 }
 
-sub escape_inline_syntax{
-	my $text = shift;
-	$text =~ s#([`"/*'_!\[{-]|[a-z]://)#\x00$1#ogi;
-	$text =~ s/\x00([&<>])/$1/g;
-	return $text;
-}
-
 sub link_page{
 	my ($page, $section, $title) = @_;
 
@@ -979,7 +973,7 @@ sub is_url{
 	$url =~ y/\x03/>/;
 
 	# https://en.wikipedia.org/wiki/Percent-encoding
-	return $url =~ m#^(?:[a-z]://)[%!*'();:@&=+\$,/?\#\[\]a-z0-9_.~-]+$#oi;
+	return $url =~ m#^(?:[a-z]+://)[%!*'();:@&=+\$,/?\#\[\]a-z0-9_.~-]+$#oi;
 }
 
 sub protect_urls{
@@ -3484,6 +3478,7 @@ sub prepare_parser{
 	@start_syntax_block = \&start_syntax_block;
 	@process_collected_lines = \&process_collected_lines;
 	@process_paragraph_break = \&process_paragraph_break;
+	@escape_inline_syntax = \&escape_inline_syntax;
 	@process_inline_syntax = \&process_inline_syntax;
 	@collect_lines = \&collect_lines;
 	@process_line_syntax = \&process_line_syntax;
@@ -3541,6 +3536,7 @@ sub parse_file{
 	my @_start_syntax_block = @start_syntax_block;
 	my @_process_collected_lines = @process_collected_lines;
 	my @_process_paragraph_break = @process_paragraph_break;
+	my @_escape_inline_syntax = @escape_inline_syntax;
 	my @_process_inline_syntax = @process_inline_syntax;
 	my @_collect_lines = @collect_lines;
 	my @_process_line_syntax = @process_line_syntax;
@@ -3574,6 +3570,7 @@ sub parse_file{
 	@start_syntax_block = @_start_syntax_block;
 	@process_collected_lines = @_process_collected_lines;
 	@process_paragraph_break = @_process_paragraph_break;
+	@escape_inline_syntax = @_escape_inline_syntax;
 	@process_inline_syntax = @_process_inline_syntax;
 	@collect_lines = @_collect_lines;
 	@process_line_syntax = @_process_line_syntax;
@@ -4512,14 +4509,36 @@ sub process_paragraph_break{
 	return $_;
 }
 
+sub escape_inline_syntax{
+	# return undef to skip to the next line
+	# return the current line for further processing
+	local $_ = shift;
+	s#([`"/*'_!\[{<-]|[a-z]+://)#\x00$1#ogi;
+	return $_;
+}
+
 sub process_inline_syntax{
 	# return undef to skip to the next line
 	# return the current line for further processing
+	# \x00: escape character
 	# \x01: &
 	# \x02: <
 	# \x03: >
+	# \x04: temporary character
 	local $_ = shift;
 
+	# Convert escaped [&<>] to \x01, \x02, and \x03
+	s/\x00&/\x01/g; s/\x00</\x02/g; s/\x00>/\x03/g;
+
+	# Escape inline syntax. \x00[&<>] may be generated.
+	s/""(.)(.*?)\1""/@{[parse($2, @escape_inline_syntax)]}/g;
+
+	# Convert \x00[&<>] from escaped inline syntax to \x04[&<>]
+	s/\x00([&<>])/\x04$1/g;
+	# Restore escaped [&<>] from the text
+	s/\x01/\x00&/g; s/\x02/\x00</g; s/\x03/\x00>/g;
+	# Restore escaped [&<>] from escaped inline syntax
+	s/\x04&/\x00\x01/g; s/\x04</\x00\x02/g; s/\x04>/\x00\x03/g;
 	# Regular [&<>] should not be translated to html codes at this point
 	# because page names and links will be affected.  Instead, flag them so
 	# that they can be converted to html later.  This flagging does not
@@ -4527,8 +4546,7 @@ sub process_inline_syntax{
 	# from the #regex syntax to enter [&<>] as is without converting them
 	# to &amp, &lt, and &gt.
 	s/(?<!\x00)&/\x01/g; s/(?<!\x00)</\x02/g; s/(?<!\x00)>/\x03/g;
-	# Escape inline syntax
-	s/""(.)(.*?)\1""/@{[escape_inline_syntax($2)]}/g;
+
 	# Pages
 	s#\[\[(.*?)(?:\#(.*?))?(?:\|(.*?))?\]\]#@{[link_page($1, $2, $3)]}#g;
 	# Images
