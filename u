@@ -3514,15 +3514,15 @@ sub parse_file{
 		$table, $figure, %h_n, $h_top, $h_prev, %h_secs, %secs_no,
 		$toc, $notoc, $tab_no, %tabs_n, %tabs, $lot, $nolot, $fig_no,
 		%figs_n, %figs, $lof, $nolof);
-	my ($header_file, $footer_file);
+	my @files = ();
 
-	unless($wiki){
-		($header_file, $footer_file) =
-			($NONWIKI_HEADER_FILE, $NONWIKI_FOOTER_FILE);
-	}else{
-		($header_file, $footer_file) =
-			($WIKI_HEADER_FILE, $WIKI_FOOTER_FILE);
-	}
+	push @files, $HEADER_FILE;
+	push @files, $NONWIKI_HEADER_FILE unless($wiki);
+	push @files, $WIKI_HEADER_FILE if($wiki);
+	push @files, $file;
+	push @files, $NONWIKI_FOOTER_FILE unless($wiki);
+	push @files, $WIKI_FOOTER_FILE if($wiki);
+	push @files, $FOOTER_FILE;
 
 	my @_begin_parsing = @begin_parsing;
 	my @_parse_line = @parse_line;
@@ -3549,10 +3549,9 @@ sub parse_file{
 	do $USER_PARSERS_FILE if(-f $USER_PARSERS_FILE);
 
 	$_->() foreach(@begin_parsing);
-	foreach my $f ($HEADER_FILE, $header_file, $file, $footer_file,
-		$FOOTER_FILE){
+	foreach(@files){
 		# "<" is required for the in-memory file
-		next if($f eq "" || !open UNIQKI_FH, "<", $f);
+		next if($_ eq "" || !open UNIQKI_FH, "<", $_);
 		$text .= parse($_, @parse_line) while(<UNIQKI_FH>);
 		close UNIQKI_FH;
 	}
@@ -4402,6 +4401,14 @@ sub process_nonwiki_command{
 	if(m/^##include (.+)$/){
 		local *FH;
 		if(open FH, $1){
+			my $line = <FH>;
+			my $inc_wiki = 0;
+			if($line eq "#!wiki\n"){
+				$inc_wiki = 1 unless($wiki);
+			}else{
+				$text .= parse($line, @parse_line);
+			}
+			local $wiki = 1 if($inc_wiki);
 			$text .= parse($_, @parse_line) while(<FH>);
 			close FH;
 		}
