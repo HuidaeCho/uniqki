@@ -133,8 +133,10 @@ use vars qw(
 
 # Other global variables
 use vars qw(
-	$wiki
 	$verify_input
+	$wiki
+	$html_started
+	$header_printed $footer_printed
 );
 
 umask 022;
@@ -587,13 +589,10 @@ die_message("perl_module_not_installed", "Digest::HMAC_SHA1") if($@);
 $USER = "";
 $NAME = "Visitor";
 my $admin = 0;
-my $header_printed = 0;
-my $footer_printed = 0;
 my $rebuild = 0;
 my $insecure_pw = 1;
 my $sessions_file = $SESSIONS_FILE eq "" ? ".sessions" : $SESSIONS_FILE;
 my $debug_started = 0;
-my $html_started = 0;
 my %locked_files = ();
 my $cookie_attributes = get_cookie_attributes();
 
@@ -2571,16 +2570,19 @@ sub preview{
 	my $wiki_edit = shift;
 	my $txt;
 
-	local $TITLE = "";
+	local $TITLE;
 	local $PREVIEW;
 	local $wiki;
+	local $html_started = 0;
+	local $header_printed = 0;
+	local $footer_printed = 0;
 
 	write_file(\$txt, ($wiki_edit ? "#!wiki\n" : "")."$TEXT\n");
 
 	$PREVIEW = parse_file(\$txt);
 	chomp $PREVIEW;
 
-	if($TITLE eq ""){
+	unless(defined $TITLE){
 		if($PAGE eq $INDEX_PAGE){
 			($TITLE = $SITE_TITLE) =~ s/<[^>]*>//g;
 		}else{
@@ -2600,25 +2602,25 @@ sub preview{
 sub make_html{
 	local $PAGE = shift;
 	local $wiki;
+	local $html_started = 0;
+	local $header_printed = 0;
+	local $footer_printed = 0;
 	local $AUTHOR = get_author($PAGE);
 	local $TIME = format_time((stat "$PAGE.txt")[9]);
-	local $TITLE = "";
+	local $TITLE;
 	my $start_time = Time::HiRes::time() if($show_parsing_time);
 	local $TEXT = parse_file("$PAGE.txt");
 	local $PARSING_TIME = sprintf "%.3f", Time::HiRes::time() - $start_time
 		if($show_parsing_time);
 	local *FH;
 
-	if($TITLE eq ""){
+	unless(defined $TITLE){
 		if($PAGE eq $INDEX_PAGE){
 			($TITLE = $SITE_TITLE) =~ s/<[^>]*>//g;
 		}else{
 			$TITLE = $PAGE;
 		}
 	}
-
-	$header_printed = 0;
-	$footer_printed = 0;
 
 	my $html;
 	open FH, ">", \$html; my $fh = select FH;
