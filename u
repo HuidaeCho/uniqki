@@ -396,7 +396,7 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 				logger "Executing $u...\n\n";
 
 				$ENV{SCRIPT_NAME} = "/$u";
-				$ENV{PATH_INFO} = $1;
+				$ENV{PATH_INFO} = decode_url($1);
 
 				*STDIN = $client
 					if($ENV{REQUEST_METHOD} eq "POST");
