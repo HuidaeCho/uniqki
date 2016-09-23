@@ -4402,6 +4402,14 @@ sub process_nonwiki_command{
 	if(m/^##include (.+)$/){
 		local *FH;
 		if(open FH, $1){
+			my $line = <FH>;
+			my $inc_wiki = 0;
+			if($line eq "#!wiki\n"){
+				$inc_wiki = 1 unless($wiki);
+			}else{
+				$text .= parse($line, @parse_line);
+			}
+			local $wiki = 1 if($inc_wiki);
 			$text .= parse($_, @parse_line) while(<FH>);
 			close FH;
 		}
