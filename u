@@ -948,9 +948,8 @@ sub link_url_image{
 	$style =~ s/^[ \t]+|[ \t]+$//g;
 	$style = qq( style="$style") if($style ne "");
 
-	my $enc_url = encode_url($url);
-	return qq(<img class="auto-title" src="$enc_url" alt="$url" title="$url"$style />) if($title eq "");
-	return qq(<img src="$enc_url" alt="$title" title="$title"$style />);
+	return qq(<img class="auto-title" src="$url" alt="$url" title="$url"$style />) if($title eq "");
+	return qq(<img src="$url" alt="$title" title="$title"$style />);
 }
 
 sub link_url{
@@ -959,9 +958,8 @@ sub link_url{
 	$url =~ s/^[ \t]+|[ \t]+$//g;
 	$title =~ s/^[ \t]+|[ \t]+$//g;
 
-	my $enc_url = encode_url($url);
-	return qq(<a class="auto-title" href="$enc_url">$url</a>) if($title eq "");
-	return qq(<a href="$enc_url">$title</a>);
+	return qq(<a class="auto-title" href="$url">$url</a>) if($title eq "");
+	return qq(<a href="$url">$title</a>);
 }
 
 sub is_url{
@@ -973,18 +971,12 @@ sub is_url{
 	$url =~ y/\x03/>/;
 
 	# https://en.wikipedia.org/wiki/Percent-encoding
-	return $url =~ m#^(?:[a-z]+://)[%!*'();:@&=+\$,/?\#\[\]a-z0-9_.~-]+$#oi;
+	return $url =~ m#^(?:[a-z]+://)[%!*'();:@&=+\$,/?\#\[\]a-z0-9_.~-]+$#i;
 }
 
 sub protect_urls{
 	my $text = shift;
-	$text =~ s#([a-z]+://)#\x00$1#ogi;
-	return $text;
-}
-
-sub encode_urls{
-	my $text = shift;
-	$text =~ s#(.*?)(.)((?:[a-z]+://).*?)\2#$1$2@{[encode_url($3)]}$2#ogi;
+	$text =~ s#([a-z]+://)#\x00$1#gi;
 	return $text;
 }
 
@@ -4513,7 +4505,7 @@ sub escape_inline_syntax{
 	# return undef to skip to the next line
 	# return the current line for further processing
 	local $_ = shift;
-	s#([`"/*'_!\[{<-]|[a-z]+://)#\x00$1#ogi;
+	s#([`"/*'_!\[{<-]|[a-z]+://)#\x00$1#gi;
 	return $_;
 }
 
@@ -4559,22 +4551,22 @@ sub process_inline_syntax{
 	s#\x02\x02(.*?)(?:\|(.*?))?\x03\x03#@{[link_url($1, $2)]}#g;
 	# Text styles
 	# Avoid conflicts with //italic//
-	s#([a-z]+:/)(/)#$1\x00$2#ogi;
+	s#([a-z]+:/)(/)#$1\x00$2#gi;
 	s#//(.*?)//#<i>$1</i>#g;
-	s#([a-z]+:/)\x00(/)#$1$2#ogi;
+	s#([a-z]+:/)\x00(/)#$1$2#gi;
 	s#\*\*(.*?)\*\*#<b>$1</b>#g;
 	s#''(.*?)''(?:\[(.*?)\])?#@{[$2 eq "" ? "<code>$1</code>" : qq(<code class="language-$2">$1</code>)]}#g;
 	s#--(.*?)--#<s>$1</s>#g;
 	s#__(.*?)__#<u>$1</u>#g;
 	s#\!\!(.*?)\!\!#<mark>$1</mark>#g;
 	# Protect protocols inside tags
-	s#<([^>]*(?:[a-z]+://)[^>]*)>#<@{[protect_urls($1)]}>#ogi;
+	s#<([^>]*(?:[a-z]+://)[^>]*)>#<@{[protect_urls($1)]}>#gi;
 	# Protect protocols outside tags
-	s#(<a [^>]*>)([^<]*(?:[a-z]+://)[^<]*)(</a>)#$1@{[protect_urls($2)]}$3#ogi;
+	s#(<a [^>]*>)([^<]*(?:[a-z]+://)[^<]*)(</a>)#$1@{[protect_urls($2)]}$3#gi;
 	# Translate non-protected protocols to links
-	s#(?<![a-zA-Z\x00])((?:[a-z]+://)[\x01$url_char]+\x01[a-z]+;)(?=(?:[ \t]|$))#<a class="auto-title" href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
-	s#(?<![a-zA-Z\x00])((?:[a-z]+://)[\x01$url_char]+)(?=[$url_punct](?:[ \t]|$))#<a class="auto-title" href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
-	s#(?<![a-zA-Z\x00])((?:[a-z]+://)[\x01$url_char]+)#<a class="auto-title" href="\x00@{[encode_url($1)]}">\x00$1</a>#ogi;
+	s#(?<![a-zA-Z\x00])((?:[a-z]+://)[\x01$url_char]+\x01[a-z]+;)(?=(?:[ \t]|$))#<a class="auto-title" href="\x00$1">\x00$1</a>#ogi;
+	s#(?<![a-zA-Z\x00])((?:[a-z]+://)[\x01$url_char]+)(?=[$url_punct](?:[ \t]|$))#<a class="auto-title" href="\x00$1">\x00$1</a>#ogi;
+	s#(?<![a-zA-Z\x00])((?:[a-z]+://)[\x01$url_char]+)#<a class="auto-title" href="\x00$1">\x00$1</a>#ogi;
 	s/\x01/&amp;/g; s/\x02/&lt;/g; s/\x03/&gt;/g;
 
 	return $_;
