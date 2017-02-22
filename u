@@ -6565,13 +6565,11 @@ EOT
 				}
 				close FH;
 			}
-		}
-		$VERSION++;
-		if($TEXT ne ""){
 			$TEXT =~ s/&/&amp;/g;
 			$TEXT =~ s/</&lt;/g;
 			$TEXT =~ s/>/&gt;/g;
 		}
+		$VERSION++;
 		print_edit();
 		die;
 	}
