@@ -700,9 +700,10 @@ sub die_path{
 
 	if(-d $path){
 		$path =~ s#/+$##;
-		local $TITLE = get_msg("page_files", $path);
+		my $title = get_msg("page_files", $path);
+		(local $TITLE = $title) =~ s/<[^>]*>//g;
 		print_header();
-		print qq(<div id="ls">\n<h1>$TITLE</h1>\n<ul>\n);
+		print qq(<div id="ls">\n<h1>$title</h1>\n<ul>\n);
 		foreach(<$path/*>){
 			my $file = $_;
 			s#^[^/]*/##;
