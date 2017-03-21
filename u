@@ -772,6 +772,8 @@ sub convert_page_name{
 	my $forbidden_chars = q(`~!@#\$%^&*=+\\|;:'",\/?()\[\]{}<>);
 
 	# from parse_line
+	# escaped html codes
+	$page_name =~ s/(\x00&[^;]*;)+/ /g;
 	$page_name =~ y/\x01/&/;
 	$page_name =~ y/\x02/</;
 	$page_name =~ y/\x03/>/;
