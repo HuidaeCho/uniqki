@@ -349,7 +349,8 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 				die_logger "Failed to SSL handshake.\n";
 			}
 			$client->autoflush(1);
-			logger "%s\n", scalar localtime;
+			logger "========== %s ==========\n", scalar localtime;
+			logger "Request from %s\n", $client->peerhost();
 
 			while(<$client>){
 				logger $_;
