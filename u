@@ -5351,8 +5351,8 @@ if($QUERY_STRING eq "css"){
 	}
 
 	$_ = $var{goto};
-	s#/.*$##; s#\.html$##;
-	y/+/ /;
+	s#\.html$##;
+	y#[/+]# #;
 
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$_");
 }elsif($QUERY_STRING eq "refresh" && $PAGE ne ""){
