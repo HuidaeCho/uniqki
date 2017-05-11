@@ -976,7 +976,7 @@ sub is_url{
 	$url =~ y/\x03/>/;
 
 	# https://en.wikipedia.org/wiki/Percent-encoding
-	return $url =~ m#^(?:[a-z]+://)[%!*'();:@&=+\$,/?\#\[\]a-z0-9_.~-]+$#i;
+	return $url =~ m#^(?:[a-z]+://)[%!\#\$&'()*+,/:;=?@\[\]a-z0-9_.~-]+$#i;
 }
 
 sub protect_urls{
@@ -994,8 +994,21 @@ sub encode_url{
 	$url =~ y/\x03/>/;
 
 	# https://en.wikipedia.org/wiki/Percent-encoding
-	$url =~ s/([^!*'();:@&=+\$,\/?#\[\]a-zA-Z0-9_.~-])/@{[sprintf "%%%x", ord($1)]}/g;
+	$url =~ s/([^!#\$&'()*+,\/:;=?@\[\]a-zA-Z0-9_.~-])/@{[sprintf "%%%x", ord($1)]}/g;
 	$url =~ s/&/&amp;/g;
+	return $url;
+}
+
+sub percent_encode_url{
+	my $url = shift;
+
+	# from parse_line
+	$url =~ y/\x01/&/;
+	$url =~ y/\x02/</;
+	$url =~ y/\x03/>/;
+
+	# https://en.wikipedia.org/wiki/Percent-encoding
+	$url =~ s/([!#\$&'()*+,\/:;=?@\[\]])/@{[sprintf "%%%x", ord($1)]}/g;
 	return $url;
 }
 
