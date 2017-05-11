@@ -999,6 +999,12 @@ sub encode_url{
 	return $url;
 }
 
+sub decode_url{
+	my $url = shift;
+	$url =~ s/%(..)/@{[pack "c", hex($1)]}/g;
+	return $url;
+}
+
 sub percent_encode_url{
 	my $url = shift;
 
@@ -1009,12 +1015,6 @@ sub percent_encode_url{
 
 	# https://en.wikipedia.org/wiki/Percent-encoding
 	$url =~ s/([!#\$&'()*+,\/:;=?@\[\]])/@{[sprintf "%%%x", ord($1)]}/g;
-	return $url;
-}
-
-sub decode_url{
-	my $url = shift;
-	$url =~ s/%(..)/@{[pack "c", hex($1)]}/g;
 	return $url;
 }
 
@@ -5769,6 +5769,9 @@ EOT
 		my $page_name = $page;
 		$text =~ s/^.*<!-- start text -->|<!-- end text -->.*$//sgi;
 		$text =~ s#<(script|style).*?</\1>##sgi;
+		$text =~ s/&amp;/&/gi;
+		$text =~ s/&lt;/</gi;
+		$text =~ s/&gt;/>/gi;
 
 		if($var{title} eq "1" && $text =~ m#<h1[^>]*>(.+?)</h1>#si){
 			$_ = $1;
@@ -5782,6 +5785,7 @@ EOT
 				$found = "";
 				for($i = 0; $i <= $#search; $i++){
 					$search = $search[$i];
+					next if($search eq "");
 					$search = "(?i)$search"
 						if($var{icase} eq "1");
 					if($line =~ m#<[aA][ \t][^>]*(?:href|HREF)[ \t]*=[ \t]*"(?:$search)"[^>]*>[^<]+</[aA]>#){
@@ -5803,6 +5807,7 @@ EOT
 				$found = "";
 				for($i = 0; $i <= $#search; $i++){
 					$search = $search[$i];
+					next if($search eq "");
 					$search = "(?i)$search"
 						if($var{icase} eq "1");
 					if($line =~ m#$search#){
