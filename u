@@ -3691,7 +3691,7 @@ sub create_blockquote{
 				}
 				$q_i++;
 			}
-			if($line eq "" || $line eq "..."){
+			if($line eq "" || $line eq "."){
 				$use_p = 1;
 				if($p){
 					$blockquote .= "</p>\n";
@@ -3799,7 +3799,7 @@ sub create_list{
 				}
 				$li_i++;
 			}
-			if($line eq "" || $line eq "..."){
+			if($line eq "" || $line eq "."){
 				$use_p = 1;
 				if($p){
 					$list .= "</p>\n";
@@ -4039,7 +4039,7 @@ sub update_table_rowspan{
 	my $rows = shift;
 
 	(my $rowspan = $rows) =~ s#</?tr>##g;
-	$rowspan =~ s#<(t[hd]) [^>]+>\.\.\.</\1>#+#g;
+	$rowspan =~ s#<(t[hd]) [^>]+>\.</\1>#+#g;
 	$rowspan =~ s#<(t[hd]) [^>]+>.*?</\1>#1#g;
 	# $rowspan example:
 	# 111
