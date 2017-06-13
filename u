@@ -4578,7 +4578,7 @@ sub process_inline_syntax{
 	# Protect protocols inside tags
 	s#<([^>]*(?:[a-z]+://)[^>]*)>#<@{[protect_urls($1)]}>#gi;
 	# Protect protocols outside tags
-	s#(<a [^>]*>)([^<]*(?:[a-z]+://)[^<]*)(</a>)#$1@{[protect_urls($2)]}$3#gi;
+	s#(<a [^>]*>)([^<]*(?:[a-z]+://)[^<]*)(</a\x00?>)#$1@{[protect_urls($2)]}$3#gi;
 	# Translate non-protected protocols to links
 	s#(?<![a-zA-Z\x00])((?:[a-z]+://)[\x01$url_char]+\x01[a-z]+;)(?=(?:[ \t]|$))#<a class="auto-title" href="\x00$1">\x00$1</a>#ogi;
 	s#(?<![a-zA-Z\x00])((?:[a-z]+://)[\x01$url_char]+)(?=[$url_punct](?:[ \t]|$))#<a class="auto-title" href="\x00$1">\x00$1</a>#ogi;
