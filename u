@@ -986,6 +986,8 @@ sub protect_urls{
 }
 
 sub encode_url{
+	# Avoid percent-encoding reserved characters to retain their special
+	# meanings
 	my $url = shift;
 
 	# from parse_line
@@ -1006,6 +1008,7 @@ sub decode_url{
 }
 
 sub percent_encode_url{
+	# Percent-encode reserved characters to lose their special meanings
 	my $url = shift;
 
 	# from parse_line
@@ -1015,6 +1018,21 @@ sub percent_encode_url{
 
 	# https://en.wikipedia.org/wiki/Percent-encoding
 	$url =~ s/([!#\$&'()*+,\/:;=?@\[\]])/@{[sprintf "%%%x", ord($1)]}/g;
+	return $url;
+}
+
+sub percent_encode_url_percent{
+	# Percent-encode reserved and percent characters to lose their special
+	# meanings
+	my $url = shift;
+
+	# from parse_line
+	$url =~ y/\x01/&/;
+	$url =~ y/\x02/</;
+	$url =~ y/\x03/>/;
+
+	# https://en.wikipedia.org/wiki/Percent-encoding
+	$url =~ s/([!#\$&'()*+,\/:;=?@\[\]%])/@{[sprintf "%%%x", ord($1)]}/g;
 	return $url;
 }
 
@@ -3374,7 +3392,7 @@ sub create_search_form{
 	my $title = get_msg("search_form_print_titles");
 	my $nomatch = get_msg("search_form_dont_print_matches");
 	my $form = <<EOT;
-<form class="search-input" action="$CGI" method="get">
+<form class="search-input" action="$SCRIPT_NAME" method="get">
 <div>
 <input accesskey="s" id="search" name="search" />
 <input type="submit" value="$search" />
@@ -3413,7 +3431,7 @@ sub create_comment_form{
 	my $leave_this_field_blank = get_msg("comment_form_leave_this_field_blank");
 	my $write = get_msg("comment_form_write");
 	my $form = <<EOT;
-<form class="comment-input" action="$CGI?comment=$comment" method="post">
+<form class="comment-input" action="$SCRIPT_NAME?comment=$comment" method="post">
 <div>
 <div class="comment-website">$leave_this_field_blank<input id="website" name="website" /></div>
 <input type="hidden" id="id" name="id" value="$id" />
@@ -5368,7 +5386,7 @@ if($QUERY_STRING eq "css"){
 	s#\.html$##;
 	y#[/+]# #;
 
-	die_redirect("$HTTP_BASE$SCRIPT_NAME/$_");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/".percent_encode_url_percent($_));
 }elsif($QUERY_STRING eq "refresh" && $PAGE ne ""){
 #-------------------------------------------------------------------------------
 # u/PAGE?refresh	Refresh
