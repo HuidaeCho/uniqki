@@ -4587,7 +4587,7 @@ sub process_inline_syntax{
 	# Avoid conflicts with //italic//
 	s#([a-z]+:/)(/)(/)?#$1\x00$2\x00$3#gi;
 	s#//(.*?)//#<i>$1</i>#g;
-	s#([a-z]+:/)\x00(/)#$1$2#gi;
+	s#([a-z]+:/)\x00(/)\x00#$1$2#gi;
 	s#\*\*(.*?)\*\*#<b>$1</b>#g;
 	s#''(.*?)''(?:\[(.*?)\])?#@{[$2 eq "" ? "<code>$1</code>" : qq(<code class="language-$2">$1</code>)]}#g;
 	s#--(.*?)--#<s>$1</s>#g;
