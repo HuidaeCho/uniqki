@@ -709,7 +709,7 @@ sub die_path{
 		foreach(<$path/*>){
 			my $file = $_;
 			s#^[^/]*/##;
-			my $url = encode_url($_);
+			my $url = encode_url_safe($_);
 			s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
 			my $name = $_;
 			my @t = localtime((stat $file)[9]);
@@ -841,8 +841,8 @@ sub link_page{
 	$section =~ s/^[ \t]+|[ \t]+$//g;
 	$title =~ s/^[ \t]+|[ \t]+$//g;
 
-	my $enc_page = encode_url(convert_page_name($page));
-	my $enc_section = encode_url(convert_page_name($section));
+	my $enc_page = encode_url_safe(convert_page_name($page));
+	my $enc_section = encode_url_safe(convert_page_name($section));
 
 	if($enc_page eq ""){
 		return "" if($enc_section eq "");
@@ -893,7 +893,7 @@ sub link_image{
 		$file = $path;
 	}
 
-	my $enc_path = encode_url("$page/$file");
+	my $enc_path = encode_url_safe("$page/$file");
 	return qq(<img class="auto-title" src="$enc_path" alt="$file" title="$file"$style />) if($title eq "");
 	return qq(<img src="$enc_path" alt="$title" title="$title"$style />);
 }
@@ -941,7 +941,7 @@ sub link_file{
 		return qq(<a href="$page/">$title</a>);
 	}
 
-	my $enc_path = encode_url("$page/$file");
+	my $enc_path = encode_url_safe("$page/$file");
 	return qq(<a class="auto-title" href="$enc_path">$file</a>) if($title eq "");
 	return qq(<a href="$enc_path">$title</a>);
 }
@@ -986,9 +986,9 @@ sub protect_urls{
 	return $text;
 }
 
-sub encode_url{
-	# Avoid percent-encoding reserved characters to retain their special
-	# meanings
+sub encode_url_safe{
+	# Percent-encode characters that are not reserved nor unreserved; Avoid
+	# percent-encoding reserved characters to retain their special meanings
 	my $url = shift;
 
 	# from parse_line
@@ -1002,13 +1002,21 @@ sub encode_url{
 	return $url;
 }
 
-sub decode_url{
+sub encode_url_most{
+	# Percent-encode characters that are not unreserved
 	my $url = shift;
-	$url =~ s/%(..)/@{[pack "c", hex($1)]}/g;
+
+	# from parse_line
+	$url =~ y/\x01/&/;
+	$url =~ y/\x02/</;
+	$url =~ y/\x03/>/;
+
+	# https://en.wikipedia.org/wiki/Percent-encoding
+	$url =~ s/([^a-zA-Z0-9_.~-])/@{[sprintf "%%%x", ord($1)]}/g;
 	return $url;
 }
 
-sub percent_encode_url{
+sub encode_url_reserved{
 	# Percent-encode reserved characters to lose their special meanings
 	my $url = shift;
 
@@ -1022,18 +1030,9 @@ sub percent_encode_url{
 	return $url;
 }
 
-sub percent_encode_url_percent{
-	# Percent-encode reserved and percent characters to lose their special
-	# meanings
+sub decode_url{
 	my $url = shift;
-
-	# from parse_line
-	$url =~ y/\x01/&/;
-	$url =~ y/\x02/</;
-	$url =~ y/\x03/>/;
-
-	# https://en.wikipedia.org/wiki/Percent-encoding
-	$url =~ s/([!#\$&'()*+,\/:;=?@\[\]%])/@{[sprintf "%%%x", ord($1)]}/g;
+	$url =~ s/%(..)/@{[pack "c", hex($1)]}/g;
 	return $url;
 }
 
@@ -4010,7 +4009,7 @@ sub create_table{
 		$tabs{$id} = ++$tab_no;
 		$tab = "$TABLE_NUMBER_PREFIX$tab_no$TABLE_NUMBER_SUFFIX";
 		$table = "<table id=\"$id\">\n";
-		my $enc_id = encode_url($id);
+		my $enc_id = encode_url_safe($id);
 		$lot .= "<li><a href=\"#$enc_id\">$tab$title</a></li>\n";
 	}
 	$table .= "<caption>$tab$caption</caption>\n" if($caption ne "");
@@ -4169,7 +4168,7 @@ sub create_figure{
 		$figs{$id} = ++$fig_no;
 		$fig = "$FIGURE_NUMBER_PREFIX$fig_no$FIGURE_NUMBER_SUFFIX";
 		$figure = "<figure id=\"$id\">\n";
-		my $enc_id = encode_url($id);
+		my $enc_id = encode_url_safe($id);
 		$lof .= "<li><a href=\"#$enc_id\">$fig$title</a></li>\n";
 	}
 	$figure .= "$content\n" if($content ne "");
@@ -4708,7 +4707,7 @@ sub process_line_syntax{
 			$h_prev++;
 			$h_top = $i if($i < $h_top);
 		}
-		my $enc_id = encode_url($id);
+		my $enc_id = encode_url_safe($id);
 		$toc .= "<li><a href=\"#$enc_id\">$sec$title</a></li>\n";
 		return;
 	}
@@ -4923,7 +4922,7 @@ sub end_parsing{
 			$text =~ s/(\x05)/$toc$1/g;
 		}
 		foreach(keys %h_secs){
-			my $enc_id = encode_url($_);
+			my $enc_id = encode_url_safe($_);
 			my $sec = $h_secs{$_};
 			$text =~ s/(<a class="auto-title" href="#$enc_id">)[^<]*(<\/a>)/\1$SECTION_REFERENCE_PREFIX$sec$SECTION_REFERENCE_SUFFIX\2/g;
 		}
@@ -4935,7 +4934,7 @@ sub end_parsing{
 			$text =~ s/(\x05)/$lot$1/g;
 		}
 		foreach(keys %tabs){
-			my $enc_id = encode_url($_);
+			my $enc_id = encode_url_safe($_);
 			my $tab = $tabs{$_};
 			$text =~ s/(<a class="auto-title" href="#$enc_id">)[^<]*(<\/a>)/\1$TABLE_REFERENCE_PREFIX$tab$TABLE_REFERENCE_SUFFIX\2/g;
 		}
@@ -4947,7 +4946,7 @@ sub end_parsing{
 			$text =~ s/(\x05)/$lof$1/g;
 		}
 		foreach(keys %figs){
-			my $enc_id = encode_url($_);
+			my $enc_id = encode_url_safe($_);
 			my $fig = $figs{$_};
 			$text =~ s/(<a class="auto-title" href="#$enc_id">)[^<]*(<\/a>)/\1$FIGURE_REFERENCE_PREFIX$fig$FIGURE_REFERENCE_SUFFIX\2/g;
 		}
@@ -5387,7 +5386,7 @@ if($QUERY_STRING eq "css"){
 	s#\.html$##;
 	y#[/+]# #;
 
-	die_redirect("$HTTP_BASE$SCRIPT_NAME/".percent_encode_url_percent($_));
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/".encode_url_most($_));
 }elsif($QUERY_STRING eq "refresh" && $PAGE ne ""){
 #-------------------------------------------------------------------------------
 # u/PAGE?refresh	Refresh
