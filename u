@@ -59,7 +59,7 @@ my $adminpw = $tmp_adminpw;
 use vars qw(
 	$CFG
 	$HTTPS $HTTP_COOKIE $HTTP_HOST $SERVER_NAME $SCRIPT_NAME $PATH_INFO
-	$QUERY_STRING $REQUEST_METHOD $CONTENT_TYPE $CONTENT_LENGTH
+	$QUERY_STRING $REQUEST_METHOD $CONTENT_TYPE $CONTENT_LENGTH $REMOTE_ADDR
 );
 
 # Useful variables
@@ -494,6 +494,7 @@ $QUERY_STRING = $ENV{QUERY_STRING};
 $REQUEST_METHOD = $ENV{REQUEST_METHOD};
 $CONTENT_TYPE = $ENV{CONTENT_TYPE};
 $CONTENT_LENGTH = $ENV{CONTENT_LENGTH};
+$REMOTE_ADDR = $ENV{REMOTE_ADDR};
 
 ################################################################################
 # Useful variables
@@ -2525,10 +2526,10 @@ sub save{
 
 		$version++;
 		my $time = time;
-		$txtv = "$version:$USER:$time\n$diff\x00\n$txtv";
+		$txtv = "$version:$time:$REMOTE_ADDR:$USER\n$diff\x00\n$txtv";
 	}else{
 		my $time = time;
-		$txtv = "$version:$USER:$time\n";
+		$txtv = "$version:$time:$REMOTE_ADDR:$USER\n";
 	}
 
 	write_file("$PAGE.txt.v", $txtv);
@@ -2543,7 +2544,7 @@ sub get_author{
 		my @items = split /:/, <FH>;
 		close FH;
 		die_message("internal_errors") unless(-f "$PAGE.txt");
-		my $user = $items[1];
+		my $user = $items[3];
 		if($user ne ""){
 			@items = find_user_info($user);
 			$author = $items[4];
