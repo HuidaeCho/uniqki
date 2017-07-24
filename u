@@ -2540,8 +2540,10 @@ sub get_author{
 	local *FH;
 	my $author = get_msg("unknown_author");
 	if(open FH, "$PAGE.txt.v"){
-		my @items = split /:/, <FH>;
+		my $line = <FH>;
 		close FH;
+		chomp $line;
+		my @items = split /:/, $line;
 		die_message("internal_errors") unless(-f "$PAGE.txt");
 		my $user = $items[3];
 		if($user ne ""){
