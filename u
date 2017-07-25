@@ -349,8 +349,9 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 				die_logger "Failed to SSL handshake.\n";
 			}
 			$client->autoflush(1);
+			$ENV{REMOTE_ADDR} = $client->peerhost();
 			logger "========== %s ==========\n", scalar localtime;
-			logger "Request from %s\n", $client->peerhost();
+			logger "Request from %s\n", $ENV{REMOTE_ADDR};
 
 			while(<$client>){
 				logger $_;
@@ -392,7 +393,7 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 			   (($opt{c} ne "" && lc $request_file eq lc $opt{c}) ||
 			    ($opt{k} ne "" && lc $request_file eq lc $opt{k}) ||
 			    $request_file =~ m/$opt{f}/i)) ||
-	    			(!$win &&
+				(!$win &&
 				 (($opt{c} ne "" && $request_file eq $opt{c}) ||
 				  ($opt{k} ne "" && $request_file eq $opt{k}) ||
 				  $request_file =~ m/$opt{f}/))){
@@ -460,7 +461,7 @@ Usage: $u COMMAND [OPTIONS]
     -k <key.pem>     SSL key file
     -i <index.html>  Index HTML
     -f <forbidden>   Regular expression for forbidden files (default:
-    		     (^u\\.(cfg|pw|msg|pid|log)|^\\.sessions|\\.(tpl|txt|txt\\.v))\$)
+		     (^u\\.(cfg|pw|msg|pid|log)|^\\.sessions|\\.(tpl|txt|txt\\.v))\$)
     -r		     Redirect non-existing HTML requests to $u and non-HTML
 		     requests to existing HTML files
     -s		     Secure the server by redirecting all requests to $u; Any
