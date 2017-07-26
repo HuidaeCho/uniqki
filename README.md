@@ -7,7 +7,7 @@ Uniqki can be used to create a private and closed website using the web server's
 
 # License
 
-Copyright (C) 2007-2008, 2010-2011, 2016, Huidae Cho <<http://geni.isnew.info>>  
+Copyright (C) 2007-2008, 2010-2011, 2016-2017, Huidae Cho <<http://geni.isnew.info>>  
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
