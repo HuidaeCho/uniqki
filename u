@@ -5581,6 +5581,7 @@ if($QUERY_STRING eq "css"){
 		if($tls || $var{title} eq "1"){
 			my $text = read_file("$page.html");
 			if($text ne ""){
+				$text =~ s#<!--.*?-->##sg;
 				$text =~ s#<(script|style).*?</\1>##sgi;
 				if($text =~ m#<h1[^>]*>(.+?)</h1>#si){
 					$_ = $1;
@@ -5706,6 +5707,7 @@ EOT
 		}else{
 			$title = $page;
 		}
+		$text =~ s#<!--.*?-->##sg;
 		$text =~ s#<(script|style).*?</\1>##sgi;
 		$text =~ s/<[^>]*>//g;
 		$text =~ s/&[^ ]*;/ /g;
@@ -5789,6 +5791,7 @@ EOT
 
 		my $page_name = $page;
 		$text =~ s/^.*<!-- start text -->|<!-- end text -->.*$//sgi;
+		$text =~ s#<!--.*?-->##sg;
 		$text =~ s#<(script|style).*?</\1>##sgi;
 		$text =~ s/&amp;/&/gi;
 		$text =~ s/&lt;/</gi;
