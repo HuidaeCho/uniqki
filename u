@@ -40,10 +40,10 @@ my $doc_root = "";
 # Temporary admin user: admin, password: admin.  DO NOT CHANGE THIS VARIABLE.
 my $tmp_adminpw = 'admin:7352327a53727a65613d7a4cb055d722c21f1a0f17ad676daccd4ad8bf728134c9ee739e5f51c9af822da15b69985908148c55b6fdea4bc0bcd5aff660a53db428a9898c12743c7d:admin:@:Administrator:';
 # Running this script for the first time will create the password file u.pw
-# using the $adminpw credential, which is set to $temporary_adminpw by default.
+# using the $adminpw credential, which is set to $tmp_adminpw by default.
 # Since this password is public, make sure to change the admin password after
 # the first login to update the password file.  If $adminpw in the following
-# line is not the same as $temporary_adminpw, Uniqki will assume that you have
+# line is not the same as $tmp_adminpw, Uniqki will assume that you have
 # changed $adminpw to remove the password file and use this script instead for
 # login, and will not create the password file again.  Using this feature, it
 # is possible to operate a Uniqki site with this file alone by removing the
