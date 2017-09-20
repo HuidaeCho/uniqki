@@ -6673,7 +6673,7 @@ EOT
 			local $/ = "\n";
 			my $line = <FH>;
 			my @items = split /:/, $line;
-			my $time = $items[2];
+			my $time = $items[1];
 
 			local $/ = undef;
 			my $txtv = $line.<FH>;
