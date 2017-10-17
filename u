@@ -1017,6 +1017,20 @@ sub encode_url_most{
 	return $url;
 }
 
+sub encode_url_utf8{
+	# Percent-encode UTF-8 characters outside ASCII
+	my $url = shift;
+
+	# from parse_line
+	$url =~ y/\x01/&/;
+	$url =~ y/\x02/</;
+	$url =~ y/\x03/>/;
+
+	$url =~ s/([\x80-\xff])/@{[sprintf "%%%x", ord($1)]}/g;
+	$url =~ s/&/&amp;/g;
+	return $url;
+}
+
 sub encode_url_reserved{
 	# Percent-encode reserved characters to lose their special meanings
 	my $url = shift;
@@ -5894,7 +5908,7 @@ EOT
 				$line = $_;
 				$found = "";
 				for($i = 0; $i <= $#search; $i++){
-					$search = $search[$i];
+					$search = encode_url_utf8($search[$i]);
 					next if($search eq "");
 					$search = "(?i)$search"
 						if($var{icase} eq "1");
