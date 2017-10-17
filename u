@@ -578,8 +578,8 @@ if($SMTP =~ m/^([a-z0-9.-]+\.[a-z]{2,}):([0-9]*):([^:]*):(.*)$/i){
 
 my ($page_name_case, $page_name_dots, $page_name_spaces) =
 	config_page_name_style();
-my ($nonwiki_read_access, $wiki_read_access, $wiki_write_access) =
-	config_read_write_access();
+my ($nonwiki_read_access, $wiki_read_access) = config_access($READ_ACCESS);
+my ($nonwiki_comment_access, $wiki_write_access) = config_access($WRITE_ACCESS);
 
 ################################################################################
 # Messages
@@ -663,17 +663,16 @@ sub config_page_name_style{
 	return ($case, $dots, $spaces);
 }
 
-sub config_read_write_access{
-	my @items = split /:/, $READ_ACCESS;
-	my $nonwiki_read_access = $items[0] ne "open" && $items[0] ne "closed" ?
+sub config_access{
+	my $access = shift;
+	my @items = split /:/, $access;
+	my $nonwiki_access = $items[0] ne "open" && $items[0] ne "closed" ?
 		"admin" : $items[0];
-	my $wiki_read_access = index($READ_ACCESS, ":") == -1 ?
-		$nonwiki_read_access :
+	my $wiki_access = index($access, ":") == -1 ?
+		$nonwiki_access :
 		($items[1] ne "open" && $items[1] ne "closed" ?
 			"admin" : $items[1]);
-	my $wiki_write_access = $WRITE_ACCESS ne "open" &&
-		$WRITE_ACCESS ne "closed" ? "admin" : $WRITE_ACCESS;
-	return ($nonwiki_read_access, $wiki_read_access, $wiki_write_access);
+	return ($nonwiki_access, $wiki_access);
 }
 
 sub run_file_mime_type{
@@ -1055,10 +1054,18 @@ sub has_read_access{
 }
 
 sub has_write_access{
+	my $comment = shift;
 	return 1 if($admin);
-	return 0 unless($wiki);
-	return 1 if($wiki_write_access eq "open");
-	return 1 if($wiki_write_access eq "closed" && is_logged_in());
+	if($wiki){
+		return 1 if($wiki_write_access eq "open");
+		return 1 if($wiki_write_access eq "closed" && is_logged_in());
+		return 0;
+	}
+	if($comment){
+		return 1 if($nonwiki_comment_access eq "open");
+		return 1 if($nonwiki_comment_access eq "closed" &&
+			is_logged_in());
+	}
 	return 0;
 }
 
@@ -1263,14 +1270,17 @@ $MIME_TYPE_COMMAND = '/usr/bin/file --brief --mime-type';
 $READ_ACCESS = 'open';
 
 # Write access control
-# * open (default): Allows anyone to edit or create wiki pages with or without
-#		    a login.
-# * closed: Requires a login to edit or create wiki pages.
-# * admin: Requires admin rights to edit or create wiki pages.
+# * open (default): Allows anyone to comment in non-wiki pages and edit or
+#		    create wiki pages with or without a login.
+# * closed: Requires a login to comment in non-wiki pages and edit or create
+#	    wiki pages.
+# * admin: Requires admin rights to comment in non-wiki pages and edit or
+#	   create wiki pages.
 #
-# Creating new wiki pages also depends on $WIKI_PAGES_ALLOWED.  For security
-# reasons, non-wiki pages are writable only by admin users and this variable
-# cannot affect that behavior.
+# Commenting in non-wiki pages and accessing wiki pages can have different
+# settings separated by a colon.  Creating new wiki pages also depends on
+# $WIKI_PAGES_ALLOWED.  For security reasons, non-wiki pages are writable only
+# by admin users and this variable cannot affect that behavior.
 $WRITE_ACCESS = 'open';
 
 # Regular expression for page names that are not allowed
@@ -1445,6 +1455,7 @@ page_not_found => q(%s: Page not found.),
 create_page => q(%s: Page not found. <a href="?edit">Create this page.</a>),
 not_wiki_page => q(%s: This page is not a wiki page.),
 not_allowed_to_create_nonwiki_page => q(%s: You are not allowed to create this non-wiki page.),
+not_allowed_to_comment_in_nonwiki_page => q(%s: You are not allowed to comment in this non-wiki page.),
 not_allowed_to_create_wiki_page => q(%s: You are not allowed to create this wiki page.),
 not_allowed_to_edit_wiki_page => q(%s: You are not allowed to edit this wiki page.),
 path_not_found => q(%s: Path not found.),
@@ -5098,6 +5109,74 @@ if($QUERY_STRING eq "css"){
 	my $has_read_access = $page_exists && has_read_access() ? 1 : 0;
 	my $has_write_access = $page_exists && has_write_access() ? 1 : 0;
 	die_text("$USER:$admin:$has_read_access:$has_write_access");
+}elsif($QUERY_STRING =~ m/^comment(?:[&=].+)?$/){
+#-------------------------------------------------------------------------------
+# u/PAGE?comment			Generate the comment form for PAGE
+#					(id=comment, down, rows=80, cols=6)
+# u/PAGE?comment&direction=(up|down)	Generate the comment form for PAGE
+#					(id=comment, (up|down), rows=80, cols=6)
+# u/PAGE?comment&rows=([0-9]+)		Generate the comment form for PAGE
+#					(id=comment, down, rows=\1, cols=6)
+# u/PAGE?comment&cols=([0-9]+)		Generate the comment form for PAGE
+#					(id=comment, down, rows=80, cols=\1)
+# u/PAGE?comment=COMMENT		Generate the comment form for PAGE
+#					(id=COMMENT, down, rows=80, cols=6)
+# u?comment&page=PAGE			Generate the comment form for PAGE
+#					(id=comment, down, rows=80, cols=6)
+	my %var = get_var();
+	if($REQUEST_METHOD eq "GET"){
+		$PAGE = $var{page} if($var{page} ne "");
+		if($PAGE eq ""){
+			die_message("specify_comment_page");
+		}elsif(!-f "$PAGE.txt"){
+			die_message("page_not_found", $PAGE);
+		}
+
+		local $TITLE = get_msg("comment_form");
+		print_header();
+		create_comment_form($PAGE, $var{comment}, $var{direction},
+			$var{rows}, $var{cols}, 1);
+		print_footer();
+		die;
+	}
+	$PAGE = $var{page};
+	unless(has_write_access(1)){
+		my $msg_id = "not_allowed_to_comment_in_nonwiki_page";
+		die_message($msg_id, $PAGE);
+	}
+	die_rebuild($PAGE) unless(verify_input_data("comment", \%var));
+
+	die_message("page_not_found", $PAGE) unless(-f "$PAGE.txt");
+
+	die_message("invalid_comment_tag", $var{comment})
+		unless($var{comment} =~ m/^[a-zA-Z0-9_-]+$/);
+
+	$var{text} = escape_comment($var{text});
+
+	my $TEXT = "";
+	my $time = format_time(time);
+	my $added = 0;
+
+	lock_file("$PAGE.txt");
+	local *FH;
+	if(open FH, "$PAGE.txt"){
+		while(<FH>){
+			if(m/^#%$var{comment}$/){
+				if($var{direction} eq "up"){
+					$TEXT .= "$_#%$time\n$var{text}\n\n";
+				}else{
+					$TEXT .= "#%$time\n$var{text}\n\n$_";
+				}
+				$added = 1;
+			}else{
+				$TEXT .= $_;
+			}
+		}
+		close FH;
+	}
+	die_message("comment_tag_not_found", "#%$var{comment}") unless($added);
+	save($PAGE, $TEXT);
+	unlock_file("$PAGE.txt");
 }elsif($QUERY_STRING eq "forgot_password"){
 #-------------------------------------------------------------------------------
 # u?forgot_password		Forgot password
@@ -5870,70 +5949,6 @@ EOT
 	print qq(</ul>\n</div>\n);
 	print_footer();
 	die;
-}elsif($QUERY_STRING =~ m/^comment(?:[&=].+)?$/){
-#-------------------------------------------------------------------------------
-# u/PAGE?comment			Generate the comment form for PAGE
-#					(id=comment, down, rows=80, cols=6)
-# u/PAGE?comment&direction=(up|down)	Generate the comment form for PAGE
-#					(id=comment, (up|down), rows=80, cols=6)
-# u/PAGE?comment&rows=([0-9]+)		Generate the comment form for PAGE
-#					(id=comment, down, rows=\1, cols=6)
-# u/PAGE?comment&cols=([0-9]+)		Generate the comment form for PAGE
-#					(id=comment, down, rows=80, cols=\1)
-# u/PAGE?comment=COMMENT		Generate the comment form for PAGE
-#					(id=COMMENT, down, rows=80, cols=6)
-# u?comment&page=PAGE			Generate the comment form for PAGE
-#					(id=comment, down, rows=80, cols=6)
-	my %var = get_var();
-	if($REQUEST_METHOD eq "GET"){
-		$PAGE = $var{page} if($var{page} ne "");
-		if($PAGE eq ""){
-			die_message("specify_comment_page");
-		}elsif(!-f "$PAGE.txt"){
-			die_message("page_not_found", $PAGE);
-		}
-
-		local $TITLE = get_msg("comment_form");
-		print_header();
-		create_comment_form($PAGE, $var{comment}, $var{direction},
-			$var{rows}, $var{cols}, 1);
-		print_footer();
-		die;
-	}
-	die_rebuild($var{page}) unless(verify_input_data("comment", \%var));
-
-	$PAGE = $var{page};
-	die_message("page_not_found", $PAGE) unless(-f "$PAGE.txt");
-
-	die_message("invalid_comment_tag", $var{comment})
-		unless($var{comment} =~ m/^[a-zA-Z0-9_-]+$/);
-
-	$var{text} = escape_comment($var{text});
-
-	my $TEXT = "";
-	my $time = format_time(time);
-	my $added = 0;
-
-	lock_file("$PAGE.txt");
-	local *FH;
-	if(open FH, "$PAGE.txt"){
-		while(<FH>){
-			if(m/^#%$var{comment}$/){
-				if($var{direction} eq "up"){
-					$TEXT .= "$_#%$time\n$var{text}\n\n";
-				}else{
-					$TEXT .= "#%$time\n$var{text}\n\n$_";
-				}
-				$added = 1;
-			}else{
-				$TEXT .= $_;
-			}
-		}
-		close FH;
-	}
-	die_message("comment_tag_not_found", "#%$var{comment}") unless($added);
-	save($PAGE, $TEXT);
-	unlock_file("$PAGE.txt");
 }elsif($QUERY_STRING =~ m/^wiki_/){
 #-------------------------------------------------------------------------------
 # Uniqki Wiki
