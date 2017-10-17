@@ -95,6 +95,7 @@ use vars qw(
 	$NONWIKI_HEADER_FILE $NONWIKI_FOOTER_FILE
 	$WIKI_HEADER_FILE $WIKI_FOOTER_FILE
 	$WIKI_PAGES_ALLOWED $WIKI_FILES_ALLOWED
+	$MINIMUM_COMMENT_TIME
 
 	%MESSAGES
 );
@@ -1297,6 +1298,11 @@ $WIKI_PAGES_ALLOWED = q();
 # Regular expression for file names that are allowed to be uploaded by
 # non-admin users to a wiki page
 $WIKI_FILES_ALLOWED = q(\.(png|gif|jpg|jpeg|txt|zip)$);
+
+# Minimum time in seconds required for commenting to block massive spam attacks
+# in a short period of time.  Any comments submitted within this threshold time
+# will be treated as a spam message.
+$MINIMUM_COMMENT_TIME = 15;
 EOT_UNIQKI
 	my $file = $CFG eq "" ? "u.cfg" : $CFG;
 	if($mode == 1){
@@ -4806,7 +4812,8 @@ sub verify_input{
 	# return 0 otherwise
 	my ($query, $var) = @_;
 	if($query eq "comment"){
-		return 0 if($$var{website} ne "" || $$var{id} >= time - 15);
+		return 0 if($$var{website} ne "" ||
+			$$var{id} >= time - $MINIMUM_COMMENT_TIME);
 		(my $text = $$var{text}) =~ s/[`~!@#\$%^&*_=+\\|;:'",.\/?()\[\]{}<>0-9-]//g;
 		$text =~ s/[ \t\n]+/ /g;
 		$text =~ s/^ | $//g;
