@@ -5142,6 +5142,24 @@ if($QUERY_STRING eq "css"){
 	my $has_read_access = $page_exists && has_read_access() ? 1 : 0;
 	my $has_write_access = $page_exists && has_write_access() ? 1 : 0;
 	die_text("$USER:$admin:$has_read_access:$has_write_access");
+}elsif($QUERY_STRING =~ m/^goto(?:[&=].+)?$/){
+#-------------------------------------------------------------------------------
+# u?goto		Create the goto form
+# u?goto=PAGE		Go to or create PAGE using a form
+	my %var = get_var();
+	if($var{goto} eq ""){
+		local $TITLE = get_msg("goto_form");
+		print_header();
+		create_goto_form(1);
+		print_footer();
+		die;
+	}
+
+	$_ = $var{goto};
+	s#\.html$##;
+	y#[/+]# #;
+
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/".encode_url_most($_));
 }elsif($QUERY_STRING =~ m/^comment(?:[&=].+)?$/){
 #-------------------------------------------------------------------------------
 # u/PAGE?comment			Generate the comment form for PAGE
@@ -5491,24 +5509,6 @@ if($QUERY_STRING eq "css"){
 #-------------------------------------------------------------------------------
 # u/PAGE/FILE		Show/download PAGE/FILE
 	die_path("$PAGE/$FILE");
-}elsif($QUERY_STRING =~ m/^goto(?:[&=].+)?$/){
-#-------------------------------------------------------------------------------
-# u?goto		Create the goto form
-# u?goto=PAGE		Go to or create PAGE using a form (admin only)
-	my %var = get_var();
-	if($var{goto} eq ""){
-		local $TITLE = get_msg("goto_form");
-		print_header();
-		create_goto_form(1);
-		print_footer();
-		die;
-	}
-
-	$_ = $var{goto};
-	s#\.html$##;
-	y#[/+]# #;
-
-	die_redirect("$HTTP_BASE$SCRIPT_NAME/".encode_url_most($_));
 }elsif($QUERY_STRING eq "refresh" && $PAGE ne ""){
 #-------------------------------------------------------------------------------
 # u/PAGE?refresh	Refresh
