@@ -1576,7 +1576,7 @@ sub is_session_id{
 
 sub is_password_reset_token_valid{
 	my $token = shift;
-	if($token !~ m/^[a-zA-Z0-9]{8}[0-9a-f]{40}\.([0-9]+)$/){
+	if($token !~ m/^[a-zA-Z0-9]{64}\.([0-9]+)$/){
 		return 0;
 	}
 	my $expires = $1;
@@ -1772,7 +1772,7 @@ sub print_manage_users{
 <input accesskey="e" type="text" id="email" name="email" placeholder="[[email_address]]" />
 <input accesskey="f" type="text" id="name" name="name" placeholder="[[full_name]]" />
 <br />
-<input type="radio" id="admin" name="admin" value="no" /> [[non_admin]]
+<input type="radio" id="admin" name="admin" value="no" checked="checked" /> [[non_admin]]
 <input type="radio" id="admin" name="admin" value="yes" /> [[admin]]
 <br />
 <input accesskey="p" type="password" id="pw" name="pw" placeholder="[[password]]" />
@@ -1791,7 +1791,7 @@ sub print_manage_users{
 <br />
 <input type="radio" id="admin" name="admin" value="no" /> [[non_admin]]
 <input type="radio" id="admin" name="admin" value="yes" /> [[admin]]
-<input type="radio" id="admin" name="admin" value="keep" /> [[dont_change]]
+<input type="radio" id="admin" name="admin" value="keep" checked="checked" /> [[dont_change]]
 <br />
 <input accesskey="p" type="password" id="pw" name="pw" placeholder="[[password]]" />
 <input type="password" id="pw2" name="pw2" placeholder="[[type_password_again]]" />
@@ -3251,7 +3251,7 @@ sub handle_session{
 sub clear_password_reset_token{
 	my $token = shift;
 	return if(!-f $PASSWORD_FILE ||
-		$token !~ m/^[a-zA-Z0-9]{8}[0-9a-f]{40}\.[0-9]+$/);
+		$token !~ m/^[a-zA-Z0-9]{64}\.[0-9]+$/);
 
 	my $new_pw = "";
 	my $cleared = 0;
@@ -5321,7 +5321,7 @@ if($QUERY_STRING eq "css"){
 	unlock_file($PASSWORD_FILE);
 
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
-}elsif($QUERY_STRING =~ m/^reset_password=([a-zA-Z0-9]{8}[0-9a-f]{40}\.([0-9]+))$/){
+}elsif($QUERY_STRING =~ m/^reset_password=([a-zA-Z0-9]{64}\.([0-9]+))$/){
 #-------------------------------------------------------------------------------
 # u?reset_password=token	Reset password
 # u/PAGE?reset_password=token	Reset password
