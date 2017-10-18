@@ -1089,6 +1089,15 @@ sub page_exists{
 	return -f "$page.txt";
 }
 
+sub is_wiki{
+	my $page = shift;
+	local *FH;
+	open FH, "$page.txt";
+	my $wiki = <FH> eq "#!wiki\n" ? 1 : 0;
+	close FH;
+	return $wiki;
+}
+
 #-------------------------------------------------------------------------------
 # Password file
 sub write_pw{
@@ -5094,9 +5103,7 @@ if($QUERY_STRING eq "login"){
 	$wiki = 0;
 	if($page ne ""){
 		if(-f "$page.txt"){
-			open FH, "$page.txt";
-			$wiki = 1 if(<FH> eq "#!wiki\n");
-			close FH;
+			$wiki = is_wiki($page);
 		}elsif($WIKI_PAGES_ALLOWED ne "" &&
 			$page =~ m/$WIKI_PAGES_ALLOWED/o){
 			$wiki = 1;
@@ -5673,6 +5680,8 @@ if($QUERY_STRING eq "css"){
 		}
 		my $page = $_;
 		next unless(-f "$page.html");
+		local $wiki = is_wiki($page);
+		next unless(has_read_access());
 
 		my $title = $page;
 		my @t = localtime((stat "$page.txt")[9]);
@@ -5761,6 +5770,8 @@ if($QUERY_STRING eq "css"){
 		}
 		my $page = $_;
 		next unless(-f "$page.html");
+		local $wiki = is_wiki($page);
+		next unless(has_read_access());
 
 		my $t = (stat "$page.txt")[9];
 		my @t = split / +/, scalar gmtime($t);
@@ -5885,7 +5896,8 @@ EOT
 		}
 		my $page = $_;
 		next unless(-f "$page.html");
-
+		local $wiki = is_wiki($page);
+		next unless(has_read_access());
 		my $text = read_file("$page.html");
 		next if($text eq "");
 
