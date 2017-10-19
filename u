@@ -3454,10 +3454,10 @@ sub create_search_form{
 <br />
 <input type="checkbox" id="simple" name="simple" value="1" checked="checked" /> $simple
 <input type="checkbox" id="icase" name="icase" value="1" checked="checked" /> $icase
-<input type="checkbox" id="title" name="title" value="1" checked="checked" /> $title
-<br />
-<input type="checkbox" id="nomatch" name="nomatch" value="1" /> $nomatch
 <input type="checkbox" id="link" name="link" value="1" /> $link
+<br />
+<input type="checkbox" id="title" name="title" value="1" checked="checked" /> $title
+<input type="checkbox" id="nomatch" name="nomatch" value="1" /> $nomatch
 </div>
 </form>
 EOT
@@ -5862,9 +5862,9 @@ EOT
 # u?search=(.*)			Search using regular expressions
 # u?search=(.*)&simple=1	Search using space separated words
 # u?search=(.*)&icase=1		Case-insensitive search
+# u?search=(.*)&link=1		Search for pages which link to \1 page
 # u?search=(.*)&title=1		Print page titles instead of page names
 # u?search=(.*)&nomatch=1	Don't print matches
-# u?search=(.*)&link=1		Search for pages which link to \1 page
 # u?search=(.*)&glob=GLOB	Search GLOB pages
 	my %var = get_var();
 	if($var{search} eq ""){
