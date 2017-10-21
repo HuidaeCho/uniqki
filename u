@@ -4278,11 +4278,9 @@ sub preprocess_line{
 	local $_ = shift;
 
 	# Apply regular expressions if not asis
-	if(!$asis && m/^(?!#(?:no)?regex)/){
+	if(!$asis && $code_block eq "" && m/^(?!#)/){
 		for(my $i = $re_start; $i < $re_n; $i++){
-			if(m/^(?!#(?:no)?regex)/){
-				eval "s\x1e$re[$i]\x1e$re_sub[$i]\x1eg;";
-			}
+			eval "s\x1e$re[$i]\x1e$re_sub[$i]\x1eg;";
 		}
 		if(m/\n/){
 			local $re_start = $re_n;
