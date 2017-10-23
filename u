@@ -4280,7 +4280,10 @@ sub preprocess_line{
 	# Apply regular expressions if not asis
 	if(!$asis && m/^(?!#(?:no)?regex)/){
 		for(my $i = $re_start; $i < $re_n; $i++){
-			eval "s\x1e$re[$i]\x1e$re_sub[$i]\x1eg;";
+			# Need it again to avoid regexing regexed output
+			if(m/^(?!#(?:no)?regex)/){
+				eval "s\x1e$re[$i]\x1e$re_sub[$i]\x1eg;";
+			}
 		}
 		if(m/\n/){
 			local $re_start = $re_n;
