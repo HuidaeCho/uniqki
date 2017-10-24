@@ -1475,7 +1475,7 @@ email_notification_failed => q(Email notification failed for user %s <%s>.),
 
 page_not_allowed => q(%s: Page not allowed.),
 page_not_found => q(%s: Page not found.),
-create_page => q(%s: Page not found. <a href="?edit">Create this page</a>, <a href="?wiki_edit">Create this wiki page</a>),
+create_page => q(%s: Page not found. Create a new <a href="?edit">non-wiki</a> or <a href="?wiki_edit">wiki</a> page),
 not_wiki_page => q(%s: This page is not a wiki page.),
 not_allowed_to_create_nonwiki_page => q(%s: You are not allowed to create this non-wiki page.),
 not_allowed_to_comment_in_nonwiki_page => q(%s: You are not allowed to comment in this non-wiki page.),
