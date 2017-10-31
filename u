@@ -5535,7 +5535,7 @@ if($QUERY_STRING eq "css"){
 	}
 
 	my $title = get_msg("differences", $PAGE, $version, $current_version);
-	local $TITLE = $title;
+	(local $TITLE = $title) =~ s/<[^>]*>//g;
 
 	my $current_text = read_file("$PAGE.txt");
 
