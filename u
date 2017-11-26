@@ -5082,6 +5082,7 @@ if($QUERY_STRING eq "login"){
 	if($REQUEST_METHOD eq "GET"){
 #-------------------------------------------------------------------------------
 # u/PAGE?login		GET login request: Login form
+		local $TITLE = $PAGE;
 		print_login();
 		die;
 	}else{
