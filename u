@@ -136,6 +136,7 @@ use vars qw(
 
 # Other global variables
 use vars qw(
+	$preprocess_text
 	$verify_input
 	$wiki
 	$html_started
@@ -3506,6 +3507,11 @@ EOT
 	return $form;
 }
 
+sub preprocess_text_data{
+	$preprocess_text = \&preprocess_text unless defined $preprocess_text;
+	$preprocess_text->();
+}
+
 sub verify_input_data{
 	$verify_input = \&verify_input unless defined $verify_input;
 	return $verify_input->(@_);
@@ -4278,7 +4284,7 @@ sub preprocess_line{
 	local $_ = shift;
 
 	# Apply regular expressions if not asis
-	if(!$asis && m/^(?!#(?:no)?regex)/){
+	if(!$asis && $code_block eq "" && m/^(?!#(?:no)?regex)/){
 		for(my $i = $re_start; $i < $re_n; $i++){
 			# Need it again to avoid regexing regexed output
 			if(m/^(?!#(?:no)?regex)/){
@@ -4854,6 +4860,9 @@ sub close_all_open{
 
 ################################################################################
 # User-replaceable subroutines
+sub preprocess_text{
+}
+
 sub verify_input{
 	# return 1 if OK
 	# return 0 otherwise
@@ -6066,6 +6075,7 @@ EOT
 				$TEXT =~ s/>/&gt;/g;
 			}
 			$VERSION++;
+			preprocess_text_data();
 			print_wiki_edit();
 		}
 		die;
@@ -6677,6 +6687,7 @@ EOT
 			$TEXT =~ s/>/&gt;/g;
 		}
 		$VERSION++;
+		preprocess_text_data();
 		print_edit();
 		die;
 	}
