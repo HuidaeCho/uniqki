@@ -3606,8 +3606,8 @@ sub parse_file{
 	push @files, $NONWIKI_HEADER_FILE unless($wiki);
 	push @files, $WIKI_HEADER_FILE if($wiki);
 	push @files, $file;
-	push @files, $NONWIKI_FOOTER_FILE unless($wiki);
 	push @files, $WIKI_FOOTER_FILE if($wiki);
+	push @files, $NONWIKI_FOOTER_FILE unless($wiki);
 	push @files, $FOOTER_FILE;
 
 	my @_begin_parsing = @begin_parsing;
