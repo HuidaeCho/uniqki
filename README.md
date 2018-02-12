@@ -9,7 +9,7 @@ In a portable Perl environment like [the Strawberry Perl Portable edition](http:
 
 ## License
 
-Copyright (C) 2007-2008, 2010-2011, 2016-2017, Huidae Cho <<https://idea.isnew.info>>  
+Copyright (C) 2007-2008, 2010-2011, 2016-2018, Huidae Cho <<https://idea.isnew.info>>
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
