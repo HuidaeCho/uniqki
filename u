@@ -2606,16 +2606,18 @@ sub get_version{
 
 sub get_page_info{
 	my $PAGE = shift;
-	my $version = shift;
+	my $v = shift;
+	my $cur_ver = get_version($PAGE);
+	my $ver = $v > 0 ? $v : $cur_ver + $v;
 	my %page_info;
-	return %page_info if(defined $version && $version <= 0);
+	return %page_info unless($ver > 0 && $ver <= $cur_ver);
 	local *FH;
 	if(open FH, "$PAGE.txt.v"){
 		local $/ = "\x00\n";
 		my $line;
 		while(<FH>){
 			m/^([0-9]+):/;
-			if(!defined $version || $version >= $1){
+			if($ver >= $1){
 				($line = $_) =~ s/\n.*$//s;
 				last;
 			}
@@ -2623,7 +2625,7 @@ sub get_page_info{
 		close FH;
 		die_message("internal_errors") unless(-f "$PAGE.txt");
 		my @items = split /:/, $line;
-		return %page_info if(defined $version && $version != $items[0]);
+		return %page_info if($ver != $items[0]);
 		$page_info{version} = $items[0];
 		$page_info{time} = $items[1];
 		$page_info{ip} = $items[2];
@@ -2634,30 +2636,30 @@ sub get_page_info{
 
 sub get_time{
 	my $PAGE = shift;
-	my $version = shift;
-	my %page_info = get_page_info($PAGE, $version);
+	my $v = shift;
+	my %page_info = get_page_info($PAGE, $v);
 	return $page_info{time};
 }
 
 sub get_ip_address{
 	my $PAGE = shift;
-	my $version = shift;
-	my %page_info = get_page_info($PAGE, $version);
+	my $v = shift;
+	my %page_info = get_page_info($PAGE, $v);
 	return $page_info{ip};
 }
 
 sub get_user{
 	my $PAGE = shift;
-	my $version = shift;
-	my %page_info = get_page_info($PAGE, $version);
+	my $v = shift;
+	my %page_info = get_page_info($PAGE, $v);
 	return $page_info{user};
 }
 
 sub get_author{
 	my $PAGE = shift;
-	my $version = shift;
+	my $v = shift;
 	my $author = get_msg("unknown_author");
-	my $user = get_user($PAGE, $version);
+	my $user = get_user($PAGE, $v);
 	if($user ne ""){
 		my %user_info = find_user_info($user);
 		$author = $user_info{name};
