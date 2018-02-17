@@ -2312,6 +2312,10 @@ ol ol ol {
 	font-size:		70%;
 	font-style:		italic;
 }
+.ls-author {
+	font-size:		70%;
+	font-style:		italic;
+}
 
 /******************************************************************************/
 .goto-input {
@@ -5818,16 +5822,17 @@ if($QUERY_STRING eq "css"){
 				}
 			}
 		}
+		my $author = get_author($page);
 		if($roc){
 			if($var{title} eq "1"){
-				$list[$i++] = "$time\x00$title\x00$page";
+				$list[$i++] = "$time\x00$title\x00$page\x00$author";
 			}else{
-				$list[$i++] = "$time\x00$page\x00$title";
+				$list[$i++] = "$time\x00$page\x00$title\x00$author";
 			}
 		}elsif($tls){
-			$list[$i++] = "$title\x00$page\x00$time";
+			$list[$i++] = "$title\x00$page\x00$time\x00$author";
 		}else{
-			$list[$i++] = "$page\x00$title\x00$time";
+			$list[$i++] = "$page\x00$title\x00$time\x00$author";
 		}
 	}
 	@list = sort @list;
@@ -5836,8 +5841,9 @@ if($QUERY_STRING eq "css"){
 	$n = $i if($n > $i || !$n);
 	$i = 0;
 	foreach(@list){
-		my ($page, $title, $time);
-		m/^(.*)\x00(.*)\x00(.*)$/;
+		my ($page, $title, $time, $author);
+		m/^(.*)\x00(.*)\x00(.*)\x00(.*)$/;
+		$author = $4;
 		if($roc){
 			if($var{title} eq "1"){
 				$page = $3;
@@ -5857,7 +5863,7 @@ if($QUERY_STRING eq "css"){
 			}
 			$time = $3;
 		}
-		print qq(<li><a href="$page.html">$title</a> <span class="ls-time">$time</span></li>\n);
+		print qq(<li><a href="$page.html">$title</a> <span class="ls-time">$time</span> <span class="ls-author">$author</span></li>\n);
 		last if(++$i == $n);
 	}
 
