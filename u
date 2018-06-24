@@ -2348,9 +2348,9 @@ function ajax_request(url, data, func, mime_type){
 	/* Create an XMLHTTP instance */
 	if(window.XMLHttpRequest){ /* Mozilla, Safari, ... */
 		xml_request = new XMLHttpRequest();
-		if(mime_type != null && xml_request.overrideMimeType){
+		if(xml_request.overrideMimeType){
 			/* Some web servers return a non-standard mime type. */
-			xml_request.overrideMimeType(mime_type);
+			xml_request.overrideMimeType(mime_type || 'text/xml');
 		}
 	}else
 	if(window.ActiveXObject){ /* IE */
@@ -2454,7 +2454,8 @@ function window_onload(func){
 }
 
 window_onload(function(){
-	ajax_request('[[CGI]]/[[PAGE]]?user_info', null, process_menu)
+	ajax_request('[[CGI]]/[[PAGE]]?user_info', null, process_menu,
+		'text/plain');
 });
 EOT_UNIQKI
 }
@@ -6030,13 +6031,18 @@ EOT
 		$text =~ s/^.*<!-- start text -->|<!-- end text -->.*$//sgi;
 		$text =~ s#<!--.*?-->##sg;
 		$text =~ s#<(script|style).*?</\1>##sgi;
-		$text =~ s/&amp;/&/gi;
-		$text =~ s/&lt;/</gi;
-		$text =~ s/&gt;/>/gi;
+		$text =~ y/&/\x01/;
+		$text =~ y/</\x02/;
+		$text =~ y/>/\x03/;
+		$text =~ s/\x01amp;/&/gi;
+		$text =~ s/\x01lt;/</gi;
+		$text =~ s/\x01gt;/>/gi;
 
-		if($var{title} eq "1" && $text =~ m#<h1[^>]*>(.+?)</h1>#si){
+		if($var{title} eq "1" && $text =~ m#\x02h1[^\x03]*\x03(.+?)\x02/h1\x03#si){
 			$_ = $1;
-			s/<[^>]*>//g; s/[<>]//g;
+			s/\x02[^\x03]*\x03//g; s/^.*\x03|\x02.*$//mg;
+			s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
+			y/\x01/&/;
 			$page_name = $_;
 		}
 		my ($i, $line, $search, $found, @found, @result);
@@ -6049,20 +6055,24 @@ EOT
 					next if($search eq "");
 					$search = "(?i)$search"
 						if($var{icase} eq "1");
-					if($line =~ m#<[aA][ \t][^>]*(?:href|HREF)[ \t]*=[ \t]*"(?:$search)"[^>]*>[^<]+</[aA]>#){
+					if($line =~ m#\x02[aA][ \t][^\x03]*(?:href|HREF)[ \t]*=[ \t]*"(?:$search)"[^\x03]*\x03[^\x02]+\x02/[aA]\x03#){
 						$found = $line if($found eq "");
-						$found =~ s#<[aA][ \t][^>]*(?:href|HREF)[ \t]*=[ \t]*"(?:$search)"[^>]*>([^<]+)</[aA]>#\x01$1\x02#g;
+						$found =~ s#\x02[aA][ \t][^\x03]*(?:href|HREF)[ \t]*=[ \t]*"(?:$search)"[^\x03]*\x03([^\x02]+)\x02/[aA]\x03#\x04$1\x05#g;
 						$found[$i] = 1;
 					}
 				}
 				if($found ne ""){
 					$_ = $found;
-					s/<[^>]*>//g; s/<.*$//; s/^.*>//;
+					s/\x02[^\x03]*\x03//g;
+					s/^.*\x03|\x02.*$//mg;
+					s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
+					y/\x01/&/;
 					push @result, $_;
 				}
 			}
 		}else{
-			$text =~ s/<[^>]*>//g; $text =~ s/[<>]//g;
+			$text =~ s/\x02[^\x03]*\x03//g;
+			$text =~ s/^.*\x03|\x02.*$//mg;
 			foreach(split /\n/, $text){
 				$line = $_;
 				$found = "";
@@ -6073,11 +6083,16 @@ EOT
 						if($var{icase} eq "1");
 					if($line =~ m#$search#){
 						$found = $line if($found eq "");
-						$found =~ s#($search)#\x01$1\x02#g;
+						$found =~ s#($search)#\x04$1\x05#g;
 						$found[$i] = 1;
 					}
 				}
-				push @result, $found if($found ne "");
+				if($found ne ""){
+					$_ = $found;
+					s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
+					y/\x01/&/;
+					push @result, $_;
+				}
 			}
 		}
 		for($i = 0; $i <= $#search; $i++){
@@ -6090,11 +6105,11 @@ EOT
 		}
 		print qq(<li><a href="$page.html">$page_name</a>\n<ul>\n);
 		foreach(@result){
-			s#\x01#<span class="search-highlight">#g;
-			s#\x02#</span>#g;
+			s#\x04#<span class="search-highlight">#g;
+			s#\x05#</span>#g;
 			print qq(<li>$_</li>\n);
 		}
-		print qq(</ul>\n);
+		print qq(</ul>\n</li>\n);
 	}
 
 	print qq(</ul>\n</div>\n);
