@@ -4926,6 +4926,7 @@ sub close_all_open{
 		$asis = 0;
 		$pre = 0;
 	}
+	close_paragraph();
 	if($blockquote ne ""){
 		$text .= create_blockquote($blockquote);
 		$blockquote = "";
@@ -4942,7 +4943,6 @@ sub close_all_open{
 		$text .= create_figure($figure);
 		$figure = "";
 	}
-	close_paragraph();
 }
 
 ################################################################################
