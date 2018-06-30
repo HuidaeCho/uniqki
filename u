@@ -4112,7 +4112,8 @@ sub create_table{
 			$caption .= "\n" if($caption ne "");
 			$caption .= $line;
 			if($inc_lot && $id eq ""){
-				$line =~ s/[`~!@#\$%^&*-_=+\\|;:,.\/?]+$//
+				$line =~ s/<[^>]*>|\x00//g;
+				$line =~ s/[`~!@#\$%^&*_=+\\|;:,.\/?-]+$//
 					if($del_punct_from_title);
 				if($line ne ""){
 					$id = convert_page_name("table $line");
@@ -4286,7 +4287,8 @@ sub create_figure{
 			$figcaption .= "\n" if($figcaption ne "");
 			$figcaption .= $line;
 			if($inc_lof && $id eq ""){
-				$line =~ s/[`~!@#\$%^&*-_=+\\|;:,.\/?]+$//
+				$line =~ s/<[^>]*>|\x00//g;
+				$line =~ s/[`~!@#\$%^&*_=+\\|;:,.\/?-]+$//
 					if($del_punct_from_title);
 				if($line ne ""){
 					$id = convert_page_name("figure $line");
