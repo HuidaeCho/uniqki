@@ -707,7 +707,7 @@ sub die_path{
 		my $title = get_msg("page_files", $path);
 		(local $TITLE = $title) =~ s/<[^>]*>//g;
 		print_header();
-		print qq(<div id="ls">\n<h1>$title</h1>\n<ul>\n);
+		print qq(<div id="list">\n<h1>$title</h1>\n<ul>\n);
 		foreach(<$path/*>){
 			my $file = $_;
 			s#^[^/]*/##;
@@ -717,7 +717,7 @@ sub die_path{
 			my @t = localtime((stat $file)[9]);
 			my $time = sprintf "%d-%02d-%02d %02d:%02d:%02d",
 				$t[5]+1900, $t[4]+1, $t[3], $t[2], $t[1], $t[0];
-			print qq(<li><a href="$url">$name</a> <span class="ls-time">$time</span></li>\n);
+			print qq(<li><a href="$url">$name</a> <span class="list-time">$time</span></li>\n);
 		}
 		print qq(</ul></div>\n);
 		print_footer();
@@ -2306,13 +2306,13 @@ ol ol ol {
 }
 
 /******************************************************************************/
-#ls {
+#list {
 }
-.ls-time {
+.list-time {
 	font-size:		70%;
 	font-style:		italic;
 }
-.ls-author {
+.list-author {
 	font-size:		70%;
 	font-style:		italic;
 }
@@ -5760,30 +5760,30 @@ if($QUERY_STRING eq "css"){
 	print qq(</div>\n);
 	print_footer();
 	die;
-}elsif($QUERY_STRING =~ m/^ls(?:[&=].+)?$/){
+}elsif($QUERY_STRING =~ m/^list(?:[&=].+)?$/){
 #-------------------------------------------------------------------------------
-# u?ls			List all pages in alphabetical order
-# u?ls=az		List all pages in alphabetical order
-# u?ls=za		List all pages in reverse order
-# u?ls=taz		List all pages in alphabetical order of titles
-# u?ls=tza		List all pages in reverse order of titles
-# u?ls=rc		Recent changes
-# u?ls=oc		Old changes
-# u?ls&n=([0-9]+)	List only \1 pages in alphabetical order
-# u?ls&title=1		Print page titles instead of page names
-# u?ls&glob=GLOB	List all GLOB pages in alphabetical order
+# u?list		List all pages in alphabetical order
+# u?list=az		List all pages in alphabetical order
+# u?list=za		List all pages in reverse order
+# u?list=taz		List all pages in alphabetical order of titles
+# u?list=tza		List all pages in reverse order of titles
+# u?list=rc		Recent changes
+# u?list=oc		Old changes
+# u?list&n=([0-9]+)	List only \1 pages in alphabetical order
+# u?list&title=1	Print page titles instead of page names
+# u?list&glob=GLOB	List all GLOB pages in alphabetical order
 	my %var = get_var();
 	my ($msg_id, $title);
 	if($var{glob} eq ""){
-		$msg_id = $var{ls} eq "rc" ? "recent_changes" :
-			($var{ls} eq "oc" ? "old_changes" :
-			($var{ls} eq "za" ? "all_pages_reversed" :
+		$msg_id = $var{list} eq "rc" ? "recent_changes" :
+			($var{list} eq "oc" ? "old_changes" :
+			($var{list} eq "za" ? "all_pages_reversed" :
 			"all_pages"));
 		$title = get_msg($msg_id);
 	}else{
-		$msg_id = $var{ls} eq "rc" ? "recent_changes_matching" :
-			($var{ls} eq "oc" ? "old_changes_matching" :
-			($var{ls} eq "za" ? "all_pages_reversed_matching" :
+		$msg_id = $var{list} eq "rc" ? "recent_changes_matching" :
+			($var{list} eq "oc" ? "old_changes_matching" :
+			($var{list} eq "za" ? "all_pages_reversed_matching" :
 			"all_pages_matching"));
 		$title = get_msg($msg_id, $var{glob});
 	}
@@ -5791,10 +5791,10 @@ if($QUERY_STRING eq "css"){
 
 	local $TITLE = $title;
 	print_header();
-	print qq(<div id="ls">\n<h1>$title</h1>\n<ul>\n);
+	print qq(<div id="list">\n<h1>$title</h1>\n<ul>\n);
 
-	my $tls = $var{ls} eq "taz" || $var{ls} eq "tza" ? 1 : 0;
-	my $roc = $var{ls} eq "rc" || $var{ls} eq "oc" ? 1 : 0;
+	my $tls = $var{list} eq "taz" || $var{list} eq "tza" ? 1 : 0;
+	my $roc = $var{list} eq "rc" || $var{list} eq "oc" ? 1 : 0;
 	my $n = $var{n} eq "" ? 0 : $var{n};
 	my $i = 0;
 	my @list;
@@ -5839,8 +5839,8 @@ if($QUERY_STRING eq "css"){
 		}
 	}
 	@list = sort @list;
-	@list = reverse @list
-		if($var{ls} eq "rc" || $var{ls} eq "za" || $var{ls} eq "tza");
+	@list = reverse @list if($var{list} eq "rc" || $var{list} eq "za" ||
+		$var{list} eq "tza");
 	$n = $i if($n > $i || !$n);
 	$i = 0;
 	foreach(@list){
@@ -5866,7 +5866,7 @@ if($QUERY_STRING eq "css"){
 			}
 			$time = $3;
 		}
-		print qq(<li><a href="$page.html">$title</a> <span class="ls-time">$time</span> <span class="ls-author">$author</span></li>\n);
+		print qq(<li><a href="$page.html">$title</a> <span class="list-time">$time</span> <span class="list-author">$author</span></li>\n);
 		last if(++$i == $n);
 	}
 
@@ -6355,7 +6355,7 @@ EOT
 
 	local $TITLE = $title;
 	print_header();
-	print qq(<div id="ls">\n<h1>$title</h1>\n<ul>\n);
+	print qq(<div id="list">\n<h1>$title</h1>\n<ul>\n);
 	foreach($glob eq "" ? (<.*.txt>, <*.txt>) : <$glob.txt>){
 		next if(index($_, "/") >= 0 || !-f $_);
 		s/\.txt$//;
