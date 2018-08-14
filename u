@@ -4373,7 +4373,8 @@ sub preprocess_line{
 	local $_ = shift;
 
 	# Apply regular expressions if not asis
-	if(!$asis && m/^(?!#(?:no)?regex)/){
+	if(!$asis && m/^(?!#(?:no)?regex)/ && m/^(?!##(?:sub |{))/ &&
+		$code_block eq ""){
 		for(my $i = $re_start; $i < $re_n; $i++){
 			# Need it again to avoid regexing regexed output
 			if(m/^(?!#(?:no)?regex)/){
