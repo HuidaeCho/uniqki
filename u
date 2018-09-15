@@ -5626,7 +5626,7 @@ if($QUERY_STRING eq "css"){
 	die_path("$PAGE/$FILE");
 }elsif($QUERY_STRING eq "refresh" && $PAGE ne ""){
 #-------------------------------------------------------------------------------
-# u/PAGE?refresh	Refresh
+# u/PAGE?refresh	Refresh PAGE
 	if(-f "$PAGE.txt"){
 		$rebuild = 1;
 	}else{
@@ -6347,7 +6347,7 @@ EOT
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_pages");
 }elsif($QUERY_STRING =~ m/^refresh(?:&.+)?$/){
 #-------------------------------------------------------------------------------
-# u?refresh		Refresh all
+# u?refresh		Refresh all pages
 # u?refresh&glob=GLOB	Refresh GLOB pages
 	my %var = get_var();
 	my $glob = $var{glob};
