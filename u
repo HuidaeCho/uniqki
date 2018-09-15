@@ -2384,10 +2384,6 @@ function ajax_request(url, data, func, mime_type){
 	/* xml_request.open(method, url, asynchronous) */
 	xml_request.open(method, url, true);
 
-	if(method == 'POST')
-		xml_request.setRequestHeader('Content-Type',
-			'multipart/form-data');
-
 	/* xml_request.send(POST data) */
 	/* required even if the method is not POST. */
 	xml_request.send(data);
