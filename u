@@ -2378,14 +2378,15 @@ function ajax_request(url, data, func, mime_type){
 
 	if(data == null)
 		var method = 'GET';
-	else{
+	else
 		var method = 'POST';
-		xml_request.setRequestHeader('Content-Type',
-			'application/x-www-form-urlencoded');
-	}
 
 	/* xml_request.open(method, url, asynchronous) */
 	xml_request.open(method, url, true);
+
+	if(method == 'POST')
+		xml_request.setRequestHeader('Content-Type',
+			'application/x-www-form-urlencoded');
 
 	/* xml_request.send(POST data) */
 	/* required even if the method is not POST. */
