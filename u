@@ -2386,7 +2386,7 @@ function ajax_request(url, data, func, mime_type){
 
 	if(method == 'POST')
 		xml_request.setRequestHeader('Content-Type',
-			'application/x-www-form-urlencoded');
+			'multipart/form-data');
 
 	/* xml_request.send(POST data) */
 	/* required even if the method is not POST. */
