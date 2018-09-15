@@ -1420,6 +1420,9 @@ css => q(CSS),
 preview => q(Preview),
 save => q(Save),
 file_upload => q(File upload: ),
+paste_image => q(Type filename and paste image),
+type_filename => q(Please type filename),
+characters_not_allowed_in_filename => q(\\\\ / : * ? " < > | not allowed in filename),
 cancel => q(Cancel),
 preview_warning => q(This document is preview. Please make sure to save your changes.),
 
@@ -1992,6 +1995,38 @@ sub print_edit{
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 <br />
 [[file_upload]] <input accesskey="f" type="file" id="file" name="file" />
+<br />
+<input accesskey="u" type="text" id="filename" name="filename" /> [[paste_image]]
+<script>
+var filenameEl = document.getElementById('filename');
+filenameEl.addEventListener('paste', function(e){
+	if(!e.clipboardData || !e.clipboardData.items ||
+	   e.clipboardData.items.length != 1 ||
+	   e.clipboardData.items[0].type.indexOf('image/') == -1)
+		return;
+
+	var item = e.clipboardData.items[0];
+	var extension = item.type.substr(6);
+	var filename = filenameEl.value.
+		replace(new RegExp('\\.' + extension + '$', 'i'), '');
+	if(!filename){
+		alert('[[type_filename]]');
+		return;
+	}
+	if(filename.match(/[\\/:*?"<>|]/)){
+		alert('[[characters_not_allowed_in_filename]]');
+		return;
+	}
+
+	filename += '.' + extension;
+	filenameEl.value = filename;
+
+	var blob = e.clipboardData.items[0].getAsFile();
+	var formData = new FormData();
+	formData.append('file', blob, filename);
+	ajax_request('../[[CGI]]/[[PAGE]]?upload', formData);
+});
+</script>
 </div>
 </form>
 </div>
@@ -2373,7 +2408,8 @@ function ajax_request(url, data, func, mime_type){
 			return;
 		if(xml_request.status != 200)
 			return;
-		func(xml_request);
+		if(func)
+			func(xml_request);
 	}
 
 	if(data == null)
