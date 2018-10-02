@@ -1521,6 +1521,7 @@ current_version => q(The current version of <a href="%s">%1$s</a> is %d.),
 wiki_file_not_allowed => q(%s: File not allowed.),
 wiki_file_uploaded => q(%s: File uploaded. Copy and paste the link below:<pre id="file-link-example">{{%s|%1$s}}</pre>),
 file_uploaded => q(%s: File uploaded. Copy and paste the link below:<pre id="file-link-example">{{%1$s}}</pre>),
+image_uploaded => q(Image uploaded. Copy and paste the link below:<pre id="file-link-example"></pre>),
 page_files => q(Files belonging to <a href="../%s">%1$s</a>),
 
 table_of_contents => q(Contents),
@@ -1997,8 +1998,11 @@ sub print_edit{
 [[file_upload]] <input accesskey="f" type="file" id="file" name="file" />
 <br />
 <input accesskey="u" type="text" id="filename" name="filename" /> [[paste_image]]
+<div id="image-uploaded" style="display:none;">[[image_uploaded]]</div>
 <script>
 var filenameEl = document.getElementById('filename');
+var imageUploadedEl = document.getElementById('image-uploaded');
+var fileLinkExampleEl = document.getElementById('file-link-example');
 filenameEl.addEventListener('paste', function(e){
 	if(!e.clipboardData || !e.clipboardData.items ||
 	   e.clipboardData.items.length != 1 ||
@@ -2024,7 +2028,10 @@ filenameEl.addEventListener('paste', function(e){
 	var blob = e.clipboardData.items[0].getAsFile();
 	var formData = new FormData();
 	formData.append('file', blob, filename);
-	ajax_request('../[[CGI]]/[[PAGE]]?upload', formData);
+	ajax_request('../[[CGI]]/[[PAGE]]?upload', formData, function(xml_request){
+		imageUploadedEl.style.display = 'block';
+		fileLinkExampleEl.innerHTML = '{{{' + filename + '}}}';
+	});
 });
 </script>
 </div>
@@ -2099,6 +2106,50 @@ sub print_wiki_edit{
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 <br />
 [[file_upload]] <input accesskey="f" type="file" id="file" name="file" />
+<br />
+<div id="paste_image" style="display:none;">
+<input accesskey="u" type="text" id="filename" name="filename" /> [[paste_image]]
+<div id="image-uploaded" style="display:none;">[[image_uploaded]]</div>
+</div>
+<script>
+if([[VERSION]] > 1){
+document.getElementById('paste_image').style.display = 'block';
+var filenameEl = document.getElementById('filename');
+var imageUploadedEl = document.getElementById('image-uploaded');
+var fileLinkExampleEl = document.getElementById('file-link-example');
+filenameEl.addEventListener('paste', function(e){
+	if(!e.clipboardData || !e.clipboardData.items ||
+	   e.clipboardData.items.length != 1 ||
+	   e.clipboardData.items[0].type.indexOf('image/') == -1)
+		return;
+
+	var item = e.clipboardData.items[0];
+	var extension = item.type.substr(6);
+	var filename = filenameEl.value.
+		replace(new RegExp('\\.' + extension + '$', 'i'), '');
+	if(!filename){
+		alert('[[type_filename]]');
+		return;
+	}
+	if(filename.match(/[\\/:*?"<>|]/)){
+		alert('[[characters_not_allowed_in_filename]]');
+		return;
+	}
+
+	filename += '.' + extension;
+	filenameEl.value = filename;
+
+	var blob = e.clipboardData.items[0].getAsFile();
+	var formData = new FormData();
+	formData.append('file', blob, filename);
+	ajax_request('../[[CGI]]/[[PAGE]]?wiki_upload', formData, function(xml_request){
+		var xml_response = ajax_responseXML(xml_request);
+		imageUploadedEl.style.display = 'block';
+		fileLinkExampleEl.innerHTML = '{' + xml_response.getElementById('file-link-example').innerHTML + '}';
+	});
+});
+}
+</script>
 </div>
 </form>
 </div>
