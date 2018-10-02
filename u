@@ -1677,7 +1677,13 @@ sub print_header{
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="stylesheet" type="text/css" href="[[CGI]]?css" />
 <link rel="alternate" type="application/rss+xml" title="[[recent_changes]]" href="[[CGI]]?rss" />
-<script src="[[CGI]]/[[PAGE]]?js"></script>
+<script src="[[CGI]]?js"></script>
+<script>
+window_onload(function(){
+	ajax_request('[[CGI]]/[[PAGE]]?user_info', null, process_menu,
+		'text/plain');
+});
+</script>
 </head>
 <body>
 <div id="container">
@@ -2536,11 +2542,6 @@ function window_onload(func){
 		window.attachEvent('onload', func);
 	}
 }
-
-window_onload(function(){
-	ajax_request('[[CGI]]/[[PAGE]]?user_info', null, process_menu,
-		'text/plain');
-});
 EOT_UNIQKI
 }
 
@@ -5311,13 +5312,11 @@ if($QUERY_STRING eq "login"){
 if($QUERY_STRING eq "css"){
 #-------------------------------------------------------------------------------
 # u?css			Print CSS
-# u/PAGE?css		Print CSS
 	print_css(2);
 	die;
 }elsif($QUERY_STRING eq "js"){
 #-------------------------------------------------------------------------------
 # u?js			Print JavaScript
-# u/PAGE?js		Print JavaScript
 	print_js(2);
 	die;
 }elsif($QUERY_STRING eq "user_info"){
