@@ -2448,10 +2448,12 @@ function ajax_request(url, data, func, mime_type){
 	if(window.ActiveXObject){ /* IE */
 		try{
 			xml_request = new ActiveXObject('Msxml2.XMLHTTP');
-		}catch(e){
+		}
+		catch(e){
 		try{
 			xml_request = new ActiveXObject('Microsoft.XMLHTTP');
-		}catch(e){}
+		}
+		catch(e){}
 		}
 	}
 	if(!xml_request){
