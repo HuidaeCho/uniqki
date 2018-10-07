@@ -1052,6 +1052,10 @@ sub decode_url{
 	return $url;
 }
 
+sub is_admin{
+	return $admin;
+}
+
 sub is_logged_in{
 	return $USER ne "";
 }
