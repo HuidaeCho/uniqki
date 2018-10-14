@@ -69,8 +69,8 @@ use vars qw(
 
 # Template variables
 use vars qw(
-	$TITLE $TEXT $PREVIEW $VERSION $TIME $PASSWORD_RESET_TOKEN $MESSAGE
-	$PARSING_TIME
+	$TITLE $TEXT $START $END $PREVIEW $VERSION $TIME $PASSWORD_RESET_TOKEN
+	$MESSAGE $PARSING_TIME
 );
 
 # Config and messages variables
@@ -127,11 +127,11 @@ use vars qw(
 
 # parse_file() local variables
 use vars qw(
-	$text $url_char $url_punct $child_block $code_block $syntax_block
-	@parsed_blocks $re_start $re_n @re @re_sub $p $asis $nosyntax $pre
-	$pre_code $blockquote $list $table $figure %h_n $h_top $h_prev %h_secs
-	%secs_no $toc $notoc $tab_no %tabs_n %tabs $lot $nolot $fig_no %figs_n
-	%figs $lof $nolof
+	$lineno $text $url_char $url_punct $child_block $code_block
+	$syntax_block @parsed_blocks $re_start $re_n @re @re_sub $p $asis
+	$nosyntax $pre $pre_code $blockquote $list $table $figure @h_lines %h_n
+	$h_top $h_prev %h_secs %secs_no $toc $notoc $tab_no %tabs_n %tabs $lot
+	$nolot $fig_no %figs_n %figs $lof $nolof
 );
 
 # Other global variables
@@ -1609,12 +1609,16 @@ sub process_tpl_tag{
 		print_edit();
 	}elsif($tag eq "WIKI_EDIT"){
 		print_wiki_edit();
+	}elsif($tag eq "EDIT_LINES"){
+		print_edit_lines();
+	}elsif($tag eq "WIKI_EDIT_LINES"){
+		print_wiki_edit_lines();
 	}elsif($tag =~ m/^[A-Z_]+$/){
 		my @tags = qw(
 			SITE_TITLE SITE_DESCRIPTION INDEX_PAGE TITLE LANG
-			CHARSET PAGE VERSION TEXT HTTP_BASE DOC_BASE PREVIEW
-			TIME CGI MESSAGE PASSWORD_RESET_TOKEN NAME AUTHOR
-			PARSING_TIME
+			CHARSET PAGE VERSION TEXT START END HTTP_BASE DOC_BASE
+			PREVIEW TIME CGI MESSAGE PASSWORD_RESET_TOKEN NAME
+			AUTHOR PARSING_TIME
 		);
 		my %hash;
 		@hash{@tags} = undef;
@@ -2063,6 +2067,81 @@ sub print_preview{
 EOT_UNIQKI
 }
 
+sub print_edit_lines{
+	process_tpl("edit_lines.tpl", shift, <<'EOT_UNIQKI');
+[[HEADER]]
+<div id="edit">
+<h1>[[edit_page]]</h1>
+<form action="[[PAGE]]?edit_lines" method="post" enctype="multipart/form-data">
+<div>
+<input type="hidden" id="version" name="version" value="[[VERSION]]" />
+<input type="hidden" id="start" name="start" value="[[START]]" />
+<input type="hidden" id="end" name="end" value="[[END]]" />
+<textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
+<br />
+<input accesskey="p" type="submit" id="preview" name="preview" value="[[preview]]" />
+<input accesskey="s" type="submit" id="save" name="save" value="[[save]]" /> .
+<a accesskey="c" href="[[PAGE]].html">[[cancel]]</a> .
+<a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
+<br />
+[[file_upload]] <input accesskey="f" type="file" id="file" name="file" />
+<br />
+<input accesskey="u" type="text" id="filename" name="filename" /> [[paste_image]]
+<div id="image-uploaded" style="display:none;">[[image_uploaded]]</div>
+<script>
+var filenameEl = document.getElementById('filename');
+var imageUploadedEl = document.getElementById('image-uploaded');
+var fileLinkExampleEl = document.getElementById('file-link-example');
+filenameEl.addEventListener('paste', function(e){
+	if(!e.clipboardData || !e.clipboardData.items ||
+	   e.clipboardData.items.length != 1 ||
+	   e.clipboardData.items[0].type.indexOf('image/') == -1)
+		return;
+
+	var item = e.clipboardData.items[0];
+	var extension = item.type.substr(6);
+	var filename = filenameEl.value.
+		replace(new RegExp('\\.' + extension + '$', 'i'), '');
+	if(!filename){
+		alert('[[type_filename]]');
+		return;
+	}
+	if(filename.match(/[\\/:*?"<>|]/)){
+		alert('[[characters_not_allowed_in_filename]]');
+		return;
+	}
+
+	filename += '.' + extension;
+	filenameEl.value = filename;
+
+	var blob = e.clipboardData.items[0].getAsFile();
+	var formData = new FormData();
+	formData.append('file', blob, filename);
+	ajax_request('../[[CGI]]/[[PAGE]]?upload', formData, function(xml_request){
+		imageUploadedEl.style.display = 'block';
+		fileLinkExampleEl.innerHTML = '{{{' + filename + '}}}';
+	});
+});
+</script>
+</div>
+</form>
+</div>
+[[FOOTER]]
+EOT_UNIQKI
+}
+
+sub print_preview_lines{
+	process_tpl("preview_lines.tpl", shift, <<'EOT_UNIQKI');
+[[HEADER]]
+<div id="preview-warning">[[preview_warning]]</div>
+<div id="preview">
+[[PREVIEW]]
+</div>
+[[EDIT_LINES]]
+[[FOOTER]]
+EOT_UNIQKI
+}
+
 sub print_updated{
 	process_tpl("updated.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
@@ -2175,6 +2254,86 @@ sub print_wiki_preview{
 [[PREVIEW]]
 </div>
 [[WIKI_EDIT]]
+[[FOOTER]]
+EOT_UNIQKI
+}
+
+sub print_wiki_edit_lines{
+	process_tpl("wiki_edit_lines.tpl", shift, <<'EOT_UNIQKI');
+[[HEADER]]
+<div id="wiki-edit">
+<h1>[[wiki_edit_page]]</h1>
+<form action="[[PAGE]]?wiki_edit_lines" method="post" enctype="multipart/form-data">
+<div>
+<input type="hidden" id="version" name="version" value="[[VERSION]]" />
+<input type="hidden" id="start" name="start" value="[[START]]" />
+<input type="hidden" id="end" name="end" value="[[END]]" />
+<textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea><br />
+<input accesskey="p" type="submit" id="preview" name="preview" value="[[preview]]" />
+<input accesskey="s" type="submit" id="save" name="save" value="[[save]]" /> .
+<a accesskey="c" href="[[PAGE]].html">[[cancel]]</a> .
+<a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
+<br />
+[[file_upload]] <input accesskey="f" type="file" id="file" name="file" />
+<br />
+<div id="paste_image" style="display:none;">
+<input accesskey="u" type="text" id="filename" name="filename" /> [[paste_image]]
+<div id="image-uploaded" style="display:none;">[[image_uploaded]]</div>
+</div>
+<script>
+if([[VERSION]] > 1){
+document.getElementById('paste_image').style.display = 'block';
+var filenameEl = document.getElementById('filename');
+var imageUploadedEl = document.getElementById('image-uploaded');
+var fileLinkExampleEl = document.getElementById('file-link-example');
+filenameEl.addEventListener('paste', function(e){
+	if(!e.clipboardData || !e.clipboardData.items ||
+	   e.clipboardData.items.length != 1 ||
+	   e.clipboardData.items[0].type.indexOf('image/') == -1)
+		return;
+
+	var item = e.clipboardData.items[0];
+	var extension = item.type.substr(6);
+	var filename = filenameEl.value.
+		replace(new RegExp('\\.' + extension + '$', 'i'), '');
+	if(!filename){
+		alert('[[type_filename]]');
+		return;
+	}
+	if(filename.match(/[\\/:*?"<>|]/)){
+		alert('[[characters_not_allowed_in_filename]]');
+		return;
+	}
+
+	filename += '.' + extension;
+	filenameEl.value = filename;
+
+	var blob = e.clipboardData.items[0].getAsFile();
+	var formData = new FormData();
+	formData.append('file', blob, filename);
+	ajax_request('../[[CGI]]/[[PAGE]]?wiki_upload', formData, function(xml_request){
+		var xml_response = ajax_responseXML(xml_request);
+		imageUploadedEl.style.display = 'block';
+		fileLinkExampleEl.innerHTML = '{' + xml_response.getElementById('file-link-example').innerHTML + '}';
+	});
+});
+}
+</script>
+</div>
+</form>
+</div>
+[[FOOTER]]
+EOT_UNIQKI
+}
+
+sub print_wiki_preview_lines{
+	process_tpl("wiki_preview_lines.tpl", shift, <<'EOT_UNIQKI');
+[[HEADER]]
+<div id="wiki-preview-warning">[[preview_warning]]</div>
+<div id="wiki-preview">
+[[PREVIEW]]
+</div>
+[[WIKI_EDIT_LINES]]
 [[FOOTER]]
 EOT_UNIQKI
 }
@@ -2344,6 +2503,10 @@ ol ol ol {
 }
 .toc-list, .toc-list ul {
 	list-style-type:	none;
+}
+.edit-section {
+	text-align:		right;
+	font-size:		smaller;
 }
 .lot-heading {
 	font-weight:		bold;
@@ -2648,7 +2811,6 @@ sub patch{
 
 sub save{
 	my ($PAGE, $TEXT) = @_;
-
 	my $version = 1;
 	my $txtv;
 
@@ -2680,6 +2842,45 @@ sub save{
 		my $time = time;
 		$txtv = "$version:$time:$REMOTE_ADDR:$USER\n";
 	}
+
+	write_file("$PAGE.txt.v", $txtv);
+	$rebuild = 1 if(write_file("$PAGE.txt", $TEXT));
+}
+
+sub save_lines{
+	my ($PAGE, $START, $END, $TEXT) = @_;
+	my $version = 1;
+	my $txtv;
+
+	unless(-f "$PAGE.txt"){
+		die_message("page_not_found", $PAGE);
+	}
+
+	local *FH;
+	if(open FH, "$PAGE.txt.v"){
+		my $line = <FH>;
+		local $/ = undef;
+		$txtv = $line.<FH>;
+		close FH;
+		my @items = split /:/, $line;
+		$version = $items[0];
+	}else{
+		my $time = (stat "$PAGE.txt")[9];
+		$txtv = "${version}::$time\n";
+	}
+	my $text = read_file("$PAGE.txt");
+
+	$TEXT = edit_lines("$PAGE.txt", $START, $END, $TEXT);
+
+	my $diff = diff($TEXT, $text);
+	if($diff eq ""){
+		$rebuild = 1;
+		return;
+	}
+
+	$version++;
+	my $time = time;
+	$txtv = "$version:$time:$REMOTE_ADDR:$USER\n$diff\x00\n$txtv";
 
 	write_file("$PAGE.txt.v", $txtv);
 	$rebuild = 1 if(write_file("$PAGE.txt", $TEXT));
@@ -2814,6 +3015,44 @@ sub preview{
 		print_wiki_preview();
 	}else{
 		print_preview();
+	}
+}
+
+sub preview_lines{
+	local $PAGE = shift;
+	local $START = shift;
+	local $END = shift;
+	local $TEXT = shift;
+	my $uploaded = shift;
+	my $wiki_edit = shift;
+	my $txt;
+
+	local $TITLE;
+	local $PREVIEW;
+	local $wiki;
+	local $html_started = 0;
+	local $header_printed = 0;
+	local $footer_printed = 0;
+
+	write_file(\$txt, read_lines("$PAGE.txt", 1, $START - 1)."$TEXT\n");
+
+	$PREVIEW = parse_file(\$txt, $START);
+	chomp $PREVIEW;
+
+	unless(defined $TITLE){
+		if($PAGE eq $INDEX_PAGE){
+			($TITLE = $SITE_TITLE) =~ s/<[^>]*>//g;
+		}else{
+			$TITLE = $PAGE;
+		}
+	}
+	$PREVIEW = $uploaded.$PREVIEW;
+	$TEXT =~ s/&/&amp;/g; $TEXT =~ s/</&lt;/g; $TEXT =~ s/>/&gt;/g;
+
+	if($wiki_edit){
+		print_wiki_preview_lines();
+	}else{
+		print_preview_lines();
 	}
 }
 
@@ -3727,6 +3966,41 @@ sub write_file{
 	return 0;
 }
 
+sub read_lines{
+	my ($file, $start, $end) = @_;
+	my $lines = "";
+	local *FH;
+
+	$start = 1 if($start <= 0);
+	return $lines if(defined $end && $start > $end);
+
+	# "<" is required for the in-memory file
+	if(open FH, "<", $file){
+		# sysread is faster, but it doesn't work with in-memory files.
+		if($start == 1 && !defined $end){
+			local $/ = undef;
+			$lines = <FH>;
+		}else{
+			my $nlines = $end - $start + 1;
+			<FH> while(--$start);
+			while(<FH>){
+				last unless($nlines--);
+				$lines .= $_;
+			}
+		}
+		close FH;
+	}
+
+	return $lines;
+}
+
+sub edit_lines{
+	my ($file, $start, $end, $lines) = @_;
+	my $text = read_lines($file, 1, $start - 1).$lines;
+	$text .= read_lines($file, $end + 1) if($end > 0);
+	return $text;
+}
+
 ################################################################################
 # Parsing subroutines
 sub prepare_parser{
@@ -3765,7 +4039,7 @@ sub parse{
 }
 
 sub parse_file{
-	my $file = shift;
+	my ($file, $start) = @_;
 	local *UNIQKI_FH;
 
 	return "" unless(open UNIQKI_FH, "<", $file);
@@ -3775,9 +4049,9 @@ sub parse_file{
 	local ($text, $url_char, $url_punct, $child_block, $code_block,
 		$syntax_block, @parsed_blocks, $re_start, $re_n, @re, @re_sub,
 		$p, $asis, $nosyntax, $pre, $pre_code, $blockquote, $list,
-		$table, $figure, %h_n, $h_top, $h_prev, %h_secs, %secs_no,
-		$toc, $notoc, $tab_no, %tabs_n, %tabs, $lot, $nolot, $fig_no,
-		%figs_n, %figs, $lof, $nolof);
+		$table, $figure, @h_lines, %h_n, $h_top, $h_prev, %h_secs,
+		%secs_no, $toc, $notoc, $tab_no, %tabs_n, %tabs, $lot, $nolot,
+		$fig_no, %figs_n, %figs, $lof, $nolof);
 	my @files = ();
 
 	push @files, $HEADER_FILE;
@@ -3817,7 +4091,17 @@ sub parse_file{
 	foreach(@files){
 		# "<" is required for the in-memory file
 		next if($_ eq "" || !open UNIQKI_FH, "<", $_);
-		$text .= parse($_, @parse_line) while(<UNIQKI_FH>);
+		my $page_file = $file eq $_;
+
+		local $lineno = 0;
+		while(<UNIQKI_FH>){
+			$lineno++;
+			if(defined $start && $page_file && $lineno == $start){
+				$text = "";
+				$notoc = $nolot = $nolof = 1;
+			}
+			$text .= parse($_, @parse_line);
+		}
 		close UNIQKI_FH;
 	}
 	$_->() foreach(@end_parsing);
@@ -3853,9 +4137,9 @@ sub parse_child_block{
 	local ($text, $url_char, $url_punct, $child_block, $code_block,
 		$syntax_block, @parsed_blocks, $re_start, $re_n, @re, @re_sub,
 		$p, $asis, $nosyntax, $pre, $pre_code, $blockquote, $list,
-		$table, $figure, %h_n, $h_top, $h_prev, %h_secs, %secs_no,
-		$toc, $notoc, $tab_no, %tabs_n, %tabs, $lot, $nolot, $fig_no,
-		%figs_n, %figs, $lof, $nolof);
+		$table, $figure, @h_lines, %h_n, $h_top, $h_prev, %h_secs,
+		%secs_no, $toc, $notoc, $tab_no, %tabs_n, %tabs, $lot, $nolot,
+		$fig_no, %figs_n, %figs, $lof, $nolof);
 
 	$_->() foreach(@begin_parsing);
 	$text .= parse_lines($txt);
@@ -3882,6 +4166,14 @@ sub parse_lines{
 	local $text;
 	$text .= parse($_, @parse_line) foreach(split /\n/, $txt, -1);
 	return $text;
+}
+
+sub create_edit_section{
+	push @h_lines, $wiki ? 2 : 1 if($#h_lines == -1);
+	my $edit = ($wiki ? "wiki_" : "")."edit_lines";
+	my $lines = $h_lines[$#h_lines].($lineno ? ",".($lineno-1) : "");
+	push @h_lines, $lineno;
+	$text .= qq(<div class="write-access edit-section"><a href="$CGI/$PAGE?$edit=$lines">$MESSAGES{edit}</a></div>);
 }
 
 sub run_code_block{
@@ -4896,6 +5188,8 @@ sub process_line_syntax{
 		# Discard none characters
 		y/\x00//d;
 		close_paragraph();
+		create_edit_section();
+
 		if($i == 1){
 			if($TITLE eq ""){
 				$TITLE = $_;
@@ -5088,6 +5382,7 @@ sub begin_parsing{
 		$re_n = 0;
 		@re = ();
 		@re_sub = ();
+		@h_lines = ();
 		%h_n = ();
 		$h_top = 0;
 		$h_prev = 0;
@@ -5149,6 +5444,8 @@ sub end_parsing{
 	my $block_level = shift;
 
 	$_->() foreach(@close_all_open);
+	create_edit_section();
+
 	if(!$block_level){
 		$text = "\x05$text" unless($text =~ m/\x05/);
 		if(!$notoc && $toc ne ""){
@@ -5202,6 +5499,7 @@ sub end_parsing{
 		$re_n = 0;
 		@re = ();
 		@re_sub = ();
+		@h_lines = ();
 		%h_n = ();
 		$h_top = 0;
 		$h_prev = 0;
@@ -6227,8 +6525,8 @@ EOT
 		}
 		die_message($msg_id, $PAGE);
 	}
-	if($REQUEST_METHOD eq "GET"){
-		if($QUERY_STRING =~ m/^wiki_edit(?:=(-?[0-9]+))?$/){
+	if($QUERY_STRING =~ m/^wiki_edit(?:=(-?[0-9]+))?$/){
+		if($REQUEST_METHOD eq "GET"){
 #-------------------------------------------------------------------------------
 # u/PAGE?wiki_edit		Create/edit PAGE
 # u/PAGE?wiki_edit=([0-9]+)	Edit the version \1 of PAGE
@@ -6286,18 +6584,141 @@ EOT
 			$VERSION++;
 			preprocess_text_data();
 			print_wiki_edit();
+			die;
+		}else{
+			my %var = get_var();
+			die_rebuild($PAGE) unless(verify_input_data($QUERY_STRING, \%var));
+
+			local *FH;
+			my $t = time;
+
+			if(-f "$PAGE.txt"){
+				open FH, "$PAGE.txt";
+				if(<FH> ne "#!wiki\n"){
+					close FH;
+					die_message("internal_errors");
+				}
+				close FH;
+			}
+
+			local $VERSION = $var{version};
+			local $TEXT = $var{text};
+			if($VERSION != get_version($PAGE) + 1){
+				print_updated();
+				die;
+			}
+			if($var{file} ne "" && $var{file} =~ m/$WIKI_FILES_ALLOWED/oi){
+				mkdir $PAGE, 0755 if(!-d $PAGE);
+				write_file("$PAGE/$t.$var{file}", $var{"file="}, 1);
+				chmod 0755, "$PAGE/$t.$var{file}" if($hosting eq "awardspace");
+				if($var{preview} eq ""){
+					(my $f = $var{file}) =~ s/ /%20/g;
+					$TEXT .= "\n[$PAGE/$t.$f $var{file}]";
+				}
+			}
+			if($var{preview} ne ""){
+				my $uploaded;
+				if($var{file} ne "" && -f "$PAGE/$t.$var{file}"){
+					$uploaded = get_msg("wiki_file_uploaded", $var{file},
+						"$t.$var{file}");
+				}
+
+				preview($PAGE, $TEXT, $uploaded, 1);
+				die;
+			}
+
+			lock_file("$PAGE.txt");
+			save($PAGE, "#!wiki\n$TEXT\n");
+			unlock_file("$PAGE.txt");
 		}
-		die;
-	}
-
-	my %var = get_var();
-	die_rebuild($PAGE) unless(verify_input_data($QUERY_STRING, \%var));
-
-	local *FH;
-	my $t = time;
-	if($QUERY_STRING eq "wiki_upload"){
+	}elsif($QUERY_STRING =~ m/^wiki_edit_lines(?:=([0-9]+)(?:,([0-9]+))?)?$/){
 #-------------------------------------------------------------------------------
-# Wiki upload
+# u/PAGE?wiki_edit_lines			Save new PAGE lines
+# u/PAGE?wiki_edit_lines=([0-9]+),([0-9]+)	Edit PAGE lines from \1 to \2
+# u/PAGE?wiki_edit_lines=([0-9]+)		Edit PAGE lines from \1 to end
+		if($REQUEST_METHOD eq "GET"){
+			unless(-f "$PAGE.txt"){
+				die_message("page_not_found", $PAGE);
+			}
+			open FH, "$PAGE.txt";
+			if(<FH> ne "#!wiki\n"){
+				close FH;
+				die_message("internal_errors");
+			}
+			close FH;
+
+			local $TITLE = $PAGE;
+			local $VERSION = get_version($PAGE) + 1;
+			local $START = $1;
+			local $END = $2;
+			$START = 2 if($START <= 1);
+			$END = 2 if($END == 1);
+			local $TEXT = read_lines("$PAGE.txt", $START, $END);
+			if($TEXT ne ""){
+				$TEXT =~ s/&/&amp;/g;
+				$TEXT =~ s/</&lt;/g;
+				$TEXT =~ s/>/&gt;/g;
+			}
+			preprocess_text_data();
+			print_wiki_edit_lines();
+			die;
+		}else{
+			my %var = get_var();
+			die_rebuild($PAGE) unless(verify_input_data($QUERY_STRING, \%var));
+
+			local *FH;
+			my $t = time;
+
+			if(-f "$PAGE.txt"){
+				open FH, "$PAGE.txt";
+				if(<FH> ne "#!wiki\n"){
+					close FH;
+					die_message("internal_errors");
+				}
+				close FH;
+			}
+
+			local $VERSION = $var{version};
+			local $START = $var{start};
+			local $END = $var{end};
+			local $TEXT = $var{text};
+			if($VERSION != get_version($PAGE) + 1){
+				print_updated();
+				die;
+			}
+			if($var{file} ne "" && $var{file} =~ m/$WIKI_FILES_ALLOWED/oi){
+				mkdir $PAGE, 0755 if(!-d $PAGE);
+				write_file("$PAGE/$t.$var{file}", $var{"file="}, 1);
+				chmod 0755, "$PAGE/$t.$var{file}" if($hosting eq "awardspace");
+				if($var{preview} eq ""){
+					(my $f = $var{file}) =~ s/ /%20/g;
+					$TEXT .= "\n[$PAGE/$t.$f $var{file}]";
+				}
+			}
+			if($var{preview} ne ""){
+				my $uploaded;
+				if($var{file} ne "" && -f "$PAGE/$t.$var{file}"){
+					$uploaded = get_msg("wiki_file_uploaded", $var{file},
+						"$t.$var{file}");
+				}
+
+				preview_lines($PAGE, $START, $END, $TEXT, $uploaded, 1);
+				die;
+			}
+
+			lock_file("$PAGE.txt");
+			save_lines($PAGE, $START, $END, "$TEXT\n");
+			unlock_file("$PAGE.txt");
+		}
+	}elsif($QUERY_STRING eq "wiki_upload"){
+#-------------------------------------------------------------------------------
+# u/PAGE?wiki_upload	Wiki upload
+		my %var = get_var();
+		die_rebuild($PAGE) unless(verify_input_data($QUERY_STRING, \%var));
+
+		local *FH;
+		my $t = time;
+
 		die_message("internal_errors") if($var{file} eq "");
 		die_message("page_not_found", $PAGE) unless(-f "$PAGE.txt");
 		die_message("wiki_file_not_allowed", $var{file})
@@ -6316,44 +6737,6 @@ EOT
 		chmod 0755, "$PAGE/$t.$var{file}" if($hosting eq "awardspace");
 		die_message("wiki_file_uploaded", $var{file}, "$t.$var{file}");
 	}
-	if(-f "$PAGE.txt"){
-		open FH, "$PAGE.txt";
-		if(<FH> ne "#!wiki\n"){
-			close FH;
-			die_message("internal_errors");
-		}
-		close FH;
-	}
-
-	local $VERSION = $var{version};
-	local $TEXT = $var{text};
-	if($VERSION != get_version($PAGE) + 1){
-		print_updated();
-		die;
-	}
-	if($var{file} ne "" && $var{file} =~ m/$WIKI_FILES_ALLOWED/oi){
-		mkdir $PAGE, 0755 if(!-d $PAGE);
-		write_file("$PAGE/$t.$var{file}", $var{"file="}, 1);
-		chmod 0755, "$PAGE/$t.$var{file}" if($hosting eq "awardspace");
-		if($var{preview} eq ""){
-			(my $f = $var{file}) =~ s/ /%20/g;
-			$TEXT .= "\n[$PAGE/$t.$f $var{file}]";
-		}
-	}
-	if($var{preview} ne ""){
-		my $uploaded;
-		if($var{file} ne "" && -f "$PAGE/$t.$var{file}"){
-			$uploaded = get_msg("wiki_file_uploaded", $var{file},
-				"$t.$var{file}");
-		}
-
-		preview($PAGE, $TEXT, $uploaded, 1);
-		die;
-	}
-
-	lock_file("$PAGE.txt");
-	save($PAGE, "#!wiki\n$TEXT\n");
-	unlock_file("$PAGE.txt");
 }elsif(!$admin){
 ################################################################################
 # Admin actions
@@ -6926,6 +7309,60 @@ EOT
 	}
 	lock_file("$PAGE.txt");
 	save($PAGE, "$TEXT\n");
+	unlock_file("$PAGE.txt");
+}elsif($QUERY_STRING =~ m/^edit_lines(?:=([0-9]+)(?:,([0-9]+))?)?$/){
+#-------------------------------------------------------------------------------
+# u/PAGE?edit_lines			Save new PAGE lines
+# u/PAGE?edit_lines=([0-9]+),([0-9]+)	Edit PAGE lines from \1 to \2
+# u/PAGE?edit_lines=([0-9]+)		Edit PAGE lines from \1 to end
+	unless(-f "$PAGE.txt"){
+		die_message("page_not_found", $PAGE);
+	}
+
+	local $TITLE = $PAGE;
+	local ($VERSION, $START, $END, $TEXT);
+	if($REQUEST_METHOD eq "GET"){
+		$VERSION = get_version($PAGE) + 1;
+		$START = $1;
+		$END = $2;
+		$TEXT = read_lines("$PAGE.txt", $START, $END);
+		if($TEXT ne ""){
+			$TEXT =~ s/&/&amp;/g;
+			$TEXT =~ s/</&lt;/g;
+			$TEXT =~ s/>/&gt;/g;
+		}
+		preprocess_text_data();
+		print_edit_lines();
+		die;
+	}
+
+	my %var = get_var();
+	die_rebuild($PAGE) unless(verify_input_data("edit", \%var));
+
+	$VERSION = $var{version};
+	$START = $var{start};
+	$END = $var{end};
+	$TEXT = $var{text};
+	if($VERSION != get_version($PAGE) + 1){
+		print_updated();
+		die;
+	}
+	if($var{file} ne ""){
+		mkdir $PAGE, 0755 if(!-d $PAGE);
+		write_file("$PAGE/$var{file}", $var{"file="}, 1);
+		chmod 0755, "$PAGE/$var{file}" if($hosting eq "awardspace");
+	}
+	if($var{preview} ne ""){
+		my $uploaded;
+		if($var{file} ne "" && -f "$PAGE/$var{file}"){
+			$uploaded = get_msg("file_uploaded", $var{file});
+		}
+
+		preview_lines($PAGE, $START, $END, $TEXT, $uploaded, 0);
+		die;
+	}
+	lock_file("$PAGE.txt");
+	save_lines($PAGE, $START, $END, "$TEXT\n");
 	unlock_file("$PAGE.txt");
 }elsif($QUERY_STRING =~ m/^revert(?:=(-?[0-9]+))?$/){
 #-------------------------------------------------------------------------------
