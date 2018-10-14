@@ -2496,6 +2496,10 @@ ol ol ol {
 }
 
 /******************************************************************************/
+.edit-section {
+	text-align:		right;
+	font-size:		smaller;
+}
 #toc {
 }
 .toc-heading {
@@ -2503,10 +2507,6 @@ ol ol ol {
 }
 .toc-list, .toc-list ul {
 	list-style-type:	none;
-}
-.edit-section {
-	text-align:		right;
-	font-size:		smaller;
 }
 .lot-heading {
 	font-weight:		bold;
