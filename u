@@ -2498,7 +2498,7 @@ ol ol ol {
 /******************************************************************************/
 .edit-section {
 	text-align:		right;
-	font-size:		smaller;
+	font-size:		70%;
 }
 #toc {
 }
@@ -3971,8 +3971,10 @@ sub read_lines{
 	my $lines = "";
 	local *FH;
 
+	return $lines if(defined $end &&
+		(($start <= 0 && $end <= 0) || ($start > $end)));
+
 	$start = 1 if($start <= 0);
-	return $lines if(defined $end && $start > $end);
 
 	# "<" is required for the in-memory file
 	if(open FH, "<", $file){
@@ -3996,8 +3998,9 @@ sub read_lines{
 
 sub edit_lines{
 	my ($file, $start, $end, $lines) = @_;
-	my $text = read_lines($file, 1, $start - 1).$lines;
-	$text .= read_lines($file, $end + 1) if($end > 0);
+	my $text = read_lines($file, 0, $start - 1).
+		($lines eq "" ? "" : "$lines\n");
+	$text .= read_lines($file, $end + 1) if((!$start && !$end) || $end > 0);
 	return $text;
 }
 
@@ -4169,7 +4172,7 @@ sub parse_lines{
 }
 
 sub create_edit_section{
-	push @h_lines, $wiki ? 2 : 1 if($#h_lines == -1);
+	push @h_lines, 0 if($#h_lines == -1);
 	my $edit = ($wiki ? "wiki_" : "")."edit_lines";
 	my $lines = $h_lines[$#h_lines].($lineno ? ",".($lineno-1) : "");
 	push @h_lines, $lineno;
@@ -6707,7 +6710,7 @@ EOT
 			}
 
 			lock_file("$PAGE.txt");
-			save_lines($PAGE, $START, $END, "$TEXT\n");
+			save_lines($PAGE, $START, $END, $TEXT);
 			unlock_file("$PAGE.txt");
 		}
 	}elsif($QUERY_STRING eq "wiki_upload"){
@@ -7362,7 +7365,7 @@ EOT
 		die;
 	}
 	lock_file("$PAGE.txt");
-	save_lines($PAGE, $START, $END, "$TEXT\n");
+	save_lines($PAGE, $START, $END, $TEXT);
 	unlock_file("$PAGE.txt");
 }elsif($QUERY_STRING =~ m/^revert(?:=(-?[0-9]+))?$/){
 #-------------------------------------------------------------------------------
