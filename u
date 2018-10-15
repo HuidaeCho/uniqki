@@ -1436,6 +1436,9 @@ save_your_changes_and_read_latest_version => q(Please save your changes and read
 edit_page => q(Edit [[PAGE]]),
 wiki_edit_page => q(WikiEdit [[PAGE]]),
 
+edit_lines => q(Edit [[PAGE]] (lines [[START]]+[[COUNT]])),
+wiki_edit_lines => q(WikiEdit [[PAGE]] (lines [[START]]+[[COUNT]])),
+
 ################################################################################
 # Non-template messages: These messages support printf format specifiers such
 # as %s, but [[...]] tags cannot be used.
@@ -1630,7 +1633,7 @@ sub process_tpl_tag{
 	}elsif($tag =~ m/^[a-z_]+$/){
 		$txt = get_msg($tag);
 		my @tags = qw(
-			PAGE TIME AUTHOR PARSING_TIME
+			PAGE START COUNT TIME AUTHOR PARSING_TIME
 		);
 
 		no strict;
@@ -2039,7 +2042,7 @@ sub print_edit_lines{
 	process_tpl("edit_lines.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="edit">
-<h1>[[edit_page]]</h1>
+<h1>[[edit_lines]]</h1>
 <form action="[[PAGE]]?edit_lines" method="post" enctype="multipart/form-data">
 <div>
 <input type="hidden" id="version" name="version" value="[[VERSION]]" />
@@ -2162,7 +2165,7 @@ sub print_wiki_edit_lines{
 	process_tpl("wiki_edit_lines.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="wiki-edit">
-<h1>[[wiki_edit_page]]</h1>
+<h1>[[wiki_edit_lines]]</h1>
 <form action="[[PAGE]]?wiki_edit_lines" method="post" enctype="multipart/form-data">
 <div>
 <input type="hidden" id="version" name="version" value="[[VERSION]]" />
