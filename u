@@ -5446,9 +5446,9 @@ sub end_parsing{
 	my $block_level = shift;
 
 	$_->() foreach(@close_all_open);
-	create_edit_section() if($#h_lines >= 0);
 
 	if(!$block_level){
+		create_edit_section() if($#h_lines >= 0);
 		$text = "\x05$text" unless($text =~ m/\x05/);
 		if(!$notoc && $toc ne ""){
 			my $i = $h_prev;
