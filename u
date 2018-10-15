@@ -69,8 +69,8 @@ use vars qw(
 
 # Template variables
 use vars qw(
-	$TITLE $TEXT $START $END $PREVIEW $VERSION $TIME $PASSWORD_RESET_TOKEN
-	$MESSAGE $PARSING_TIME
+	$TITLE $TEXT $START $COUNT $PREVIEW $VERSION $TIME
+	$PASSWORD_RESET_TOKEN $MESSAGE $PARSING_TIME
 );
 
 # Config and messages variables
@@ -1616,7 +1616,7 @@ sub process_tpl_tag{
 	}elsif($tag =~ m/^[A-Z_]+$/){
 		my @tags = qw(
 			SITE_TITLE SITE_DESCRIPTION INDEX_PAGE TITLE LANG
-			CHARSET PAGE VERSION TEXT START END HTTP_BASE DOC_BASE
+			CHARSET PAGE VERSION TEXT START COUNT HTTP_BASE DOC_BASE
 			PREVIEW TIME CGI MESSAGE PASSWORD_RESET_TOKEN NAME
 			AUTHOR PARSING_TIME
 		);
@@ -2076,7 +2076,7 @@ sub print_edit_lines{
 <div>
 <input type="hidden" id="version" name="version" value="[[VERSION]]" />
 <input type="hidden" id="start" name="start" value="[[START]]" />
-<input type="hidden" id="end" name="end" value="[[END]]" />
+<input type="hidden" id="count" name="count" value="[[COUNT]]" />
 <textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
 <br />
 <input accesskey="p" type="submit" id="preview" name="preview" value="[[preview]]" />
@@ -2267,7 +2267,7 @@ sub print_wiki_edit_lines{
 <div>
 <input type="hidden" id="version" name="version" value="[[VERSION]]" />
 <input type="hidden" id="start" name="start" value="[[START]]" />
-<input type="hidden" id="end" name="end" value="[[END]]" />
+<input type="hidden" id="count" name="count" value="[[COUNT]]" />
 <textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea><br />
 <input accesskey="p" type="submit" id="preview" name="preview" value="[[preview]]" />
 <input accesskey="s" type="submit" id="save" name="save" value="[[save]]" /> .
@@ -2848,7 +2848,7 @@ sub save{
 }
 
 sub save_lines{
-	my ($PAGE, $START, $END, $TEXT) = @_;
+	my ($PAGE, $START, $COUNT, $TEXT) = @_;
 	my $version = 1;
 	my $txtv;
 
@@ -2870,7 +2870,7 @@ sub save_lines{
 	}
 	my $text = read_file("$PAGE.txt");
 
-	$TEXT = edit_lines("$PAGE.txt", $START, $END, $TEXT);
+	$TEXT = edit_lines("$PAGE.txt", $START, $COUNT, $TEXT);
 
 	my $diff = diff($TEXT, $text);
 	if($diff eq ""){
@@ -3021,7 +3021,7 @@ sub preview{
 sub preview_lines{
 	local $PAGE = shift;
 	local $START = shift;
-	local $END = shift;
+	local $COUNT = shift;
 	local $TEXT = shift;
 	my $uploaded = shift;
 	my $wiki_edit = shift;
@@ -3967,26 +3967,22 @@ sub write_file{
 }
 
 sub read_lines{
-	my ($file, $start, $end) = @_;
+	my ($file, $start, $count) = @_;
 	my $lines = "";
 	local *FH;
 
-	return $lines if(defined $end &&
-		(($start <= 0 && $end <= 0) || ($start > $end)));
-
-	$start = 1 if($start <= 0);
+	return $lines if(defined $count && $count <= 0);
 
 	# "<" is required for the in-memory file
 	if(open FH, "<", $file){
 		# sysread is faster, but it doesn't work with in-memory files.
-		if($start == 1 && !defined $end){
+		<FH> while(--$start);
+		if(!defined $count){
 			local $/ = undef;
 			$lines = <FH>;
 		}else{
-			my $nlines = $end - $start + 1;
-			<FH> while(--$start);
 			while(<FH>){
-				last unless($nlines--);
+				last unless($count--);
 				$lines .= $_;
 			}
 		}
@@ -3997,10 +3993,12 @@ sub read_lines{
 }
 
 sub edit_lines{
-	my ($file, $start, $end, $lines) = @_;
-	my $text = read_lines($file, 0, $start - 1).
+	# $count eq "":	edit from $start to end
+	# $count == 0:	insert at $start
+	my ($file, $start, $count, $lines) = @_;
+	my $text = read_lines($file, 1, $start - 1).
 		($lines eq "" ? "" : "$lines\n");
-	$text .= read_lines($file, $end + 1) if((!$start && !$end) || $end > 0);
+	$text .= read_lines($file, $start + $count) if($count ne "");
 	return $text;
 }
 
@@ -4172,9 +4170,10 @@ sub parse_lines{
 }
 
 sub create_edit_section{
-	push @h_lines, 0 if($#h_lines == -1);
+	push @h_lines, 1 + $wiki if($#h_lines == -1);
 	my $edit = ($wiki ? "wiki_" : "")."edit_lines";
-	my $lines = $h_lines[$#h_lines].($lineno ? ",".($lineno-1) : "");
+	my $start = $h_lines[$#h_lines];
+	my $lines = $start.($lineno ? ",".($lineno-$start) : "");
 	push @h_lines, $lineno;
 	$text .= qq(<div class="write-access edit-section"><a href="$CGI/$PAGE?$edit=$lines">$MESSAGES{edit}</a></div>);
 }
@@ -6637,7 +6636,7 @@ EOT
 	}elsif($QUERY_STRING =~ m/^wiki_edit_lines(?:=([0-9]+)(?:,([0-9]+))?)?$/){
 #-------------------------------------------------------------------------------
 # u/PAGE?wiki_edit_lines			Save new PAGE lines
-# u/PAGE?wiki_edit_lines=([0-9]+),([0-9]+)	Edit PAGE lines from \1 to \2
+# u/PAGE?wiki_edit_lines=([0-9]+),([0-9]+)	Edit PAGE \2 lines from \1
 # u/PAGE?wiki_edit_lines=([0-9]+)		Edit PAGE lines from \1 to end
 		if($REQUEST_METHOD eq "GET"){
 			unless(-f "$PAGE.txt"){
@@ -6653,10 +6652,9 @@ EOT
 			local $TITLE = $PAGE;
 			local $VERSION = get_version($PAGE) + 1;
 			local $START = $1;
-			local $END = $2;
-			$START = 2 if($START <= 1);
-			$END = 2 if($END == 1);
-			local $TEXT = read_lines("$PAGE.txt", $START, $END);
+			local $COUNT = $2;
+			$START = 2 if($START < 2);
+			local $TEXT = read_lines("$PAGE.txt", $START, $COUNT);
 			if($TEXT ne ""){
 				$TEXT =~ s/&/&amp;/g;
 				$TEXT =~ s/</&lt;/g;
@@ -6683,7 +6681,7 @@ EOT
 
 			local $VERSION = $var{version};
 			local $START = $var{start};
-			local $END = $var{end};
+			local $COUNT = $var{count};
 			local $TEXT = $var{text};
 			if($VERSION != get_version($PAGE) + 1){
 				print_updated();
@@ -6705,12 +6703,13 @@ EOT
 						"$t.$var{file}");
 				}
 
-				preview_lines($PAGE, $START, $END, $TEXT, $uploaded, 1);
+				preview_lines($PAGE, $START, $COUNT, $TEXT,
+					$uploaded, 1);
 				die;
 			}
 
 			lock_file("$PAGE.txt");
-			save_lines($PAGE, $START, $END, $TEXT);
+			save_lines($PAGE, $START, $COUNT, $TEXT);
 			unlock_file("$PAGE.txt");
 		}
 	}elsif($QUERY_STRING eq "wiki_upload"){
@@ -7316,19 +7315,19 @@ EOT
 }elsif($QUERY_STRING =~ m/^edit_lines(?:=([0-9]+)(?:,([0-9]+))?)?$/){
 #-------------------------------------------------------------------------------
 # u/PAGE?edit_lines			Save new PAGE lines
-# u/PAGE?edit_lines=([0-9]+),([0-9]+)	Edit PAGE lines from \1 to \2
+# u/PAGE?edit_lines=([0-9]+),([0-9]+)	Edit PAGE \2 lines from \1
 # u/PAGE?edit_lines=([0-9]+)		Edit PAGE lines from \1 to end
 	unless(-f "$PAGE.txt"){
 		die_message("page_not_found", $PAGE);
 	}
 
 	local $TITLE = $PAGE;
-	local ($VERSION, $START, $END, $TEXT);
+	local ($VERSION, $START, $COUNT, $TEXT);
 	if($REQUEST_METHOD eq "GET"){
 		$VERSION = get_version($PAGE) + 1;
 		$START = $1;
-		$END = $2;
-		$TEXT = read_lines("$PAGE.txt", $START, $END);
+		$COUNT = $2;
+		$TEXT = read_lines("$PAGE.txt", $START, $COUNT);
 		if($TEXT ne ""){
 			$TEXT =~ s/&/&amp;/g;
 			$TEXT =~ s/</&lt;/g;
@@ -7344,7 +7343,7 @@ EOT
 
 	$VERSION = $var{version};
 	$START = $var{start};
-	$END = $var{end};
+	$COUNT = $var{count};
 	$TEXT = $var{text};
 	if($VERSION != get_version($PAGE) + 1){
 		print_updated();
@@ -7361,11 +7360,11 @@ EOT
 			$uploaded = get_msg("file_uploaded", $var{file});
 		}
 
-		preview_lines($PAGE, $START, $END, $TEXT, $uploaded, 0);
+		preview_lines($PAGE, $START, $COUNT, $TEXT, $uploaded, 0);
 		die;
 	}
 	lock_file("$PAGE.txt");
-	save_lines($PAGE, $START, $END, $TEXT);
+	save_lines($PAGE, $START, $COUNT, $TEXT);
 	unlock_file("$PAGE.txt");
 }elsif($QUERY_STRING =~ m/^revert(?:=(-?[0-9]+))?$/){
 #-------------------------------------------------------------------------------
