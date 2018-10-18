@@ -156,7 +156,7 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 		if("-" eq substr $ARGV[$i], 0, 1){
 			my $name = substr $ARGV[$i], 1;
 			if($name eq "p" || $name eq "c" || $name eq "k" ||
-				$name eq "i" || $name eq "f"){
+			   $name eq "i" || $name eq "f"){
 				die "$ARGV[$i] option requires a value"
 					if($i + 1 > $#ARGV);
 				$opt{$name} = $ARGV[++$i];
@@ -386,10 +386,10 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 			my $request_file = $request_uri eq "" ? $opt{i} :
 				decode_url($request_uri);
 			if(($ENV{REQUEST_METHOD} ne "GET" &&
-				$ENV{REQUEST_METHOD} ne "POST") ||
-				"/" ne substr($ENV{REQUEST_URI}, 0, 1) ||
-				($ENV{REQUEST_METHOD} eq "POST" &&
-					$request_uri !~ m#^$u(?:/.*)?$#)){
+			    $ENV{REQUEST_METHOD} ne "POST") ||
+			   "/" ne substr($ENV{REQUEST_URI}, 0, 1) ||
+			   ($ENV{REQUEST_METHOD} eq "POST" &&
+			    $request_uri !~ m#^$u(?:/.*)?$#)){
 				respond_error($client, "400 Bad Request");
 			}elsif(($win &&
 			   (($opt{c} ne "" && lc $request_file eq lc $opt{c}) ||
@@ -647,8 +647,8 @@ sub config_page_name_style{
 	}
 
 	if($case ne "upper_case" && $case ne "mixed_case" &&
-		$case ne "start_case" && $case ne "lower_camel_case" &&
-		$case ne "upper_camel_case"){
+	   $case ne "start_case" && $case ne "lower_camel_case" &&
+	   $case ne "upper_camel_case"){
 		# default lower_case
 		$case = "lower_case";
 	}
@@ -1083,7 +1083,7 @@ sub has_write_access{
 	if($comment){
 		return 1 if($nonwiki_comment_access eq "open");
 		return 1 if($nonwiki_comment_access eq "closed" &&
-			is_logged_in());
+			    is_logged_in());
 	}
 	return 0;
 }
@@ -1560,8 +1560,8 @@ sub is_password{
 	my $pw = shift;
 	my $len = length($pw);
 	return $len >= 8 && $len <= 128 &&
-		$pw =~ m/[a-zA-Z]/ && $pw =~ m/[0-9]/ &&
-		$pw =~ m/[`~!@#\$%^&*_+=\\|;:'",.\/?()\[\]{}<>]/;
+	       $pw =~ m/[a-zA-Z]/ && $pw =~ m/[0-9]/ &&
+	       $pw =~ m/[`~!@#\$%^&*_+=\\|;:'",.\/?()\[\]{}<>]/;
 }
 
 sub is_email_address{
@@ -1569,7 +1569,7 @@ sub is_email_address{
 	my $email = shift;
 	my $len = length($email);
 	return $len >= 6 && $len <= 254 &&
-		$email =~ m/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+	       $email =~ m/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
 }
 
 sub is_full_name{
@@ -3193,7 +3193,7 @@ sub find_user_info{
 			$userline =~ y/\r\n//d;
 		}
 	}elsif($method == 2 &&
-		"$user:" eq substr $adminpw, 0, length("$user:")){
+	       "$user:" eq substr $adminpw, 0, length("$user:")){
 		$userline = $adminpw;
 	}
 	return %user_info if($userline eq "");
@@ -3263,8 +3263,8 @@ sub find_user_info_by_email_address{
 			$userline =~ y/\r\n//d;
 		}
 	}elsif($method == 2 &&
-		$adminpw =~ m/:$escaped_email(?::[^:]*){2}$/i){
-		$userline = $adminpw;
+	       $adminpw =~ m/:$escaped_email(?::[^:]*){2}$/i){
+	       $userline = $adminpw;
 	}
 	return %user_info if($userline eq "");
 
@@ -3596,8 +3596,7 @@ sub handle_session{
 
 sub clear_password_reset_token{
 	my $token = shift;
-	return if(!-f $PASSWORD_FILE ||
-		$token !~ m/^[a-zA-Z0-9]{64}\.[0-9]+$/);
+	return if(!-f $PASSWORD_FILE || $token !~ m/^[a-zA-Z0-9]{64}\.[0-9]+$/);
 
 	my $new_pw = "";
 	my $cleared = 0;
@@ -4008,16 +4007,17 @@ sub parse_file{
 	foreach(@files){
 		# "<" is required for the in-memory file
 		next if($_ eq "" || !open UNIQKI_FH, "<", $_);
-		my $page_file = $file eq $_;
+		my $page_file = $_ eq $file;
+		my $output = !defined $start || !$page_file;
 
 		local $lineno = 0;
 		while(<UNIQKI_FH>){
 			$lineno++;
-			if(defined $start && $page_file && $lineno == $start){
-				$text = "";
-				$notoc = $nolot = $nolof = 1;
-			}
-			$text .= parse($_, @parse_line);
+			$output = $notoc = $nolot = $nolof = 1
+				if(defined $start && $page_file &&
+				   $lineno == $start);
+			my $parsed_line = parse($_, @parse_line);
+			$text .= $parsed_line if($output);
 		}
 		close UNIQKI_FH;
 	}
@@ -4334,7 +4334,7 @@ sub create_list{
 				$li_i++;
 			}else{
 				for(; $li_i >= 0 && ($li[$li_i] ne $tag ||
-					$li_attr[$li_i] ne $attr); $li_i--){
+				      $li_attr[$li_i] ne $attr); $li_i--){
 					if($li[$li_i] eq "dl"){
 						$list .= "</dd>\n";
 					}else{
@@ -4447,7 +4447,7 @@ sub create_table{
 
 	my $table = "";
 	return $table if($caption eq "" && $thead eq "" && $tbodies eq "" &&
-		$tfoot eq "");
+			 $tfoot eq "");
 
 	$thead = update_table_rowspan($thead);
 	$tfoot = update_table_rowspan($tfoot);
@@ -4675,7 +4675,7 @@ sub preprocess_line{
 
 	# Apply regular expressions if not asis
 	if(!$asis && m/^(?!#(?:no)?regex)/ && m/^(?!##(?:sub |{))/ &&
-		$code_block eq ""){
+	   $code_block eq ""){
 		for(my $i = $re_start; $i < $re_n; $i++){
 			# Need it again to avoid regexing regexed output
 			if(m/^(?!#(?:no)?regex)/){
@@ -4755,8 +4755,8 @@ sub process_asis_lines{
 		return;
 	}
 	# Start or close pre
-	if(m/^(---+)(?:\[(.*)\])?$/ && (!$pre || ($pre == length($1) &&
-				($2 eq "" || $pre_code eq $2)))){
+	if(m/^(---+)(?:\[(.*)\])?$/ &&
+	   (!$pre || ($pre == length($1) && ($2 eq "" || $pre_code eq $2)))){
 		if($pre){
 			chomp $text;
 			if($pre_code eq ""){
@@ -4949,21 +4949,21 @@ sub process_collected_lines{
 	}
 	# Close list
 	if($list ne "" && !(m/^((?:  ){0,})((?:[*+-]|: .*?:)[ \t])?/ &&
-			"$1$2" ne "")){
+	   "$1$2" ne "")){
 		close_paragraph();
 		$text .= create_list($list);
 		$list = "";
 	}
 	# Close table
 	if($table ne "" &&
-		!m/^(?:!!?[ \t](?:.*[ \t])?!?!|[|^][ \t](?:.*[ \t])?(?:[!^]+|\|+_?))$/){
+	   !m/^(?:!!?[ \t](?:.*[ \t])?!?!|[|^][ \t](?:.*[ \t])?(?:[!^]+|\|+_?))$/){
 		close_paragraph();
 		$text .= create_table($table);
 		$table = "";
 	}
 	# Close figure
 	if($figure ne "" &&
-		!m/^(?:"!?[ \t](?:.*[ \t])?!?"|@[ \t](?:.*[ \t])?@)$/){
+	   !m/^(?:"!?[ \t](?:.*[ \t])?!?"|@[ \t](?:.*[ \t])?@)$/){
 		close_paragraph();
 		$text .= create_figure($figure);
 		$figure = "";
@@ -5066,13 +5066,13 @@ sub collect_lines{
 
 	# Collect quote lines
 	if(m/^((?:  ){0,})(&gt;[ \t])?/ && "$1$2" ne "" &&
-		"$2$blockquote" ne ""){
+	   "$2$blockquote" ne ""){
 		$blockquote .= "$_\n";
 		return;
 	}
 	# Collect list lines
 	if(m/^((?:  ){0,})((?:[*+-]|: .*?:)[ \t])?/ && "$1$2" ne "" &&
-		"$2$list" ne ""){
+	   "$2$list" ne ""){
 		$list .= "$_\n";
 		return;
 	}
@@ -5262,7 +5262,7 @@ sub verify_input{
 	my ($query, $var) = @_;
 	if($query eq "comment"){
 		return 0 if($$var{website} ne "" ||
-			$$var{id} >= time - $MINIMUM_COMMENT_TIME);
+			    $$var{id} >= time - $MINIMUM_COMMENT_TIME);
 		(my $text = $$var{text}) =~ s/[`~!@#\$%^&*_=+\\|;:'",.\/?()\[\]{}<>0-9-]//g;
 		$text =~ s/[ \t\n]+/ /g;
 		$text =~ s/^ | $//g;
@@ -5525,7 +5525,7 @@ if($QUERY_STRING eq "login"){
 		if(-f "$page.txt"){
 			$wiki = is_wiki($page);
 		}elsif($WIKI_PAGES_ALLOWED ne "" &&
-			$page =~ m/$WIKI_PAGES_ALLOWED/o){
+		       $page =~ m/$WIKI_PAGES_ALLOWED/o){
 			$wiki = 1;
 		}
 	}
@@ -6146,7 +6146,7 @@ if($QUERY_STRING eq "css"){
 	}
 	@list = sort @list;
 	@list = reverse @list if($var{list} eq "rc" || $var{list} eq "za" ||
-		$var{list} eq "tza");
+				 $var{list} eq "tza");
 	$n = $i if($n > $i || !$n);
 	$i = 0;
 	foreach(@list){
@@ -6641,7 +6641,7 @@ EOT
 		die_message("page_not_found", $PAGE) unless(-f "$PAGE.txt");
 		die_message("wiki_file_not_allowed", $var{file})
 			if($WIKI_FILES_ALLOWED eq "" ||
-				$var{file} !~ m/$WIKI_FILES_ALLOWED/oi);
+			   $var{file} !~ m/$WIKI_FILES_ALLOWED/oi);
 
 		open FH, "$PAGE.txt";
 		if(<FH> ne "#!wiki\n"){
@@ -6718,8 +6718,7 @@ EOT
 	$zip->removeMember($PASSWORD_FILE);
 	foreach($zip->memberNames()){
 		$zip->removeMember($_) if(-f $_ && !-w $_);
-		if($hosting eq "awardspace" &&
-			(m#\.html$# || m#/#)){
+		if($hosting eq "awardspace" && (m#\.html$# || m#/#)){
 			my $member = $zip->memberNamed($_);
 			$member->unixFileAttributes(0755);
 		}
@@ -6872,7 +6871,7 @@ EOT
 		die_message("check_password");
 	}
 	if($var{pw} eq "" && $var{email} eq "" &&
-		$var{admin} ne "yes" && $var{admin} ne "no"){
+	   $var{admin} ne "yes" && $var{admin} ne "no"){
 		die_message("enter_user_info_to_update");
 	}
 
