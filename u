@@ -3958,6 +3958,7 @@ sub parse_file{
 	my ($file, $start) = @_;
 	local *UNIQKI_FH;
 
+	# "<" is required for the in-memory file
 	return "" unless(open UNIQKI_FH, "<", $file);
 	$wiki = <UNIQKI_FH> eq "#!wiki\n" ? 1 : 0;
 	close UNIQKI_FH;
@@ -3968,15 +3969,16 @@ sub parse_file{
 		$table, $figure, @h_lines, %h_n, $h_top, $h_prev, %h_secs,
 		%secs_no, $toc, $notoc, $tab_no, %tabs_n, %tabs, $lot, $nolot,
 		$fig_no, %figs_n, %figs, $lof, $nolof);
-	my @files = ();
 
-	push @files, $HEADER_FILE;
-	push @files, $NONWIKI_HEADER_FILE unless($wiki);
-	push @files, $WIKI_HEADER_FILE if($wiki);
-	push @files, $file;
-	push @files, $WIKI_FOOTER_FILE if($wiki);
-	push @files, $NONWIKI_FOOTER_FILE unless($wiki);
-	push @files, $FOOTER_FILE;
+	my @header_files = ();
+	push @header_files, $HEADER_FILE;
+	push @header_files, $NONWIKI_HEADER_FILE unless($wiki);
+	push @header_files, $WIKI_HEADER_FILE if($wiki);
+
+	my @footer_files = ();
+	push @footer_files, $WIKI_FOOTER_FILE if($wiki);
+	push @footer_files, $NONWIKI_FOOTER_FILE unless($wiki);
+	push @footer_files, $FOOTER_FILE;
 
 	my @_begin_parsing = @begin_parsing;
 	my @_parse_line = @parse_line;
@@ -4004,23 +4006,38 @@ sub parse_file{
 	do $USER_PARSERS_FILE if(-f $USER_PARSERS_FILE);
 
 	$_->() foreach(@begin_parsing);
-	foreach(@files){
+
+	foreach(@header_files){
 		# "<" is required for the in-memory file
 		next if($_ eq "" || !open UNIQKI_FH, "<", $_);
-		my $page_file = $_ eq $file;
-		my $output = !defined $start || !$page_file;
-
-		local $lineno = 0;
-		while(<UNIQKI_FH>){
-			$lineno++;
-			$output = $notoc = $nolot = $nolof = 1
-				if(defined $start && $page_file &&
-				   $lineno == $start);
-			my $parsed_line = parse($_, @parse_line);
-			$text .= $parsed_line if($output);
-		}
+		$text .= parse($_, @parse_line) while(<UNIQKI_FH>);
 		close UNIQKI_FH;
 	}
+	my $header = $text;
+
+	# "<" is required for the in-memory file
+	open UNIQKI_FH, "<", $file;
+	my $output = !defined $start;
+
+	local $lineno = 0;
+	while(<UNIQKI_FH>){
+		$lineno++;
+		if(defined $start && $lineno == $start){
+			$output = $notoc = $nolot = $nolof = 1;
+			$text = $header;
+		}
+		my $parsed_line = parse($_, @parse_line);
+		$text .= $parsed_line if($output);
+	}
+	close UNIQKI_FH;
+
+	foreach(@footer_files){
+		# "<" is required for the in-memory file
+		next if($_ eq "" || !open UNIQKI_FH, "<", $_);
+		$text .= parse($_, @parse_line) while(<UNIQKI_FH>);
+		close UNIQKI_FH;
+	}
+
 	$_->() foreach(@end_parsing);
 
 	@begin_parsing = @_begin_parsing;
