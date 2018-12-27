@@ -4013,23 +4013,26 @@ sub parse_file{
 		$text .= parse($_, @parse_line) while(<UNIQKI_FH>);
 		close UNIQKI_FH;
 	}
-	my $header = $text;
 
-	# "<" is required for the in-memory file
-	open UNIQKI_FH, "<", $file;
-	my $output = !defined $start;
+	{
+		my $header = $text;
 
-	local $lineno = 0;
-	while(<UNIQKI_FH>){
-		$lineno++;
-		if(defined $start && $lineno == $start){
-			$output = $notoc = $nolot = $nolof = 1;
-			$text = $header;
+		# "<" is required for the in-memory file
+		open UNIQKI_FH, "<", $file;
+		my $output = !defined $start;
+
+		local $lineno = 0;
+		while(<UNIQKI_FH>){
+			$lineno++;
+			if(defined $start && $lineno == $start){
+				$output = $notoc = $nolot = $nolof = 1;
+				$text = $header;
+			}
+			my $parsed_line = parse($_, @parse_line);
+			$text .= $parsed_line if($output);
 		}
-		my $parsed_line = parse($_, @parse_line);
-		$text .= $parsed_line if($output);
+		close UNIQKI_FH;
 	}
-	close UNIQKI_FH;
 
 	foreach(@footer_files){
 		# "<" is required for the in-memory file
