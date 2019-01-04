@@ -3936,7 +3936,7 @@ sub edit_lines{
 	return $text;
 }
 
-sub print_list{
+sub print_list_pages{
 	my ($list, $n, $title, $glob, $TITLE) = @_;
 
 	print qq(<div id="list">\n);
@@ -4022,7 +4022,7 @@ sub print_list{
 	print qq(</ul>\n</div>\n);
 }
 
-sub print_search{
+sub print_search_pages{
 	my ($search, $simple, $icase, $link, $title, $nomatch, $glob, $TITLE) = @_;
 
 	$_ = $search;
@@ -6340,7 +6340,7 @@ if($QUERY_STRING eq "css"){
 	my $glob = $var{glob} eq "" ? "*" : $var{glob};
 
 	print_header();
-	print_list($var{list}, $n, $var{title}, $glob, $TITLE);
+	print_list_pages($var{list}, $n, $var{title}, $glob, $TITLE);
 	print_footer();
 	die;
 }elsif($QUERY_STRING =~ m/^rss(?:[&=].+)?$/){
@@ -6474,7 +6474,7 @@ EOT
 		$TITLE = get_msg("search_matching", $var{glob}, $_);
 	}
 	print_header();
-	print_search($var{search}, $var{simple}, $var{icase}, $var{link},
+	print_search_pages($var{search}, $var{simple}, $var{icase}, $var{link},
 		$var{title}, $var{nomatch}, $glob, $TITLE);
 	print_footer();
 	die;
