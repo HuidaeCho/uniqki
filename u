@@ -1642,7 +1642,6 @@ sub process_tpl_tag{
 		}
 	}
 	close FH; select $fh;
-	chomp $txt;
 
 	return $txt;
 }
