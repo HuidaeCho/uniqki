@@ -3929,8 +3929,7 @@ sub edit_lines{
 	# $count eq "":	edit from $start to end
 	# $count == 0:	insert at $start
 	my ($file, $start, $count, $lines) = @_;
-	my $text = read_lines($file, 1, $start - 1).
-		($lines eq "" ? "" : "$lines\n");
+	my $text = read_lines($file, 1, $start - 1).$lines;
 	$text .= read_lines($file, $start + $count) if($count ne "");
 	return $text;
 }
@@ -6630,6 +6629,7 @@ EOT
 				$TEXT =~ s/</&lt;/g;
 				$TEXT =~ s/>/&gt;/g;
 			}
+			chomp $TEXT;
 			preprocess_text_data();
 			print_wiki_edit_lines();
 			die;
@@ -6679,7 +6679,7 @@ EOT
 			}
 
 			lock_file("$PAGE.txt");
-			save_lines($PAGE, $START, $COUNT, $TEXT);
+			save_lines($PAGE, $START, $COUNT, "$TEXT\n");
 			unlock_file("$PAGE.txt");
 		}
 	}elsif($QUERY_STRING eq "wiki_upload"){
@@ -7249,6 +7249,7 @@ EOT
 			$TEXT =~ s/</&lt;/g;
 			$TEXT =~ s/>/&gt;/g;
 		}
+		chomp $TEXT;
 		$VERSION++;
 		preprocess_text_data();
 		print_edit();
@@ -7302,6 +7303,7 @@ EOT
 			$TEXT =~ s/</&lt;/g;
 			$TEXT =~ s/>/&gt;/g;
 		}
+		chomp $TEXT;
 		preprocess_text_data();
 		print_edit_lines();
 		die;
@@ -7333,7 +7335,7 @@ EOT
 		die;
 	}
 	lock_file("$PAGE.txt");
-	save_lines($PAGE, $START, $COUNT, $TEXT);
+	save_lines($PAGE, $START, $COUNT, "$TEXT\n");
 	unlock_file("$PAGE.txt");
 }elsif($QUERY_STRING =~ m/^revert(?:=(-?[0-9]+))?$/){
 #-------------------------------------------------------------------------------
