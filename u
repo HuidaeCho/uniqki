@@ -3939,6 +3939,9 @@ sub edit_lines{
 sub print_list_pages{
 	my ($list, $n, $title, $glob, $TITLE) = @_;
 
+	$n = 0 if($n eq "");
+	$glob = "*" if($glob eq "");
+
 	print qq(<div id="list">\n);
 	print qq(<h1>$TITLE</h1>\n) if($TITLE ne "");
 	print qq(<ul>\n);
@@ -4035,6 +4038,7 @@ sub print_search_pages{
 		s/[\x01\x02]//g; s/\\"//g;
 	}
 	my @search = split />/;
+	$glob = "*" if($glob eq "");
 
 	print qq(<div id="search">\n);
 	print qq(<h1>$TITLE</h1>\n) if($TITLE ne "");
@@ -6336,11 +6340,9 @@ if($QUERY_STRING eq "css"){
 			"all_pages_matching"));
 		$TITLE = get_msg($msg_id, $var{glob});
 	}
-	my $n = $var{n} eq "" ? 0 : $var{n};
-	my $glob = $var{glob} eq "" ? "*" : $var{glob};
 
 	print_header();
-	print_list_pages($var{list}, $n, $var{title}, $glob, $TITLE);
+	print_list_pages($var{list}, $var{n}, $var{title}, $var{glob}, $TITLE);
 	print_footer();
 	die;
 }elsif($QUERY_STRING =~ m/^rss(?:[&=].+)?$/){
@@ -6464,18 +6466,16 @@ EOT
 	$_ = $var{search};
 	s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
 
-	my $glob;
 	local $TITLE;
 	if($var{glob} eq ""){
-		$glob = "*";
 		$TITLE = get_msg("search", $_);
 	}else{
-		$glob = $var{glob};
 		$TITLE = get_msg("search_matching", $var{glob}, $_);
 	}
+
 	print_header();
 	print_search_pages($var{search}, $var{simple}, $var{icase}, $var{link},
-		$var{title}, $var{nomatch}, $glob, $TITLE);
+		$var{title}, $var{nomatch}, $var{glob}, $TITLE);
 	print_footer();
 	die;
 }elsif($QUERY_STRING =~ m/^wiki_/){
