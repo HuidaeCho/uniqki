@@ -4023,7 +4023,18 @@ sub print_list{
 }
 
 sub print_search{
-	my ($search, $icase, $link, $title, $nomatch, $glob, $TITLE) = @_;
+	my ($search, $simple, $icase, $link, $title, $nomatch, $glob, $TITLE) = @_;
+
+	$_ = $search;
+	if($simple){
+		s/[<>\r]//g; s/[\t\n]/ /g; s/ +/ /g; s/^ //; s/ $//;
+		$_ = quotemeta;
+		s/\\ />/g;
+		s/\\"([^"]*)\\"/\x01$1\x02/g;
+		while(s/\x01([^\x02]*)>([^\x02]*)\x02/\x01$1 +$2\x02/g){}
+		s/[\x01\x02]//g; s/\\"//g;
+	}
+	my @search = split />/;
 
 	print qq(<div id="search">\n);
 	print qq(<h1>$TITLE</h1>\n) if($TITLE ne "");
@@ -4065,8 +4076,8 @@ sub print_search{
 			foreach(split /\n/, $text){
 				$line = $_;
 				$found = "";
-				for($i = 0; $i <= $#$search; $i++){
-					$word = encode_url_utf8($$search[$i]);
+				for($i = 0; $i <= $#search; $i++){
+					$word = encode_url_utf8($search[$i]);
 					next if($word eq "");
 					$word = "(?i)$word" if($icase);
 					if($line =~ m#\x02[aA][ \t][^\x03]*(?:href|HREF)[ \t]*=[ \t]*"(?:$word)"[^\x03]*\x03[^\x02]+\x02/[aA]\x03#){
@@ -4090,8 +4101,8 @@ sub print_search{
 			foreach(split /\n/, $text){
 				$line = $_;
 				$found = "";
-				for($i = 0; $i <= $#$search; $i++){
-					$word = $$search[$i];
+				for($i = 0; $i <= $#search; $i++){
+					$word = $search[$i];
 					next if($word eq "");
 					$word = "(?i)$word" if($icase);
 					if($line =~ m#$word#){
@@ -4108,10 +4119,10 @@ sub print_search{
 				}
 			}
 		}
-		for($i = 0; $i <= $#$search; $i++){
+		for($i = 0; $i <= $#search; $i++){
 			last if(!$found[$i]);
 		}
-		next if($i <= $#$search);
+		next if($i <= $#search);
 		if($nomatch){
 			print qq(<li><a href="$page.html">$page_name</a></li>\n);
 			next;
@@ -6451,17 +6462,6 @@ EOT
 	}
 
 	$_ = $var{search};
-	if($var{simple} eq "1"){
-		s/[<>\r]//g; s/[\t\n]/ /g; s/ +/ /g; s/^ //; s/ $//;
-		$_ = quotemeta;
-		s/\\ />/g;
-		s/\\"([^"]*)\\"/\x01$1\x02/g;
-		while(s/\x01([^\x02]*)>([^\x02]*)\x02/\x01$1 +$2\x02/g){}
-		s/[\x01\x02]//g; s/\\"//g;
-	}
-	my @search = split />/;
-
-	$_ = $var{search};
 	s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
 
 	my $glob;
@@ -6474,8 +6474,8 @@ EOT
 		$TITLE = get_msg("search_matching", $var{glob}, $_);
 	}
 	print_header();
-	print_search(\@search, $var{icase}, $var{link}, $var{title},
-		$var{nomatch}, $glob, $TITLE);
+	print_search($var{search}, $var{simple}, $var{icase}, $var{link},
+		$var{title}, $var{nomatch}, $glob, $TITLE);
 	print_footer();
 	die;
 }elsif($QUERY_STRING =~ m/^wiki_/){
