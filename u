@@ -1418,7 +1418,7 @@ backlinks => q(Backlinks),
 last_modified => q([[TIME]] by [[AUTHOR]]),
 unknown_author => q(Unknown),
 parsing_time => q(Parsing time: [[PARSING_TIME]] seconds),
-xhtml => q(XHTML),
+html5 => q(HTML5),
 css => q(CSS),
 
 preview => q(Preview),
@@ -1630,7 +1630,7 @@ sub process_tpl_tag{
 		$txt = $$tag if(exists $hash{$tag});
 	}elsif($tag eq "parsing_time" && !$show_parsing_time){
 		$txt = "";
-	}elsif($tag =~ m/^[a-z_]+$/){
+	}elsif($tag =~ m/^[a-z0-9_]+$/){
 		$txt = get_msg($tag);
 		my @tags = qw(
 			PAGE START COUNT TIME AUTHOR PARSING_TIME
@@ -1670,7 +1670,7 @@ sub process_tpl{
 		$tpl = read_file($path);
 	}
 
-	$tpl =~ s/\[\[([A-Za-z_]*)\]\]/@{[process_tpl_tag($1)]}/g;
+	$tpl =~ s/\[\[([A-Za-z0-9_]*)\]\]/@{[process_tpl_tag($1)]}/g;
 	print $tpl;
 }
 
@@ -1681,7 +1681,7 @@ sub print_header{
 	$header_printed = 1;
 	process_tpl("header.tpl", $mode, <<'EOT_UNIQKI');
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="[[LANG]]">
+<html lang="[[LANG]]">
 <head>
 <title>[[TITLE]]</title>
 <meta charset="[[CHARSET]]" />
@@ -1715,7 +1715,7 @@ sub print_footer{
 </div>
 <div id="bottom">
 <span id="validators">
-<a href="https://validator.w3.org/check?uri=referer">[[xhtml]]</a> .
+<a href="https://validator.w3.org/check?uri=referer">[[html5]]</a> .
 <a href="https://jigsaw.w3.org/css-validator/check/referer">[[css]]</a>
 </span> .
 [[powered_by_uniqki]]
@@ -2469,40 +2469,40 @@ sub print_js{
 	process_tpl("uniqki.js", shift, <<'EOT_UNIQKI');
 /* http://developer.mozilla.org/en/docs/AJAX:Getting_Started */
 function ajax_request(url, data, func, mime_type){
-	var xml_request = null;
+	var xhr = null;
 
 	/* Create an XMLHTTP instance */
 	if(window.XMLHttpRequest){ /* Mozilla, Safari, ... */
-		xml_request = new XMLHttpRequest();
-		if(xml_request.overrideMimeType){
+		xhr = new XMLHttpRequest();
+		if(xhr.overrideMimeType){
 			/* Some web servers return a non-standard mime type. */
-			xml_request.overrideMimeType(mime_type || 'text/xml');
+			xhr.overrideMimeType(mime_type || 'text/html');
 		}
 	}else
 	if(window.ActiveXObject){ /* IE */
 		try{
-			xml_request = new ActiveXObject('Msxml2.XMLHTTP');
+			xhr = new ActiveXObject('Msxml2.XMLHTTP');
 		}
 		catch(e){
 		try{
-			xml_request = new ActiveXObject('Microsoft.XMLHTTP');
+			xhr = new ActiveXObject('Microsoft.XMLHTTP');
 		}
 		catch(e){}
 		}
 	}
-	if(!xml_request){
+	if(!xhr){
 		alert('Cannot create an XMLHTTP instance.');
 		return;
 	}
 
 	/* This function has no arguments. */
-	xml_request.onreadystatechange = function(){
-		if(xml_request.readyState != 4)
+	xhr.onreadystatechange = function(){
+		if(xhr.readyState != 4)
 			return;
-		if(xml_request.status != 200)
+		if(xhr.status != 200)
 			return;
 		if(func)
-			func(xml_request);
+			func(xhr);
 	}
 
 	if(data == null)
@@ -2510,33 +2510,42 @@ function ajax_request(url, data, func, mime_type){
 	else
 		var method = 'POST';
 
-	/* xml_request.open(method, url, asynchronous) */
-	xml_request.open(method, url, true);
+	/* xhr.open(method, url, asynchronous) */
+	xhr.open(method, url, true);
 
-	/* xml_request.send(POST data) */
+	/* xhr.send(POST data) */
 	/* required even if the method is not POST. */
-	xml_request.send(data);
+	xhr.send(data);
 }
 
 /* http://forum.java.sun.com/thread.jspa?threadID=696590&tstart=105 */
-function ajax_responseXML(xml_request){
+function ajax_responseXML(xhr){
 	var xml = null;
 
-	if(window.ActiveXObject){ /* IE */
+	if(xhr.responseXML)
+		xml = xhr.responseXML;
+	else
+	if(xhr.responseText){
 		xml = document.createElement('div');
-		xml.innerHTML = xml_request.responseText;
+		xml.innerHTML = xhr.responseText;
 
 		/* Huidae Cho <https://idea.isnew.info> */
-		xml.getElementById = function(id){
-			for(var i = 0; i < this.childNodes.length; i++){
-				if(id == this.childNodes[i].id)
-					return this.childNodes[i];
+		xml.getElementByIdRecursively = function(childNodes, id){
+			var element = null;
+			for(var i = 0; i < childNodes.length; i++){
+				if(id == childNodes[i].id)
+					element = childNodes[i];
+				else
+					element = this.getElementByIdRecursively(childNodes[i].childNodes, id);
+				if(element)
+					break;
 			}
-			return null;
+			return element;
 		}
-	}else
-	if(window.XMLHttpRequest)
-		xml = xml_request.responseXML;
+		xml.getElementById = function(id){
+			return this.getElementByIdRecursively(this.childNodes, id);
+		}
+	}
 
 	return xml;
 }
@@ -2547,8 +2556,8 @@ function remove_elements_by_class_name(class_name){
 		elements[0].parentNode.removeChild(elements[0]);
 }
 
-function process_menu(xml_request){
-	var items = xml_request.responseText.split(':');
+function process_menu(xhr){
+	var items = xhr.responseText.split(':');
 	var user = items[0];
 	var admin = items[1];
 	var has_read_access = items[2];
@@ -2607,11 +2616,11 @@ function listen_to_paste_image(requestURL, version, type_filename, characters_no
 		var blob = e.clipboardData.items[0].getAsFile();
 		var formData = new FormData();
 		formData.append('file', blob, filename);
-		ajax_request(requestURL, formData, function(xml_request){
+		ajax_request(requestURL, formData, function(xhr){
 			if(wiki){
-				var xml_response = ajax_responseXML(xml_request);
+				var xml = ajax_responseXML(xhr);
 				imageUploadedEl.style.display = 'block';
-				fileLinkExampleEl.innerHTML = '{' + xml_response.getElementById('file-link-example').innerHTML + '}';
+				fileLinkExampleEl.innerHTML = '{' + xml.getElementById('file-link-example').innerHTML + '}';
 			}else{
 				imageUploadedEl.style.display = 'block';
 				fileLinkExampleEl.innerHTML = '{{{' + filename + '}}}';
@@ -6238,7 +6247,7 @@ if($QUERY_STRING eq "css"){
 	(my $site_title = $SITE_TITLE) =~ s/<[^>]*>//g;
 	(my $site_description = $SITE_DESCRIPTION) =~ s/<[^>]*>//g;
 	print <<EOT;
-Content-Type: text/xml
+Content-Type: application/rss+xml
 
 <?xml version="1.0" encoding="$CHARSET"?>
 <rss version="2.0">
