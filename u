@@ -2206,7 +2206,7 @@ EOT_UNIQKI
 }
 
 sub print_css{
-	process_tpl("uniqki.css", shift, <<'EOT_UNIQKI');
+	process_tpl("u.css", shift, <<'EOT_UNIQKI');
 /******************************************************************************/
 body {
 	background-color:	#eeeeee;
@@ -2466,7 +2466,7 @@ EOT_UNIQKI
 }
 
 sub print_js{
-	process_tpl("uniqki.js", shift, <<'EOT_UNIQKI');
+	process_tpl("u.js", shift, <<'EOT_UNIQKI');
 /* http://developer.mozilla.org/en/docs/AJAX:Getting_Started */
 function ajax_request(url, data, func, mime_type){
 	var xhr = null;
@@ -6709,7 +6709,7 @@ EOT
 	my $zip = Archive::Zip->new();
 	my $file;
 	if($PAGE eq ""){
-		$file = "uniqki.zip";
+		$file = "u.zip";
 		$zip->addTree(".");
 	}else{
 		$file = "$PAGE.zip";
