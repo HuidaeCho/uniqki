@@ -1992,7 +1992,7 @@ sub print_view{
 <a class="visitor" accesskey="l" href="[[CGI]]/[[PAGE]]?login">[[login]]</a>
 <a class="user" accesskey="l" href="[[CGI]]/[[PAGE]]?logout">[[logout]]</a>
 </div>
-<div id="meta">
+<div id="metadata">
 <div id="last-modified">[[last_modified]]</div>
 <div id="parsing-time">[[parsing_time]]</div>
 </div>
@@ -2116,7 +2116,7 @@ sub print_wiki_view{
 <a class="visitor" accesskey="l" href="[[CGI]]/[[PAGE]]?login">[[login]]</a>
 <a class="user" accesskey="l" href="[[CGI]]/[[PAGE]]?logout">[[logout]]</a>
 </div>
-<div id="meta">
+<div id="metadata">
 <div id="last-modified">[[last_modified]]</div>
 <div id="parsing-time">[[parsing_time]]</div>
 </div>
@@ -2311,7 +2311,7 @@ ol ol ol {
 #menu {
 	display:		none;
 }
-#meta {
+#metadata {
 	padding-top:		2px;
 	font-size:		smaller;
 }
