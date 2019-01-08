@@ -1670,6 +1670,7 @@ sub process_tpl{
 	}
 
 	$tpl =~ s/\[\[([A-Za-z0-9_]*)\]\]/@{[process_tpl_tag($1)]}/g;
+	chomp $tpl;
 	print $tpl;
 }
 
