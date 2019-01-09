@@ -1686,7 +1686,7 @@ sub print_header{
 <title>[[TITLE]]</title>
 <meta charset="[[CHARSET]]" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="stylesheet" type="text/css" href="[[CGI]]?css" />
+<link rel="stylesheet" href="[[CGI]]?css" />
 <link rel="alternate" type="application/rss+xml" title="[[recent_changes]]" href="[[CGI]]?rss" />
 <script src="[[CGI]]?js"></script>
 <script>
@@ -1741,8 +1741,8 @@ sub print_login{
 </div>
 </form>
 </div>
-<hr />
 <div id="menu">
+<hr />
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 </div>
@@ -1765,8 +1765,8 @@ sub print_manage_pages{
 </div>
 </form>
 </div>
-<hr />
 <div id="menu">
+<hr />
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
@@ -1852,8 +1852,8 @@ sub print_manage_users{
 </div>
 </form>
 </div>
-<hr />
 <div id="menu">
+<hr />
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
@@ -1893,8 +1893,8 @@ sub print_manage_myself{
 </div>
 </form>
 </div>
-<hr />
 <div id="menu">
+<hr />
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
@@ -1917,8 +1917,8 @@ sub print_forgot_password{
 </div>
 </form>
 </div>
-<hr />
 <div id="menu">
+<hr />
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 </div>
@@ -1945,8 +1945,8 @@ sub print_reset_password{
 </div>
 </form>
 </div>
-<hr />
 <div id="menu">
+<hr />
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 </div>
@@ -1960,8 +1960,8 @@ sub print_message{
 <div id="message">
 [[MESSAGE]]
 </div>
-<hr />
 <div id="menu">
+<hr />
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <span class="write-access"><a accesskey="v" href="[[PAGE]]?edit">[[edit]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
@@ -1983,8 +1983,8 @@ sub print_view{
 [[TEXT]]
 <!-- end text -->
 </div>
-<hr />
 <div id="menu">
+<hr />
 <span class="write-access"><a accesskey="r" href="[[CGI]]/[[PAGE]]?refresh">[[refresh]]</a> .</span>
 <span class="write-access"><a accesskey="e" href="[[CGI]]/[[PAGE]]?edit">[[edit]]</a> .</span>
 <a accesskey="l" href="[[CGI]]?search=[[PAGE]]%5C.html&amp;link=1&amp;title=1">[[backlinks]]</a> .
