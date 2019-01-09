@@ -3862,16 +3862,6 @@ EOT
 	return $form;
 }
 
-sub preprocess_text_data{
-	$preprocess_text = \&preprocess_text unless defined $preprocess_text;
-	$preprocess_text->();
-}
-
-sub verify_input_data{
-	$verify_input = \&verify_input unless defined $verify_input;
-	return $verify_input->(@_);
-}
-
 sub read_file{
 	my $file = shift;
 	my $text = "";
@@ -5850,7 +5840,7 @@ if($QUERY_STRING eq "css"){
 		my $msg_id = "not_allowed_to_comment_in_nonwiki_page";
 		die_message($msg_id, $PAGE);
 	}
-	die_rebuild($PAGE) unless(verify_input_data("comment", \%var));
+	die_rebuild($PAGE) unless(verify_input("comment", \%var));
 
 	die_message("page_not_found", $PAGE) unless(-f "$PAGE.txt");
 
@@ -6558,12 +6548,12 @@ EOT
 				$TEXT =~ s/>/&gt;/g;
 			}
 			$VERSION++;
-			preprocess_text_data();
+			preprocess_text();
 			print_wiki_edit();
 			die;
 		}else{
 			my %var = get_var();
-			die_rebuild($PAGE) unless(verify_input_data($QUERY_STRING, \%var));
+			die_rebuild($PAGE) unless(verify_input($QUERY_STRING, \%var));
 
 			local *FH;
 			my $t = time;
@@ -6635,12 +6625,12 @@ EOT
 				$TEXT =~ s/>/&gt;/g;
 			}
 			chomp $TEXT;
-			preprocess_text_data();
+			preprocess_text();
 			print_wiki_edit_lines();
 			die;
 		}else{
 			my %var = get_var();
-			die_rebuild($PAGE) unless(verify_input_data($QUERY_STRING, \%var));
+			die_rebuild($PAGE) unless(verify_input($QUERY_STRING, \%var));
 
 			local *FH;
 			my $t = time;
@@ -6691,7 +6681,7 @@ EOT
 #-------------------------------------------------------------------------------
 # u/PAGE?wiki_upload	Wiki upload
 		my %var = get_var();
-		die_rebuild($PAGE) unless(verify_input_data($QUERY_STRING, \%var));
+		die_rebuild($PAGE) unless(verify_input($QUERY_STRING, \%var));
 
 		local *FH;
 		my $t = time;
@@ -7203,7 +7193,7 @@ EOT
 #-------------------------------------------------------------------------------
 # u/PAGE?upload		Upload PAGE/FILE
 	my %var = get_var();
-	die_rebuild($PAGE) unless(verify_input_data("upload", \%var));
+	die_rebuild($PAGE) unless(verify_input("upload", \%var));
 
 	if($var{file} ne ""){
 		mkdir $PAGE, 0755 if(!-d $PAGE);
@@ -7256,13 +7246,13 @@ EOT
 		}
 		chomp $TEXT;
 		$VERSION++;
-		preprocess_text_data();
+		preprocess_text();
 		print_edit();
 		die;
 	}
 
 	my %var = get_var();
-	die_rebuild($PAGE) unless(verify_input_data("edit", \%var));
+	die_rebuild($PAGE) unless(verify_input("edit", \%var));
 
 	$VERSION = $var{version};
 	$TEXT = $var{text};
@@ -7309,13 +7299,13 @@ EOT
 			$TEXT =~ s/>/&gt;/g;
 		}
 		chomp $TEXT;
-		preprocess_text_data();
+		preprocess_text();
 		print_edit_lines();
 		die;
 	}
 
 	my %var = get_var();
-	die_rebuild($PAGE) unless(verify_input_data("edit", \%var));
+	die_rebuild($PAGE) unless(verify_input("edit", \%var));
 
 	$VERSION = $var{version};
 	$START = $var{start};
