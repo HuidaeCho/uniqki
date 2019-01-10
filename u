@@ -129,9 +129,9 @@ use vars qw(
 use vars qw(
 	$lineno $text $url_char $url_punct $child_block $code_block
 	$syntax_block @parsed_blocks $re_start $re_n @re @re_sub $p $asis
-	$nosyntax $pre $pre_code $blockquote $list $table $figure $section
-	@h_lines %h_n $h_top $h_prev %h_secs %secs_no $toc $notoc $tab_no
-	%tabs_n %tabs $lot $nolot $fig_no %figs_n %figs $lof $nolof
+	$nosyntax $pre $pre_code $blockquote $list $table $figure @h_lines %h_n
+	$h_top $h_prev %h_secs %secs_no $toc $notoc $tab_no %tabs_n %tabs $lot
+	$nolot $fig_no %figs_n %figs $lof $nolof
 );
 
 # Other global variables
@@ -4205,9 +4205,9 @@ sub parse_file{
 	local ($text, $url_char, $url_punct, $child_block, $code_block,
 		$syntax_block, @parsed_blocks, $re_start, $re_n, @re, @re_sub,
 		$p, $asis, $nosyntax, $pre, $pre_code, $blockquote, $list,
-		$table, $figure, $section, @h_lines, %h_n, $h_top, $h_prev,
-		%h_secs, %secs_no, $toc, $notoc, $tab_no, %tabs_n, %tabs, $lot,
-		$nolot, $fig_no, %figs_n, %figs, $lof, $nolof);
+		$table, $figure, @h_lines, %h_n, $h_top, $h_prev, %h_secs,
+		%secs_no, $toc, $notoc, $tab_no, %tabs_n, %tabs, $lot, $nolot,
+		$fig_no, %figs_n, %figs, $lof, $nolof);
 
 	my @header_files = ();
 	push @header_files, $HEADER_FILE;
@@ -4313,9 +4313,9 @@ sub parse_child_block{
 	local ($text, $url_char, $url_punct, $child_block, $code_block,
 		$syntax_block, @parsed_blocks, $re_start, $re_n, @re, @re_sub,
 		$p, $asis, $nosyntax, $pre, $pre_code, $blockquote, $list,
-		$table, $figure, $section, @h_lines, %h_n, $h_top, $h_prev,
-		%h_secs, %secs_no, $toc, $notoc, $tab_no, %tabs_n, %tabs, $lot,
-		$nolot, $fig_no, %figs_n, %figs, $lof, $nolof);
+		$table, $figure, @h_lines, %h_n, $h_top, $h_prev, %h_secs,
+		%secs_no, $toc, $notoc, $tab_no, %tabs_n, %tabs, $lot, $nolot,
+		$fig_no, %figs_n, %figs, $lof, $nolof);
 
 	$_->() foreach(@begin_parsing);
 	$text .= parse_lines($txt);
@@ -4351,10 +4351,6 @@ sub create_edit_section{
 	my $lines = $start.($lineno ? ",".($lineno-$start) : "");
 	push @h_lines, $lineno;
 	$text .= qq(<div class="write-access edit-section"><a href="$CGI/$PAGE?$edit=$lines">$MESSAGES{edit}</a></div>\n);
-	if($section){
-		$text .= qq(</section>\n);
-		$section = 0;
-	}
 }
 
 sub run_code_block{
@@ -5378,57 +5374,78 @@ sub process_line_syntax{
 			}
 			$text .= qq(<h$i>$_</h$i>\n);
 			return;
-		}elsif(!$inc_toc){
-			$text .= qq(<section>\n<h$i>$_</h$i>\n);
-			$section = 1;
-			return;
 		}
 
-		(my $title = $_) =~ s/<[^>]*>//g;
-		my $id = $title;
-		$id =~ s/&amp;/&/g; $id =~ s/&lt;/</g; $id =~ s/&gt;/>/g;
-		$id = convert_page_name($id);
-		my $j = $h_n{$id}++;
-		if($j > 0){
-			$id .= $j + 1;
-			$h_n{$id}++;
-		}
-
-		$secs_no{$i}++;
-		for($j = $i + 1; $j <= 6; $j++){
-			$secs_no{$j} = 0;
-		}
-
-		my $sec = "";
-		for($j = 2; $j <= $i; $j++){
-			next unless($secs_no{$j});
-			$sec .= $SECTION_NUMBER_SEPARATOR if($sec ne "");
-			$sec .= $secs_no{$j};
-		}
-		$h_secs{$id} = $sec;
-		$sec = "$SECTION_NUMBER_PREFIX$sec$SECTION_NUMBER_SUFFIX";
-
-		$text .= "\x05" if($toc eq "");
-		$text .= qq(<section id="$id">\n<h$i>$sec$_</h$i>\n);
-		$section = 1;
+		$text .= "\x05" if($inc_toc && $toc eq "");
 
 		if($i > $h_prev){
 			if($h_prev){
-				$toc .= "<li><ul>" while($h_prev++ < $i);
+				while($h_prev++ < $i){
+					$toc .= "<li><ul>" if($inc_toc);
+					$text .= "<section>\n" if($h_prev < $i);
+				}
 				$h_prev--;
 			}else{
-				$toc .= "<li><ul>" while(++$h_prev < $i);
+				while(++$h_prev < $i){
+					$toc .= "<li><ul>" if($inc_toc);
+					$text .= "<section>\n"
+						if($h_prev < $i-1);
+				}
 				$h_top = $i;
 			}
 			$toc .= "\n";
 		}elsif($i < $h_prev){
-			$toc .= "</ul></li>" while(--$h_prev >= $i);
-			$toc .= "\n";
+			while(--$h_prev >= $i){
+				$toc .= "</ul></li>" if($inc_toc);
+				$text .= "</section>\n";
+			}
+			$toc .= "\n" if($inc_toc);
+			$text .= "</section>\n";
 			$h_prev++;
 			$h_top = $i if($i < $h_top);
+		}else{
+			$text .= "</section>\n";
 		}
-		my $enc_id = encode_url_safe($id);
-		$toc .= "<li><a href=\"#$enc_id\">$sec$title</a></li>\n";
+
+		if($inc_toc){
+			(my $title = $_) =~ s/<[^>]*>//g;
+			my $id = $title;
+			$id =~ s/&amp;/&/g;
+			$id =~ s/&lt;/</g;
+			$id =~ s/&gt;/>/g;
+			$id = convert_page_name($id);
+			my $sec = "";
+
+			my $j = $h_n{$id}++;
+			if($j > 0){
+				$id .= $j + 1;
+				$h_n{$id}++;
+			}
+
+			$secs_no{$i}++;
+			for($j = $i + 1; $j <= 6; $j++){
+				$secs_no{$j} = 0;
+			}
+
+			my $found = 0;
+			for($j = 2; $j <= $i; $j++){
+				if($secs_no{$j}){
+					$found = 1;
+				}elsif(!$found){
+					next;
+				}
+				$sec .= $SECTION_NUMBER_SEPARATOR
+					if($sec ne "");
+				$sec .= $secs_no{$j};
+			}
+			$h_secs{$id} = $sec;
+			$sec = "$SECTION_NUMBER_PREFIX$sec$SECTION_NUMBER_SUFFIX";
+			my $enc_id = encode_url_safe($id);
+			$toc .= "<li><a href=\"#$enc_id\">$sec$title</a></li>\n";
+			$text .= qq(<section id="$id">\n<h$i>$sec$_</h$i>\n);
+		}else{
+			$text .= qq(<section>\n<h$i>$_</h$i>\n);
+		}
 		return;
 	}
 
@@ -5559,7 +5576,6 @@ sub begin_parsing{
 	$list = "";
 	$table = "";
 	$figure = "";
-	$section = 0;
 
 	if(!$block_level){
 		$re_start = 0;
@@ -5632,10 +5648,14 @@ sub end_parsing{
 	if(!$block_level){
 		create_edit_section() if($#h_lines >= 0);
 		$text = "\x05$text" unless($text =~ m/\x05/);
-		if(!$notoc && $toc ne ""){
-			my $i = $h_prev;
-			$toc = "<ul class=\"toc-list\">\n$toc";
-			$toc .= "</ul></li>" while(--$h_prev>0);
+		my $clean_toc = !$notoc && $toc ne "";
+		my $i = $h_prev;
+		$toc = "<ul class=\"toc-list\">\n$toc" if($clean_toc);
+		while(--$h_prev > 0){
+			$toc .= "</ul></li>" if($clean_toc);
+			$text .= "</section>\n";
+		}
+		if($clean_toc){
 			$toc .= ($i > 1 ? "\n" : "")."</ul>\n";
 			for(my $i = 0; $i < $h_top - 1; $i++){
 				$toc =~ s#^(.*\n)<li><ul>#\1#;
