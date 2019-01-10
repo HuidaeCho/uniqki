@@ -129,9 +129,9 @@ use vars qw(
 use vars qw(
 	$lineno $text $url_char $url_punct $child_block $code_block
 	$syntax_block @parsed_blocks $re_start $re_n @re @re_sub $p $asis
-	$nosyntax $pre $pre_code $blockquote $list $table $figure @h_lines %h_n
-	$h_top $h_prev %h_secs %secs_no $toc $notoc $tab_no %tabs_n %tabs $lot
-	$nolot $fig_no %figs_n %figs $lof $nolof
+	$nosyntax $pre $pre_code $blockquote $list $table $figure $section
+	@h_lines %h_n $h_top $h_prev %h_secs %secs_no $toc $notoc $tab_no
+	%tabs_n %tabs $lot $nolot $fig_no %figs_n %figs $lof $nolof
 );
 
 # Other global variables
@@ -4205,9 +4205,9 @@ sub parse_file{
 	local ($text, $url_char, $url_punct, $child_block, $code_block,
 		$syntax_block, @parsed_blocks, $re_start, $re_n, @re, @re_sub,
 		$p, $asis, $nosyntax, $pre, $pre_code, $blockquote, $list,
-		$table, $figure, @h_lines, %h_n, $h_top, $h_prev, %h_secs,
-		%secs_no, $toc, $notoc, $tab_no, %tabs_n, %tabs, $lot, $nolot,
-		$fig_no, %figs_n, %figs, $lof, $nolof);
+		$table, $figure, $section, @h_lines, %h_n, $h_top, $h_prev,
+		%h_secs, %secs_no, $toc, $notoc, $tab_no, %tabs_n, %tabs, $lot,
+		$nolot, $fig_no, %figs_n, %figs, $lof, $nolof);
 
 	my @header_files = ();
 	push @header_files, $HEADER_FILE;
@@ -4313,9 +4313,9 @@ sub parse_child_block{
 	local ($text, $url_char, $url_punct, $child_block, $code_block,
 		$syntax_block, @parsed_blocks, $re_start, $re_n, @re, @re_sub,
 		$p, $asis, $nosyntax, $pre, $pre_code, $blockquote, $list,
-		$table, $figure, @h_lines, %h_n, $h_top, $h_prev, %h_secs,
-		%secs_no, $toc, $notoc, $tab_no, %tabs_n, %tabs, $lot, $nolot,
-		$fig_no, %figs_n, %figs, $lof, $nolof);
+		$table, $figure, $section, @h_lines, %h_n, $h_top, $h_prev,
+		%h_secs, %secs_no, $toc, $notoc, $tab_no, %tabs_n, %tabs, $lot,
+		$nolot, $fig_no, %figs_n, %figs, $lof, $nolof);
 
 	$_->() foreach(@begin_parsing);
 	$text .= parse_lines($txt);
@@ -4351,7 +4351,10 @@ sub create_edit_section{
 	my $lines = $start.($lineno ? ",".($lineno-$start) : "");
 	push @h_lines, $lineno;
 	$text .= qq(<div class="write-access edit-section"><a href="$CGI/$PAGE?$edit=$lines">$MESSAGES{edit}</a></div>\n);
-	$text .= qq(</section>\n) if($#h_lines > 2);
+	if($section){
+		$text .= qq(</section>\n);
+		$section = 0;
+	}
 }
 
 sub run_code_block{
@@ -5377,6 +5380,7 @@ sub process_line_syntax{
 			return;
 		}elsif(!$inc_toc){
 			$text .= qq(<section>\n<h$i>$_</h$i>\n);
+			$section = 1;
 			return;
 		}
 
@@ -5406,6 +5410,7 @@ sub process_line_syntax{
 
 		$text .= "\x05" if($toc eq "");
 		$text .= qq(<section id="$id">\n<h$i>$sec$_</h$i>\n);
+		$section = 1;
 
 		if($i > $h_prev){
 			if($h_prev){
@@ -5554,6 +5559,7 @@ sub begin_parsing{
 	$list = "";
 	$table = "";
 	$figure = "";
+	$section = 0;
 
 	if(!$block_level){
 		$re_start = 0;
