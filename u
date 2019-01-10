@@ -1697,12 +1697,11 @@ window_onload(function(){
 </script>
 </head>
 <body>
-<div id="container">
-<div id="top">
+<header id="top">
 <div id="site-title"><a href="[[DOC_BASE]]">[[SITE_TITLE]]</a></div>
 <div id="site-description">[[SITE_DESCRIPTION]]</div>
-</div>
-<div id="main">
+</header>
+<main id="main">
 EOT_UNIQKI
 }
 
@@ -1712,15 +1711,14 @@ sub print_footer{
 
 	$footer_printed = 1;
 	process_tpl("footer.tpl", $mode, <<'EOT_UNIQKI');
-</div>
-<div id="bottom">
+</main>
+<footer id="bottom">
 <span id="validators">
 <a href="https://validator.w3.org/check?uri=referer">[[html5]]</a> .
 <a href="https://jigsaw.w3.org/css-validator/check/referer">[[css]]</a>
 </span> .
 [[powered_by_uniqki]]
-</div>
-</div>
+</footer>
 </body>
 </html>
 EOT_UNIQKI
@@ -1729,7 +1727,7 @@ EOT_UNIQKI
 sub print_login{
 	process_tpl("login.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
-<div id="login">
+<section id="login">
 <h1>[[login]]</h1>
 <form action="[[PAGE]]?login" method="post">
 <div>
@@ -1740,12 +1738,12 @@ sub print_login{
 <input type="checkbox" id="logout_others" name="logout_others" value="1" /> [[logout_from_other_computers]]
 </div>
 </form>
-</div>
-<div id="menu">
+</section>
+<nav id="menu">
 <hr />
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
-</div>
+</nav>
 [[FOOTER]]
 EOT_UNIQKI
 }
@@ -1753,7 +1751,7 @@ EOT_UNIQKI
 sub print_manage_pages{
 	process_tpl("manage_pages.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
-<div id="manage-pages">
+<section id="manage-pages">
 <h1>[[manage_pages]]</h1>
 <form action="?restore" method="post" enctype="multipart/form-data">
 <div>
@@ -1764,13 +1762,13 @@ sub print_manage_pages{
 <input accesskey="r" type="submit" value="[[restore]]" />
 </div>
 </form>
-</div>
-<div id="menu">
+</section>
+<nav id="menu">
 <hr />
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
-</div>
+</nav>
 [[FOOTER]]
 EOT_UNIQKI
 }
@@ -1778,7 +1776,7 @@ EOT_UNIQKI
 sub print_manage_users{
 	process_tpl("manage_users.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
-<div id="manage-users">
+<section id="manage-users">
 <h1>[[manage_users]]</h1>
 <ul>
 <li>[[username_requirements]]</li>
@@ -1851,13 +1849,13 @@ sub print_manage_users{
 <input type="submit" value="[[delete_user]]" />
 </div>
 </form>
-</div>
-<div id="menu">
+</section>
+<nav id="menu">
 <hr />
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
-</div>
+</nav>
 [[FOOTER]]
 EOT_UNIQKI
 }
@@ -1865,7 +1863,7 @@ EOT_UNIQKI
 sub print_manage_myself{
 	process_tpl("manage_myself.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
-<div id="manage-myself">
+<section id="manage-myself">
 <h1>[[manage_myself]]</h1>
 
 <h2>[[update_myself]]</h2>
@@ -1892,13 +1890,13 @@ sub print_manage_myself{
 <input type="submit" value="[[delete_myself]]" />
 </div>
 </form>
-</div>
-<div id="menu">
+</section>
+<nav id="menu">
 <hr />
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
-</div>
+</nav>
 [[FOOTER]]
 EOT_UNIQKI
 }
@@ -1906,7 +1904,7 @@ EOT_UNIQKI
 sub print_forgot_password{
 	process_tpl("forgot_password.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
-<div id="forgot-password">
+<section id="forgot-password">
 <h1>[[forgot_password]]</h1>
 <form action="?forgot_password" method="post">
 <div>
@@ -1916,12 +1914,12 @@ sub print_forgot_password{
 <input type="submit" value="[[forgot_password]]" />
 </div>
 </form>
-</div>
-<div id="menu">
+</section>
+<nav id="menu">
 <hr />
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
-</div>
+</nav>
 [[FOOTER]]
 EOT_UNIQKI
 }
@@ -1929,7 +1927,7 @@ EOT_UNIQKI
 sub print_reset_password{
 	process_tpl("reset_password.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
-<div id="reset-password">
+<section id="reset-password">
 <h1>[[reset_password]]</h1>
 <ul>
 <li>[[password_requirements]]</li>
@@ -1944,12 +1942,12 @@ sub print_reset_password{
 <input type="submit" value="[[reset_password]]" />
 </div>
 </form>
-</div>
-<div id="menu">
+</section>
+<nav id="menu">
 <hr />
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
-</div>
+</nav>
 [[FOOTER]]
 EOT_UNIQKI
 }
@@ -1957,17 +1955,17 @@ EOT_UNIQKI
 sub print_message{
 	process_tpl("message.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
-<div id="message">
+<section id="message">
 [[MESSAGE]]
-</div>
-<div id="menu">
+</section>
+<nav id="menu">
 <hr />
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <span class="write-access"><a accesskey="v" href="[[PAGE]]?edit">[[edit]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a class="visitor" accesskey="l" href="[[PAGE]]?login">[[login]]</a>
 <a class="user" accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
-</div>
+</nav>
 [[FOOTER]]
 EOT_UNIQKI
 }
@@ -1978,12 +1976,12 @@ sub print_view{
 	$html_started = 1;
 	process_tpl("view.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
-<div id="view">
+<article id="view">
 <!-- start text -->
 [[TEXT]]
 <!-- end text -->
-</div>
-<div id="menu">
+</article>
+<nav id="menu">
 <hr />
 <span class="write-access"><a accesskey="r" href="[[CGI]]/[[PAGE]]?refresh">[[refresh]]</a> .</span>
 <span class="write-access"><a accesskey="e" href="[[CGI]]/[[PAGE]]?edit">[[edit]]</a> .</span>
@@ -1991,11 +1989,11 @@ sub print_view{
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a class="visitor" accesskey="l" href="[[CGI]]/[[PAGE]]?login">[[login]]</a>
 <a class="user" accesskey="l" href="[[CGI]]/[[PAGE]]?logout">[[logout]]</a>
-</div>
-<div id="metadata">
+</nav>
+<footer id="metadata">
 <div id="last-modified">[[last_modified]]</div>
 <div id="parsing-time">[[parsing_time]]</div>
-</div>
+</footer>
 [[FOOTER]]
 EOT_UNIQKI
 }
@@ -2003,7 +2001,7 @@ EOT_UNIQKI
 sub print_edit{
 	process_tpl("edit.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
-<div id="edit">
+<section id="edit">
 <h1>[[edit_page]]</h1>
 <form action="[[PAGE]]?edit" method="post" enctype="multipart/form-data">
 <div>
@@ -2024,7 +2022,7 @@ sub print_edit{
 </script>
 </div>
 </form>
-</div>
+</section>
 [[FOOTER]]
 EOT_UNIQKI
 }
@@ -2033,9 +2031,9 @@ sub print_preview{
 	process_tpl("preview.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="preview-warning">[[preview_warning]]</div>
-<div id="preview">
+<article id="preview">
 [[PREVIEW]]
-</div>
+</article>
 [[EDIT]]
 [[FOOTER]]
 EOT_UNIQKI
@@ -2044,7 +2042,7 @@ EOT_UNIQKI
 sub print_edit_lines{
 	process_tpl("edit_lines.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
-<div id="edit">
+<section id="edit">
 <h1>[[edit_lines]]</h1>
 <form action="[[PAGE]]?edit_lines" method="post" enctype="multipart/form-data">
 <div>
@@ -2067,7 +2065,7 @@ sub print_edit_lines{
 </script>
 </div>
 </form>
-</div>
+</section>
 [[FOOTER]]
 EOT_UNIQKI
 }
@@ -2076,9 +2074,9 @@ sub print_preview_lines{
 	process_tpl("preview_lines.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="preview-warning">[[preview_warning]]</div>
-<div id="preview">
+<section id="preview">
 [[PREVIEW]]
-</div>
+</section>
 [[EDIT_LINES]]
 [[FOOTER]]
 EOT_UNIQKI
@@ -2087,12 +2085,12 @@ EOT_UNIQKI
 sub print_updated{
 	process_tpl("updated.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
-<div id="updated">
+<section id="updated">
 <h1>[[page_updated]]</h1>
 [[save_your_changes_and_read_latest_version]]
 <br />
 <textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
-</div>
+</section>
 [[FOOTER]]
 EOT_UNIQKI
 }
@@ -2103,23 +2101,23 @@ sub print_wiki_view{
 	$html_started = 1;
 	process_tpl("wiki_view.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
-<div id="wiki-view">
+<article id="wiki-view">
 <!-- start text -->
 [[TEXT]]
 <!-- end text -->
-</div>
-<div id="wiki-menu">
+</article>
+<nav id="wiki-menu">
 <span class="write-access"><a accesskey="e" href="[[CGI]]/[[PAGE]]?wiki_edit">[[edit]]</a> .</span>
 <a accesskey="d" href="[[CGI]]/[[PAGE]]?diff=-1">[[diff]]</a> .
 <a accesskey="l" href="[[CGI]]?search=[[PAGE]]%5C.html&amp;link=1&amp;title=1">[[backlinks]]</a> .
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a class="visitor" accesskey="l" href="[[CGI]]/[[PAGE]]?login">[[login]]</a>
 <a class="user" accesskey="l" href="[[CGI]]/[[PAGE]]?logout">[[logout]]</a>
-</div>
-<div id="metadata">
+</nav>
+<footer id="metadata">
 <div id="last-modified">[[last_modified]]</div>
 <div id="parsing-time">[[parsing_time]]</div>
-</div>
+</footer>
 [[FOOTER]]
 EOT_UNIQKI
 }
@@ -2127,7 +2125,7 @@ EOT_UNIQKI
 sub print_wiki_edit{
 	process_tpl("wiki_edit.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
-<div id="wiki-edit">
+<section id="wiki-edit">
 <h1>[[wiki_edit_page]]</h1>
 <form action="[[PAGE]]?wiki_edit" method="post" enctype="multipart/form-data">
 <div>
@@ -2149,7 +2147,7 @@ sub print_wiki_edit{
 </script>
 </div>
 </form>
-</div>
+</section>
 [[FOOTER]]
 EOT_UNIQKI
 }
@@ -2158,9 +2156,9 @@ sub print_wiki_preview{
 	process_tpl("wiki_preview.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="wiki-preview-warning">[[preview_warning]]</div>
-<div id="wiki-preview">
+<article id="wiki-preview">
 [[PREVIEW]]
-</div>
+</article>
 [[WIKI_EDIT]]
 [[FOOTER]]
 EOT_UNIQKI
@@ -2169,7 +2167,7 @@ EOT_UNIQKI
 sub print_wiki_edit_lines{
 	process_tpl("wiki_edit_lines.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
-<div id="wiki-edit">
+<section id="wiki-edit">
 <h1>[[wiki_edit_lines]]</h1>
 <form action="[[PAGE]]?wiki_edit_lines" method="post" enctype="multipart/form-data">
 <div>
@@ -2193,7 +2191,7 @@ sub print_wiki_edit_lines{
 </script>
 </div>
 </form>
-</div>
+</section>
 [[FOOTER]]
 EOT_UNIQKI
 }
@@ -2202,9 +2200,9 @@ sub print_wiki_preview_lines{
 	process_tpl("wiki_preview_lines.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="wiki-preview-warning">[[preview_warning]]</div>
-<div id="wiki-preview">
+<section id="wiki-preview">
 [[PREVIEW]]
-</div>
+</section>
 [[WIKI_EDIT_LINES]]
 [[FOOTER]]
 EOT_UNIQKI
@@ -2271,107 +2269,129 @@ ol ol ol {
 }
 
 /******************************************************************************/
-#container {
-	max-width:		960px;
-	margin:			auto;
-}
-#top {
-}
-#site-title {
-	font-weight:		bold;
-	font-size:		120%;
-}
-#site-title a {
-	color:			black;
-	text-decoration:	none;
-}
-#site-description {
-	font-size:		smaller;
-}
-#main {
-	background-color:	white;
-	border:			1px solid #aaaaaa;
-	padding:		10px;
-	box-shadow:		5px 5px 5px #aaaaaa;
-}
-#login {
-}
-#manage-pages {
-}
-#manage-users {
-}
-#manage-myself {
-}
-#forgot-password {
-}
-#reset-password {
-}
-#message {
-}
-#menu {
-	display:		none;
-}
-#metadata {
-	padding-top:		2px;
-	font-size:		smaller;
-}
-#last-modified {
-}
-#parsing-time {
-}
-#bottom {
-	margin-top:		5px;
-	text-align:		right;
-	font-size:		smaller;
-	font-style:		italic;
-}
-#validators {
-}
+@media screen {
+	body {
+		max-width:		960px;
+		margin:			auto;
+	}
+	#top {
+	}
+	#site-title {
+		font-weight:		bold;
+		font-size:		120%;
+	}
+	#site-title a {
+		color:			black;
+		text-decoration:	none;
+	}
+	#site-description {
+		font-size:		smaller;
+	}
+	#main {
+		background-color:	white;
+		border:			1px solid #aaaaaa;
+		padding:		10px;
+		box-shadow:		5px 5px 5px #aaaaaa;
+	}
+	#login {
+	}
+	#manage-pages {
+	}
+	#manage-users {
+	}
+	#manage-myself {
+	}
+	#forgot-password {
+	}
+	#reset-password {
+	}
+	#message {
+	}
+	#menu {
+		display:		none;
+	}
+	#metadata {
+		padding-top:		2px;
+		font-size:		smaller;
+	}
+	#last-modified {
+	}
+	#parsing-time {
+	}
+	#bottom {
+		margin-top:		5px;
+		text-align:		right;
+		font-size:		smaller;
+		font-style:		italic;
+	}
+	#validators {
+	}
 
 /******************************************************************************/
-#view {
-}
-#edit {
-}
-#preview-warning {
-	background-color:	red;
-	padding:		5px;
-	margin-bottom:		10px;
-}
-#preview {
-}
-#updated {
-}
-#file-link-example {
-	margin-bottom:		30px;
-}
+	#view {
+	}
+	#edit {
+	}
+	#preview-warning {
+		background-color:	red;
+		padding:		5px;
+		margin-bottom:		10px;
+	}
+	#preview {
+	}
+	#updated {
+	}
+	#file-link-example {
+		margin-bottom:		30px;
+	}
 
 /******************************************************************************/
-#wiki-view {
-	background-color:	#f7f7f7;
-	color:			#000000;
-	border:			1px solid #999999;
-	padding:		5px;
-}
-#wiki-edit {
-}
-#wiki-preview-warning {
-	background-color:	red;
-	padding:		5px;
-	margin-bottom:		10px;
-}
-#wiki-preview {
-}
-#wiki-menu {
-	padding:		5px 5px 0px 5px;
-	display:		none;
-}
+	#wiki-view {
+		background-color:	#f7f7f7;
+		color:			#000000;
+		border:			1px solid #999999;
+		padding:		5px;
+	}
+	#wiki-edit {
+	}
+	#wiki-preview-warning {
+		background-color:	red;
+		padding:		5px;
+		margin-bottom:		10px;
+	}
+	#wiki-preview {
+	}
+	#wiki-menu {
+		padding:		5px 5px 0px 5px;
+		display:		none;
+	}
 
 /******************************************************************************/
-.edit-section {
-	display:		none;
-	text-align:		right;
-	font-size:		70%;
+	.edit-section {
+		display:		none;
+		text-align:		right;
+		font-size:		70%;
+	}
+}
+@media print {
+	#top {
+		display:		none;
+	}
+	#menu {
+		display:		none;
+	}
+	#metadata {
+		display:		none;
+	}
+	#parsing-time {
+		display:		none;
+	}
+	#bottom {
+		display:		none;
+	}
+	.edit-section a {
+		display:		none;
+	}
 }
 #toc {
 }
@@ -4331,6 +4351,7 @@ sub create_edit_section{
 	my $lines = $start.($lineno ? ",".($lineno-$start) : "");
 	push @h_lines, $lineno;
 	$text .= qq(<div class="write-access edit-section"><a href="$CGI/$PAGE?$edit=$lines">$MESSAGES{edit}</a></div>\n);
+	$text .= qq(</section>\n) if($#h_lines > 2);
 }
 
 sub run_code_block{
@@ -5355,7 +5376,7 @@ sub process_line_syntax{
 			$text .= qq(<h$i>$_</h$i>\n);
 			return;
 		}elsif(!$inc_toc){
-			$text .= qq(<h$i>$_</h$i>\n);
+			$text .= qq(<section>\n<h$i>$_</h$i>\n);
 			return;
 		}
 
@@ -5384,7 +5405,7 @@ sub process_line_syntax{
 		$sec = "$SECTION_NUMBER_PREFIX$sec$SECTION_NUMBER_SUFFIX";
 
 		$text .= "\x05" if($toc eq "");
-		$text .= qq(<h$i id="$id">$sec$_</h$i>\n);
+		$text .= qq(<section id="$id">\n<h$i>$sec$_</h$i>\n);
 
 		if($i > $h_prev){
 			if($h_prev){
