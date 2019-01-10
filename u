@@ -2422,6 +2422,8 @@ ol ol ol {
 .text-right {
 	text-align:		right;
 }
+.section-number {
+}
 
 /******************************************************************************/
 #diff {
@@ -5439,7 +5441,7 @@ sub process_line_syntax{
 				$sec .= $secs_no{$j};
 			}
 			$h_secs{$id} = $sec;
-			$sec = "$SECTION_NUMBER_PREFIX$sec$SECTION_NUMBER_SUFFIX";
+			$sec = qq(<span class="section-number">$SECTION_NUMBER_PREFIX$sec$SECTION_NUMBER_SUFFIX</span>);
 			my $enc_id = encode_url_safe($id);
 			$toc .= "<li><a href=\"#$enc_id\">$sec$title</a></li>\n";
 			$text .= qq(<section id="$id">\n<h$i>$sec$_</h$i>\n);
