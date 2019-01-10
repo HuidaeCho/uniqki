@@ -2393,6 +2393,8 @@ ol ol ol {
 		display:		none;
 	}
 }
+.section-number {
+}
 #toc {
 }
 .toc-heading {
@@ -2421,8 +2423,6 @@ ol ol ol {
 }
 .text-right {
 	text-align:		right;
-}
-.section-number {
 }
 
 /******************************************************************************/
