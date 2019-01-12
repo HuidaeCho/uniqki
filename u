@@ -138,6 +138,7 @@ use vars qw(
 use vars qw(
 	$preprocess_text
 	$verify_input
+	$preview
 	$wiki
 	$html_started
 	$header_printed $footer_printed
@@ -2950,12 +2951,13 @@ sub preview{
 	my $wiki_edit = shift;
 	my $txt;
 
-	local $TITLE;
-	local $PREVIEW;
+	local $preview = 1;
 	local $wiki;
 	local $html_started = 0;
 	local $header_printed = 0;
 	local $footer_printed = 0;
+	local $TITLE;
+	local $PREVIEW;
 
 	write_file(\$txt, ($wiki_edit ? "#!wiki\n" : "")."$TEXT\n");
 
@@ -2988,12 +2990,13 @@ sub preview_lines{
 	my $wiki_edit = shift;
 	my $txt;
 
-	local $TITLE;
-	local $PREVIEW;
+	local $preview = 1;
 	local $wiki;
 	local $html_started = 0;
 	local $header_printed = 0;
 	local $footer_printed = 0;
+	local $TITLE;
+	local $PREVIEW;
 
 	write_file(\$txt, read_lines("$PAGE.txt", 1, $START - 1)."$TEXT\n");
 
@@ -3019,6 +3022,7 @@ sub preview_lines{
 
 sub make_html{
 	local $PAGE = shift;
+	local $preview = 0;
 	local $wiki;
 	local $html_started = 0;
 	local $header_printed = 0;
@@ -4359,6 +4363,7 @@ sub run_code_block{
 	my $block = shift;
 	$block =~ s/^(##[{}]_*)_$/$1/mg;
 	eval $block;
+	$text .= "<pre>$@</pre>" if($preview && $@);
 }
 
 sub create_child_block{
@@ -5162,6 +5167,7 @@ sub process_nonwiki_command{
 	if(m/^##((?:sub |{).*)$/){
 		if("}" eq substr $1, -1){
 			eval $1;
+			$text .= "<pre>$@</pre>" if($preview && $@);
 			return;
 		}
 		$code_block = "$1\n";
