@@ -21,7 +21,7 @@ an embedded web server.
 
 ## License
 
-Copyright (C) 2007-2008, 2010-2011, 2016-2018, Huidae Cho <<https://idea.isnew.info>>  
+Copyright (C) 2007-2008, 2010-2011, 2016-2019, Huidae Cho <<https://idea.isnew.info>>  
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
