@@ -159,7 +159,7 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 			if($name eq "p" || $name eq "c" || $name eq "k" ||
 			   $name eq "i" || $name eq "f"){
 				die "$ARGV[$i] option requires a value"
-					if($i + 1 > $#ARGV);
+					if $i + 1 > $#ARGV;
 				$opt{$name} = $ARGV[++$i];
 			}else{
 				$opt{$name} = 1;
@@ -212,7 +212,7 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 		printf FH @msg;
 		close FH;
 
-		printf @msg if($foreground);
+		printf @msg if $foreground;
 	}
 
 	sub die_logger{
@@ -221,7 +221,7 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 	}
 
 	sub get_pid{
-		return 0 unless(-f $pid_file);
+		return 0 unless -f $pid_file;
 
 		local *FH;
 		open FH, $pid_file;
@@ -230,7 +230,7 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 		chomp $pid;
 
 		my $alive = kill 0, $pid;
-		unlink $pid_file unless($alive);
+		unlink $pid_file unless $alive;
 
 		return $alive ? $pid : 0;
 	}
@@ -408,7 +408,7 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 				$ENV{PATH_INFO} = decode_url($1);
 
 				*STDIN = $client
-					if($ENV{REQUEST_METHOD} eq "POST");
+					if $ENV{REQUEST_METHOD} eq "POST";
 				local *OUTPUT;
 				my $output;
 				open OUTPUT, ">", \$output;
@@ -436,7 +436,7 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 			}elsif($opt{s}){
 				(my $page = $request_uri) =~ s/\.html$//;
 				my $url = "/$u";
-				$url .= "/$page" if($page ne "");
+				$url .= "/$page" if $page ne "";
 				respond_location($client, $url);
 			}elsif(-f $request_file){
 				respond_file($client, $request_file);
@@ -551,7 +551,7 @@ prepare_parser();
 ################################################################################
 # Read the config file
 process_cfg();
-$INDEX_PAGE = "index" if($INDEX_PAGE eq "");
+$INDEX_PAGE = "index" if $INDEX_PAGE eq "";
 if($TIME_ZONE ne ""){
 	if($TIME_ZONE =~ /^gmt([+-])([0-9]+)$/i){
 		$TIME_ZONE = "GMT".($1 eq "+" ? "-" : "+").$2;
@@ -562,9 +562,9 @@ if($TIME_ZONE ne ""){
 eval "use POSIX qw(setlocale LC_ALL tzset strftime);";
 my $use_posix = $@ ? 0 : 1;
 if($use_posix){
-	setlocale(LC_ALL(), $LOCALE) if($LOCALE ne "");
-	tzset() if($TIME_ZONE ne "");
-	$TIME_FORMAT =~ s/%e/%#d/g if($win);
+	setlocale(LC_ALL(), $LOCALE) if $LOCALE ne "";
+	tzset() if $TIME_ZONE ne "";
+	$TIME_FORMAT =~ s/%e/%#d/g if $win;
 }
 
 my $smtp_server = "";
@@ -679,29 +679,29 @@ sub config_access{
 
 sub run_file_mime_type{
 	my $file = shift;
-	return "" if($MIME_TYPE_COMMAND eq "" || !-f $file);
+	return "" if $MIME_TYPE_COMMAND eq "" || !-f $file;
 	(my $mime_type = `$MIME_TYPE_COMMAND $file`) =~ y/\r\n//d;
 	return $mime_type;
 }
 
 sub get_mime_type{
 	my $file = shift;
-	return "" unless(-f $file);
+	return "" unless -f $file;
 	my $mime_type;
 	eval "use MIME::Types;";
 	if($@){
 		$mime_type = run_file_mime_type($file);
 	}else{
 		$mime_type = MIME::Types->new(only_iana=>1)->mimeTypeOf($file);
-		$mime_type = run_file_mime_type($file) if($mime_type eq "");
+		$mime_type = run_file_mime_type($file) if $mime_type eq "";
 	}
-	$mime_type = "application/octet-stream" if($mime_type eq "");
+	$mime_type = "application/octet-stream" if $mime_type eq "";
 	return $mime_type;
 }
 
 sub die_path{
 	my $path = shift;
-	die_message("path_not_found", $path) unless(-e $path);
+	die_message("path_not_found", $path) unless -e $path;
 
 	if(-d $path){
 		$path =~ s#/+$##;
@@ -767,7 +767,7 @@ sub die_text{
 }
 
 sub start_html{
-	return if($html_started);
+	return if $html_started;
 	$html_started = 1;
 	print "Content-Type: text/html\n\n";
 }
@@ -793,7 +793,7 @@ sub convert_page_name{
 	}
 	# Allow page names starting with a dot.
 	$page_name =~ s/^ |[. ]$//g;
-	return "" if($page_name eq "");
+	return "" if $page_name eq "";
 
 	if($page_name_case eq "mixed_case"){
 		# case as is
@@ -848,15 +848,15 @@ sub link_page{
 	my $enc_section = encode_url_safe(convert_page_name($section));
 
 	if($enc_page eq ""){
-		return "" if($enc_section eq "");
-		return qq(<a class="auto-title" href="#$enc_section">$section</a>) if($title eq "");
+		return "" if $enc_section eq "";
+		return qq(<a class="auto-title" href="#$enc_section">$section</a>) if $title eq "";
 		return qq(<a href="#$enc_section">$title</a>);
 	}
 	if($enc_section eq ""){
-		return qq(<a class="auto-title" href="$enc_page.html">$page</a>) if($title eq "");
+		return qq(<a class="auto-title" href="$enc_page.html">$page</a>) if $title eq "";
 		return qq(<a href="$enc_page.html">$title</a>);
 	}
-	return qq(<a class="auto-title" href="$enc_page.html#$enc_section">$section</a>) if($title eq "");
+	return qq(<a class="auto-title" href="$enc_page.html#$enc_section">$section</a>) if $title eq "";
 	return qq(<a href="$enc_page.html#$enc_section">$title</a>);
 }
 
@@ -870,9 +870,9 @@ sub link_image{
 	$path =~ s/^[ \t]+|[ \t]+$//g;
 	$title =~ s/^[ \t]+|[ \t]+$//g;
 	$style =~ s/^[ \t]+|[ \t]+$//g;
-	return "" if($path eq "." || $path eq "");
+	return "" if $path eq "." || $path eq "";
 
-	$style = qq( style="$style") if($style ne "");
+	$style = qq( style="$style") if $style ne "";
 
 	my $page = $PAGE;
 	my $file = "";
@@ -886,18 +886,18 @@ sub link_image{
 		}elsif($p ne "."){
 			# page/file
 			$page = convert_page_name($p);
-			return "" if($page eq "");
+			return "" if $page eq "";
 		}
 		# else ./file
 		$file = substr $path, $i + 1;
-		return "" if($file eq "");
+		return "" if $file eq "";
 	}else{
 		# file
 		$file = $path;
 	}
 
 	my $enc_path = encode_url_safe("$page/$file");
-	return qq(<img class="auto-title" src="$enc_path" alt="$file" title="$file"$style />) if($title eq "");
+	return qq(<img class="auto-title" src="$enc_path" alt="$file" title="$file"$style />) if $title eq "";
 	return qq(<img src="$enc_path" alt="$title" title="$title"$style />);
 }
 
@@ -927,7 +927,7 @@ sub link_file{
 		}elsif($p ne "."){
 			# page/, page/file
 			$page = convert_page_name($p);
-			return "" if($page eq "");
+			return "" if $page eq "";
 		}
 		# else ./, ./file
 		$file = substr $path, $i + 1;
@@ -940,12 +940,12 @@ sub link_file{
 	}
 
 	if($file eq ""){
-		return qq(<a class="auto-title" href="$page/">$page/</a>) if($title eq "");
+		return qq(<a class="auto-title" href="$page/">$page/</a>) if $title eq "";
 		return qq(<a href="$page/">$title</a>);
 	}
 
 	my $enc_path = encode_url_safe("$page/$file");
-	return qq(<a class="auto-title" href="$enc_path">$file</a>) if($title eq "");
+	return qq(<a class="auto-title" href="$enc_path">$file</a>) if $title eq "";
 	return qq(<a href="$enc_path">$title</a>);
 }
 
@@ -955,9 +955,9 @@ sub link_url_image{
 	$url =~ s/^[ \t]+|[ \t]+$//g;
 	$title =~ s/^[ \t]+|[ \t]+$//g;
 	$style =~ s/^[ \t]+|[ \t]+$//g;
-	$style = qq( style="$style") if($style ne "");
+	$style = qq( style="$style") if $style ne "";
 
-	return qq(<img class="auto-title" src="$url" alt="$url" title="$url"$style />) if($title eq "");
+	return qq(<img class="auto-title" src="$url" alt="$url" title="$url"$style />) if $title eq "";
 	return qq(<img src="$url" alt="$title" title="$title"$style />);
 }
 
@@ -967,7 +967,7 @@ sub link_url{
 	$url =~ s/^[ \t]+|[ \t]+$//g;
 	$title =~ s/^[ \t]+|[ \t]+$//g;
 
-	return qq(<a class="auto-title" href="$url">$url</a>) if($title eq "");
+	return qq(<a class="auto-title" href="$url">$url</a>) if $title eq "";
 	return qq(<a href="$url">$title</a>);
 }
 
@@ -1062,29 +1062,29 @@ sub is_logged_in{
 }
 
 sub has_read_access{
-	return 1 if($admin);
+	return 1 if $admin;
 	if($wiki){
-		return 1 if($wiki_read_access eq "open");
-		return 1 if($wiki_read_access eq "closed" && is_logged_in());
+		return 1 if $wiki_read_access eq "open";
+		return 1 if $wiki_read_access eq "closed" && is_logged_in();
 		return 0;
 	}
-	return 1 if($nonwiki_read_access eq "open");
-	return 1 if($nonwiki_read_access eq "closed" && is_logged_in());
+	return 1 if $nonwiki_read_access eq "open";
+	return 1 if $nonwiki_read_access eq "closed" && is_logged_in();
 	return 0;
 }
 
 sub has_write_access{
 	my $comment = shift;
-	return 1 if($admin);
+	return 1 if $admin;
 	if($wiki){
-		return 1 if($wiki_write_access eq "open");
-		return 1 if($wiki_write_access eq "closed" && is_logged_in());
+		return 1 if $wiki_write_access eq "open";
+		return 1 if $wiki_write_access eq "closed" && is_logged_in();
 		return 0;
 	}
 	if($comment){
-		return 1 if($nonwiki_comment_access eq "open");
-		return 1 if($nonwiki_comment_access eq "closed" &&
-			    is_logged_in());
+		return 1 if $nonwiki_comment_access eq "open";
+		return 1 if $nonwiki_comment_access eq "closed" &&
+			    is_logged_in();
 	}
 	return 0;
 }
@@ -1108,7 +1108,7 @@ sub is_wiki{
 # Password file
 sub write_pw{
 	my $file = $PASSWORD_FILE eq "" ? "u.pw" : $PASSWORD_FILE;
-	write_file($file, "$adminpw\n") unless(-f $file);
+	write_file($file, "$adminpw\n") unless -f $file;
 }
 
 #-------------------------------------------------------------------------------
@@ -1345,10 +1345,10 @@ $MINIMUM_COMMENT_TIME = 15;
 EOT_UNIQKI
 	my $file = $CFG eq "" ? "u.cfg" : $CFG;
 	if($mode == 1){
-		write_file($file, $cfg) unless(-f $file);
+		write_file($file, $cfg) unless -f $file;
 	}else{
 		eval $cfg;
-		do $file if(-f $file);
+		do $file if -f $file;
 	}
 }
 
@@ -1539,10 +1539,10 @@ list_of_figures => q(Figures),
 EOT_UNIQKI
 	my $file = $MESSAGES_FILE eq "" ? "u.msg" : $MESSAGES_FILE;
 	if($mode == 1){
-		write_file($file, $msg) unless(-f $file);
+		write_file($file, $msg) unless -f $file;
 	}else{
 		eval $msg;
-		do $file if(-f $file);
+		do $file if -f $file;
 	}
 }
 
@@ -1628,7 +1628,7 @@ sub process_tpl_tag{
 		@hash{@tags} = undef;
 
 		no strict;
-		$txt = $$tag if(exists $hash{$tag});
+		$txt = $$tag if exists $hash{$tag};
 	}elsif($tag eq "parsing_time" && !$show_parsing_time){
 		$txt = "";
 	}elsif($tag =~ /^[a-z0-9_]+$/){
@@ -1664,7 +1664,7 @@ sub process_tpl{
 	}
 
 	if($mode == 1){
-		write_file($path, $tpl) if(-d $TEMPLATE_DIRECTORY && !-f $path);
+		write_file($path, $tpl) if -d $TEMPLATE_DIRECTORY && !-f $path;
 		return;
 	}elsif(-f $path){
 		$tpl = read_file($path);
@@ -1677,7 +1677,7 @@ sub process_tpl{
 
 sub print_header{
 	my $mode = shift;
-	return if(!defined $mode && $header_printed);
+	return if !defined $mode && $header_printed;
 
 	$header_printed = 1;
 	process_tpl("header.tpl", $mode, <<'EOT_UNIQKI');
@@ -1708,7 +1708,7 @@ EOT_UNIQKI
 
 sub print_footer{
 	my $mode = shift;
-	return if(!defined $mode && $footer_printed);
+	return if !defined $mode && $footer_printed;
 
 	$footer_printed = 1;
 	process_tpl("footer.tpl", $mode, <<'EOT_UNIQKI');
@@ -2683,11 +2683,11 @@ sub lcs{
 	my @lcs;
 	my $s;
 	for($s = 0; $s <= $#$c0 && $s <= $#$c1; $s++){
-		last if($$c0[$s] ne $$c1[$s]);
+		last if $$c0[$s] ne $$c1[$s];
 	}
 	my ($e0, $e1);
 	for($e0 = $#$c0, $e1 = $#$c1; $e0 > $s && $e1 > $s; $e0--, $e1--){
-		last if($$c0[$e0] ne $$c1[$e1]);
+		last if $$c0[$e0] ne $$c1[$e1];
 	}
 	my ($m, $n);
 	for($m = $s; $m <= $e0; $m++){
@@ -2806,7 +2806,7 @@ sub save{
 	}
 
 	write_file("$PAGE.txt.v", $txtv);
-	$rebuild = 1 if(write_file("$PAGE.txt", $TEXT));
+	$rebuild = 1 if write_file("$PAGE.txt", $TEXT);
 }
 
 sub save_lines{
@@ -2845,7 +2845,7 @@ sub save_lines{
 	$txtv = "$version:$time:$REMOTE_ADDR:$USER\n$diff\x00\n$txtv";
 
 	write_file("$PAGE.txt.v", $txtv);
-	$rebuild = 1 if(write_file("$PAGE.txt", $TEXT));
+	$rebuild = 1 if write_file("$PAGE.txt", $TEXT);
 }
 
 sub get_version{
@@ -2855,7 +2855,7 @@ sub get_version{
 	if(open FH, "$PAGE.txt.v"){
 		my @items = split /:/, <FH>;
 		close FH;
-		die_message("internal_errors") unless(-f "$PAGE.txt");
+		die_message("internal_errors") unless -f "$PAGE.txt";
 		$version = $items[0];
 	}elsif(-f "$PAGE.txt"){
 		$version = 1;
@@ -2869,7 +2869,7 @@ sub get_page_info{
 	my $cur_ver = get_version($PAGE);
 	my $ver = $v > 0 ? $v : $cur_ver + $v;
 	my %page_info;
-	return %page_info unless($ver > 0 && $ver <= $cur_ver);
+	return %page_info unless $ver > 0 && $ver <= $cur_ver;
 	local *FH;
 	if(open FH, "$PAGE.txt.v"){
 		local $/ = "\x00\n";
@@ -2882,9 +2882,9 @@ sub get_page_info{
 			}
 		}
 		close FH;
-		die_message("internal_errors") unless(-f "$PAGE.txt");
+		die_message("internal_errors") unless -f "$PAGE.txt";
 		my @items = split /:/, $line;
-		return %page_info if($ver != $items[0]);
+		return %page_info if $ver != $items[0];
 		$page_info{version} = $items[0];
 		$page_info{time} = $items[1];
 		$page_info{ip} = $items[2];
@@ -2931,11 +2931,11 @@ sub lock_file{
 	my $timeout = 60;
 	my $i = 0;
 	while(-f "$file.lock"){
-		die_message("internal_errors") if(++$i > $timeout);
+		die_message("internal_errors") if ++$i > $timeout;
 		sleep 1;
 	}
 	$locked_files{$file} = 1;
-	die_message("internal_errors") unless(write_file("$file.lock"));
+	die_message("internal_errors") unless write_file("$file.lock");
 }
 
 sub unlock_file{
@@ -3030,10 +3030,10 @@ sub make_html{
 	local $AUTHOR = get_author($PAGE);
 	local $TIME = format_time((stat "$PAGE.txt")[9]);
 	local $TITLE;
-	my $start_time = Time::HiRes::time() if($show_parsing_time);
+	my $start_time = Time::HiRes::time() if $show_parsing_time;
 	local $TEXT = parse_file("$PAGE.txt");
 	local $PARSING_TIME = sprintf "%.3f", Time::HiRes::time() - $start_time
-		if($show_parsing_time);
+		if $show_parsing_time;
 	local *FH;
 
 	unless(defined $TITLE){
@@ -3056,7 +3056,7 @@ sub make_html{
 
 	lock_file("$PAGE.html");
 	write_file("$PAGE.html", $html);
-	chmod 0755, "$PAGE.html" if($hosting eq "awardspace");
+	chmod 0755, "$PAGE.html" if $hosting eq "awardspace";
 	unlock_file("$PAGE.html");
 }
 
@@ -3094,7 +3094,7 @@ sub find{
 		my @list;
 		opendir DH, $file;
 		foreach(sort readdir DH){
-			next if($_ eq "." || $_ eq "..");
+			next if $_ eq "." || $_ eq "..";
 			push @list, find("$file/$_");
 		}
 		closedir DH;
@@ -3112,15 +3112,15 @@ sub get_var{
 		$var{$v} =~ y/+/ /; $var{$v} =~ s/%0D//g;
 		$var{$v} = decode_url($var{$v});
 	}
-	return %var if($CONTENT_LENGTH eq "" || $CONTENT_LENGTH <= 0);
+	return %var if $CONTENT_LENGTH eq "" || $CONTENT_LENGTH <= 0;
 
 	my $content = "";
 	my $total_len = 0;
 	while(my $buf_len = read STDIN, my $buf, $CONTENT_LENGTH - $total_len){
 		$total_len += $buf_len;
 		$content .= $buf;
-		die_message("internal_errors") if($total_len > $CONTENT_LENGTH);
-		last if($total_len == $CONTENT_LENGTH);
+		die_message("internal_errors") if $total_len > $CONTENT_LENGTH;
+		last if $total_len == $CONTENT_LENGTH;
 	}
 	if($CONTENT_TYPE eq "application/x-www-form-urlencoded"){
 		foreach(split /&/, $content){
@@ -3162,11 +3162,11 @@ sub get_cookie_attributes{
 	(my $script_dir = $SCRIPT_NAME) =~ s#[^/]*$##;
 
 	my $cookie_attributes = "";
-	$cookie_attributes .= "domain=$HTTP_HOST; " if($subdomains);
+	$cookie_attributes .= "domain=$HTTP_HOST; " if $subdomains;
 	$cookie_attributes .= $paths eq "all_paths" ? "path=/; " :
 		($paths eq "subpaths" && $doc_root eq "" ?
 			"path=$script_dir; " : "path=$SCRIPT_NAME; ");
-	$cookie_attributes .= "secure; " if($HTTPS eq "on");
+	$cookie_attributes .= "secure; " if $HTTPS eq "on";
 	$cookie_attributes .= "httponly";
 
 	return $cookie_attributes;
@@ -3229,7 +3229,7 @@ sub find_user_info{
 		# for single file operations.
 		$method = 2;
 	}
-	return %user_info if($method == 0);
+	return %user_info if $method == 0;
 
 	my $userline = "";
 	if($method == 1){
@@ -3245,7 +3245,7 @@ sub find_user_info{
 	       "$user:" eq substr $adminpw, 0, length("$user:")){
 		$userline = $adminpw;
 	}
-	return %user_info if($userline eq "");
+	return %user_info if $userline eq "";
 
 	my @items = split /:/, $userline;
 	$user_info{user} = $items[0];
@@ -3297,7 +3297,7 @@ sub find_user_info_by_email_address{
 		# for single file operations.
 		$method = 2;
 	}
-	return %user_info if($method == 0);
+	return %user_info if $method == 0;
 
 	(my $escaped_email = $email) =~ s/\./\\./g;
 
@@ -3315,7 +3315,7 @@ sub find_user_info_by_email_address{
 	       $adminpw =~ /:$escaped_email(?::[^:]*){2}$/i){
 	       $userline = $adminpw;
 	}
-	return %user_info if($userline eq "");
+	return %user_info if $userline eq "";
 
 	my @items = split /:/, $userline;
 	$user_info{user} = $items[0];
@@ -3367,7 +3367,7 @@ sub find_user_info_by_password_reset_token{
 		# for single file operations.
 		$method = 2;
 	}
-	return %user_info if($method != 1);
+	return %user_info if $method != 1;
 
 	(my $escaped_token = $token) =~ s/\./\\./g;
 
@@ -3380,7 +3380,7 @@ sub find_user_info_by_password_reset_token{
 		$userline = $lines[0];
 		$userline =~ y/\r\n//d;
 	}
-	return %user_info if($userline eq "");
+	return %user_info if $userline eq "";
 
 	my @items = split /:/, $userline;
 	$user_info{user} = $items[0];
@@ -3456,9 +3456,9 @@ sub authenticate_user{
 
 	# If admin password is not temporary, the password is secure.
 	my $userpw = "$user:$saved_pw:";
-	$insecure_pw = 0 if($userpw ne substr $tmp_adminpw, 0, length($userpw));
+	$insecure_pw = 0 if $userpw ne substr $tmp_adminpw, 0, length($userpw);
 
-	clear_user_sessions($user) if($logout_others eq "1");
+	clear_user_sessions($user) if $logout_others eq "1";
 	start_session($user);
 
 	if($insecure_pw){
@@ -3470,19 +3470,19 @@ sub authenticate_user{
 
 	$USER = $user;
 	$NAME = $name;
-	$admin = 1 if($group eq "admin");
+	$admin = 1 if $group eq "admin";
 }
 
 sub find_session_info{
 	my $session_id = shift;
 	local *FH;
 
-	return if(!-f $sessions_file || !is_session_id($session_id));
+	return if !-f $sessions_file || !is_session_id($session_id);
 
 	open FH, $sessions_file;
 	my @lines = grep /^$session_id:/, <FH>;
 	close FH;
-	return if($#lines == -1);
+	return if $#lines == -1;
 
 	return split /:/, $lines[0];
 }
@@ -3524,10 +3524,10 @@ sub close_session{
 	clear_cookie();
 
 	my $cookie = $HTTP_COOKIE; $cookie =~ s/; /\n/g;
-	return unless($cookie =~ /^uniqki=(.+)$/m);
+	return unless $cookie =~ /^uniqki=(.+)$/m;
 
 	my $session_id = $1;
-	return if(!-f $sessions_file || !is_session_id($session_id));
+	return if !-f $sessions_file || !is_session_id($session_id);
 
 	my $new_sessions = "";
 	my $deleted = 0;
@@ -3544,7 +3544,7 @@ sub close_session{
 	}
 	close FH;
 
-	write_file($sessions_file, $new_sessions) if($deleted);
+	write_file($sessions_file, $new_sessions) if $deleted;
 	unlock_file($sessions_file);
 }
 
@@ -3558,7 +3558,7 @@ sub clear_user_sessions{
 		my $session_id = $1;
 		(my $sess, $user) = find_session_info($session_id);
 	}
-	return if(!-f $sessions_file || !is_username($user));
+	return if !-f $sessions_file || !is_username($user);
 
 	my $new_sessions = "";
 	my $deleted = 0;
@@ -3575,12 +3575,12 @@ sub clear_user_sessions{
 	}
 	close FH;
 
-	write_file($sessions_file, $new_sessions) if($deleted);
+	write_file($sessions_file, $new_sessions) if $deleted;
 	unlock_file($sessions_file);
 }
 
 sub clear_expired_sessions{
-	return if(!-f $sessions_file);
+	return if !-f $sessions_file;
 
 	my $new_sessions = "";
 	my $deleted = 0;
@@ -3598,7 +3598,7 @@ sub clear_expired_sessions{
 	}
 	close FH;
 
-	write_file($sessions_file, $new_sessions) if($deleted);
+	write_file($sessions_file, $new_sessions) if $deleted;
 	unlock_file($sessions_file);
 }
 
@@ -3636,16 +3636,16 @@ sub handle_session{
 
 	# If admin password is not temporary, the password is secure.
 	my $userpw = "$user:$pw:";
-	$insecure_pw = 0 if($userpw ne substr $tmp_adminpw, 0, length($userpw));
+	$insecure_pw = 0 if $userpw ne substr $tmp_adminpw, 0, length($userpw);
 
 	$USER = $user;
 	$NAME = $name;
-	$admin = 1 if($group eq "admin");
+	$admin = 1 if $group eq "admin";
 }
 
 sub clear_password_reset_token{
 	my $token = shift;
-	return if(!-f $PASSWORD_FILE || $token !~ /^[a-zA-Z0-9]{64}\.[0-9]+$/);
+	return if !-f $PASSWORD_FILE || $token !~ /^[a-zA-Z0-9]{64}\.[0-9]+$/;
 
 	my $new_pw = "";
 	my $cleared = 0;
@@ -3663,7 +3663,7 @@ sub clear_password_reset_token{
 	}
 	close FH;
 
-	write_file($PASSWORD_FILE, $new_pw) if($cleared);
+	write_file($PASSWORD_FILE, $new_pw) if $cleared;
 	unlock_file($PASSWORD_FILE);
 }
 
@@ -3691,15 +3691,15 @@ sub generate_session_id{
 		my @session = find_session_info($session_id);
 		$found = defined $session[0] ? 1 : 0;
 		$i++;
-	}while($found && $i<10);
+	}while $found && $i<10;
 
-	die_message("session_errors") if($found);
+	die_message("session_errors") if $found;
 
 	my $expires = time + $INACTIVE_TIMEOUT * 60;
 
 	lock_file($sessions_file);
 	local *FH;
-	die_message("session_errors") unless(open FH, ">>$sessions_file");
+	die_message("session_errors") unless open FH, ">>$sessions_file";
 	print FH "$session_id:$user:active:$expires\n";
 	close FH;
 	unlock_file($sessions_file);
@@ -3855,13 +3855,13 @@ sub create_comment_form{
 	# $mode=undef: return
 	# $mode=1: print
 	my ($page, $comment, $direction, $rows, $cols, $mode) = @_;
-	$page = $PAGE if($page eq "");
-	$comment = "comment" if($comment eq "");
-	$direction = "down" if($direction eq "");
-	$rows = "6" if($rows eq "");
-	$cols = "80" if($cols eq "");
+	$page = $PAGE if $page eq "";
+	$comment = "comment" if $comment eq "";
+	$direction = "down" if $direction eq "";
+	$rows = "6" if $rows eq "";
+	$cols = "80" if $cols eq "";
 	die_message("invalid_comment_tag", $comment)
-		unless($comment =~ /^[a-zA-Z0-9_-]+$/);
+		unless $comment =~ /^[a-zA-Z0-9_-]+$/;
 	my $id = time;
 
 	my $leave_this_field_blank = get_msg("comment_form_leave_this_field_blank");
@@ -3911,7 +3911,7 @@ sub write_file{
 
 	# ">" is required for the in-memory file
 	if(open FH, ">", $file){
-		binmode FH if($binary);
+		binmode FH if $binary;
 		print FH $text;
 		close FH;
 		return 1;
@@ -3924,18 +3924,18 @@ sub read_lines{
 	my $lines = "";
 	local *FH;
 
-	return $lines if(defined $count && $count <= 0);
+	return $lines if defined $count && $count <= 0;
 
 	# "<" is required for the in-memory file
 	if(open FH, "<", $file){
 		# sysread is faster, but it doesn't work with in-memory files.
-		<FH> while(--$start);
+		<FH> while --$start;
 		if(!defined $count){
 			local $/ = undef;
 			$lines = <FH>;
 		}else{
 			while(<FH>){
-				last unless($count--);
+				last unless $count--;
 				$lines .= $_;
 			}
 		}
@@ -3950,18 +3950,18 @@ sub edit_lines{
 	# $count == 0:	insert at $start
 	my ($file, $start, $count, $lines) = @_;
 	my $text = read_lines($file, 1, $start - 1).$lines;
-	$text .= read_lines($file, $start + $count) if($count ne "");
+	$text .= read_lines($file, $start + $count) if $count ne "";
 	return $text;
 }
 
 sub print_list_pages{
 	my ($list, $n, $title, $glob, $TITLE) = @_;
 
-	$n = 0 if($n eq "");
-	$glob = "*" if($glob eq "");
+	$n = 0 if $n eq "";
+	$glob = "*" if $glob eq "";
 
 	print qq(<div id="list">\n);
-	print qq(<h1>$TITLE</h1>\n) if($TITLE ne "");
+	print qq(<h1>$TITLE</h1>\n) if $TITLE ne "";
 	print qq(<ul>\n);
 
 	my $tls = $list eq "taz" || $list eq "tza" ? 1 : 0;
@@ -3969,15 +3969,15 @@ sub print_list_pages{
 	my $i = 0;
 	my @list;
 	foreach(<$glob.txt>){
-		next if(substr($_,0,1) eq "." || index($_,"/") >= 0 || !-f $_);
+		next if substr($_,0,1) eq "." || index($_,"/") >= 0 || !-f $_;
 		s/\.txt$//;
 		if($PAGES_NOT_ALLOWED ne "" && /$PAGES_NOT_ALLOWED/o){
 			next;
 		}
 		my $page = $_;
-		next unless(-f "$page.html");
+		next unless -f "$page.html";
 		local $wiki = is_wiki($page);
-		next unless(has_read_access());
+		next unless has_read_access();
 
 		my $page_title = $page;
 		my @t = localtime((stat "$page.txt")[9]);
@@ -4011,7 +4011,7 @@ sub print_list_pages{
 	@list = sort @list;
 	@list = reverse @list if($list eq "rc" || $list eq "za" ||
 				 $list eq "tza");
-	$n = $i if($n > $i || !$n);
+	$n = $i if $n > $i || !$n;
 	$i = 0;
 	foreach(@list){
 		my ($page, $page_title, $time, $author);
@@ -4037,7 +4037,7 @@ sub print_list_pages{
 			$time = $3;
 		}
 		print qq(<li><a href="$page.html">$page_title</a> <span class="list-time">$time</span> <span class="list-author">$author</span></li>\n);
-		last if(++$i == $n);
+		last if ++$i == $n;
 	}
 
 	print qq(</ul>\n</div>\n);
@@ -4056,24 +4056,24 @@ sub print_search_pages{
 		s/[\x01\x02]//g; s/\\"//g;
 	}
 	my @search = split />/;
-	$glob = "*" if($glob eq "");
+	$glob = "*" if $glob eq "";
 
 	print qq(<div id="search">\n);
-	print qq(<h1>$TITLE</h1>\n) if($TITLE ne "");
+	print qq(<h1>$TITLE</h1>\n) if $TITLE ne "";
 	print qq(<ul>\n);
 
 	foreach(<$glob.txt>){
-		next if(substr($_,0,1) eq "." || index($_,"/") >= 0 || !-f $_);
+		next if substr($_,0,1) eq "." || index($_,"/") >= 0 || !-f $_;
 		s/\.txt$//;
 		if($PAGES_NOT_ALLOWED ne "" && /$PAGES_NOT_ALLOWED/o){
 			next;
 		}
 		my $page = $_;
-		next unless(-f "$page.html");
+		next unless -f "$page.html";
 		local $wiki = is_wiki($page);
-		next unless(has_read_access());
+		next unless has_read_access();
 		my $text = read_file("$page.html");
-		next if($text eq "");
+		next if $text eq "";
 
 		my $page_name = $page;
 		$text =~ s/^.*<!-- start text -->|<!-- end text -->.*$//sgi;
@@ -4100,10 +4100,10 @@ sub print_search_pages{
 				$found = "";
 				for($i = 0; $i <= $#search; $i++){
 					$word = encode_url_utf8($search[$i]);
-					next if($word eq "");
-					$word = "(?i)$word" if($icase);
+					next if $word eq "";
+					$word = "(?i)$word" if $icase;
 					if($line =~ m#\x02[aA][ \t][^\x03]*(?:href|HREF)[ \t]*=[ \t]*"(?:$word)"[^\x03]*\x03[^\x02]+\x02/[aA]\x03#){
-						$found = $line if($found eq "");
+						$found = $line if $found eq "";
 						$found =~ s#\x02[aA][ \t][^\x03]*(?:href|HREF)[ \t]*=[ \t]*"(?:$word)"[^\x03]*\x03([^\x02]+)\x02/[aA]\x03#\x04$1\x05#g;
 						$found[$i] = 1;
 					}
@@ -4125,10 +4125,10 @@ sub print_search_pages{
 				$found = "";
 				for($i = 0; $i <= $#search; $i++){
 					$word = $search[$i];
-					next if($word eq "");
-					$word = "(?i)$word" if($icase);
+					next if $word eq "";
+					$word = "(?i)$word" if $icase;
 					if($line =~ m#$word#){
-						$found = $line if($found eq "");
+						$found = $line if $found eq "";
 						$found =~ s#($word)#\x04$1\x05#g;
 						$found[$i] = 1;
 					}
@@ -4142,9 +4142,9 @@ sub print_search_pages{
 			}
 		}
 		for($i = 0; $i <= $#search; $i++){
-			last if(!$found[$i]);
+			last if !$found[$i];
 		}
-		next if($i <= $#search);
+		next if $i <= $#search;
 		if($nomatch){
 			print qq(<li><a href="$page.html">$page_name</a></li>\n);
 			next;
@@ -4203,7 +4203,7 @@ sub parse_file{
 	local *UNIQKI_FH;
 
 	# "<" is required for the in-memory file
-	return "" unless(open UNIQKI_FH, "<", $file);
+	return "" unless open UNIQKI_FH, "<", $file;
 	$wiki = <UNIQKI_FH> eq "#!wiki\n" ? 1 : 0;
 	close UNIQKI_FH;
 
@@ -4216,12 +4216,12 @@ sub parse_file{
 
 	my @header_files = ();
 	push @header_files, $HEADER_FILE;
-	push @header_files, $NONWIKI_HEADER_FILE unless($wiki);
-	push @header_files, $WIKI_HEADER_FILE if($wiki);
+	push @header_files, $NONWIKI_HEADER_FILE unless $wiki;
+	push @header_files, $WIKI_HEADER_FILE if $wiki;
 
 	my @footer_files = ();
-	push @footer_files, $WIKI_FOOTER_FILE if($wiki);
-	push @footer_files, $NONWIKI_FOOTER_FILE unless($wiki);
+	push @footer_files, $WIKI_FOOTER_FILE if $wiki;
+	push @footer_files, $NONWIKI_FOOTER_FILE unless $wiki;
 	push @footer_files, $FOOTER_FILE;
 
 	my @_begin_parsing = @begin_parsing;
@@ -4247,14 +4247,14 @@ sub parse_file{
 	my @_postprocess_line = @postprocess_line;
 	my @_close_all_open = @close_all_open;
 
-	do $USER_PARSERS_FILE if(-f $USER_PARSERS_FILE);
+	do $USER_PARSERS_FILE if -f $USER_PARSERS_FILE;
 
-	$_->() foreach(@begin_parsing);
+	$_->() foreach @begin_parsing;
 
 	foreach(@header_files){
 		# "<" is required for the in-memory file
-		next if($_ eq "" || !open UNIQKI_FH, "<", $_);
-		$text .= parse($_, @parse_line) while(<UNIQKI_FH>);
+		next if $_ eq "" || !open UNIQKI_FH, "<", $_;
+		$text .= parse($_, @parse_line) while <UNIQKI_FH>;
 		close UNIQKI_FH;
 	}
 
@@ -4273,19 +4273,19 @@ sub parse_file{
 				$text = $header;
 			}
 			my $parsed_line = parse($_, @parse_line);
-			$text .= $parsed_line if($output);
+			$text .= $parsed_line if $output;
 		}
 		close UNIQKI_FH;
 	}
 
 	foreach(@footer_files){
 		# "<" is required for the in-memory file
-		next if($_ eq "" || !open UNIQKI_FH, "<", $_);
-		$text .= parse($_, @parse_line) while(<UNIQKI_FH>);
+		next if $_ eq "" || !open UNIQKI_FH, "<", $_;
+		$text .= parse($_, @parse_line) while <UNIQKI_FH>;
 		close UNIQKI_FH;
 	}
 
-	$_->() foreach(@end_parsing);
+	$_->() foreach @end_parsing;
 
 	@begin_parsing = @_begin_parsing;
 	@parse_line = @_parse_line;
@@ -4322,9 +4322,9 @@ sub parse_child_block{
 		%secs_no, $toc, $notoc, $tab_no, %tabs_n, %tabs, $lot, $nolot,
 		$fig_no, %figs_n, %figs, $lof, $nolof);
 
-	$_->() foreach(@begin_parsing);
+	$_->() foreach @begin_parsing;
 	$text .= parse_lines($txt);
-	$_->() foreach(@end_parsing);
+	$_->() foreach @end_parsing;
 
 	return $text;
 }
@@ -4335,9 +4335,9 @@ sub parse_block{
 		$syntax_block, @parsed_blocks, $p, $asis, $nosyntax, $pre,
 		$pre_code, $blockquote, $list, $table, $figure);
 
-	$_->(1) foreach(@begin_parsing);
+	$_->(1) foreach @begin_parsing;
 	$text .= parse_lines($txt);
-	$_->(1) foreach(@end_parsing);
+	$_->(1) foreach @end_parsing;
 
 	return $text;
 }
@@ -4345,12 +4345,12 @@ sub parse_block{
 sub parse_lines{
 	my $txt = shift;
 	local $text;
-	$text .= parse($_, @parse_line) foreach(split /\n/, $txt, -1);
+	$text .= parse($_, @parse_line) foreach split /\n/, $txt, -1;
 	return $text;
 }
 
 sub create_edit_section{
-	push @h_lines, 1 + $wiki if($#h_lines == -1);
+	push @h_lines, 1 + $wiki if $#h_lines == -1;
 	my $edit = ($wiki ? "wiki_" : "")."edit_lines";
 	my $start = $h_lines[$#h_lines];
 	my $lines = $start.($lineno ? ",".($lineno-$start) : "");
@@ -4362,7 +4362,7 @@ sub run_code_block{
 	my $block = shift;
 	$block =~ s/^(##[{}]_*)_$/$1/mg;
 	eval $block;
-	$text .= "<pre>$@</pre>" if($preview && $@);
+	$text .= "<pre>$@</pre>" if $preview && $@;
 }
 
 sub create_child_block{
@@ -4433,7 +4433,7 @@ sub create_blockquote{
 			}
 			if($line =~ /^\([ \t]*(.*?)[ \t]*\)$/){
 				my $qi = $start ? $i - 1 : $q_i - 1;
-				$cite[$qi] .= "\n" if($cite[$qi] ne "");
+				$cite[$qi] .= "\n" if $cite[$qi] ne "";
 				$cite[$qi] .= $1;
 			}else{
 				if($use_p){
@@ -4447,7 +4447,7 @@ sub create_blockquote{
 				$line =~ s/^[ \t]*(.*?)[ \t]*$/$1/;
 				$blockquote .= "$line\n";
 			}
-			next unless($start);
+			next unless $start;
 			$line = "";
 		}
 		$use_p = 0;
@@ -4480,7 +4480,7 @@ sub create_blockquote{
 
 		$line =~ s#([ \t])\([ \t]*(.*?)[ \t]*\)$#$1<cite>$2</cite>#;
 		$line =~ s/^[ \t]*(.*?)[ \t]*$/$1/;
-		$blockquote .= "$line\n" if($line ne "");
+		$blockquote .= "$line\n" if $line ne "";
 	}
 	if($p){
 		$blockquote .= "</p>\n";
@@ -4674,13 +4674,13 @@ sub create_table{
 			my $inc_lot = $1 eq "" ? 1 : 0;
 			my $del_punct_from_title = $3 eq "" ? 1 : 0;
 			(my $line = $2) =~ s/^[ \t]+|[ \t]+$//g;
-			next if($line eq "");
-			$caption .= "\n" if($caption ne "");
+			next if $line eq "";
+			$caption .= "\n" if $caption ne "";
 			$caption .= $line;
 			if($inc_lot && $id eq ""){
 				$line =~ s/<[^>]*>|\x00//g;
 				$line =~ s/[`~!@#\$%^&*_=+\\|;:,.\/?-]+$//
-					if($del_punct_from_title);
+					if $del_punct_from_title;
 				if($line ne ""){
 					$id = convert_page_name("table $line");
 					my $j = $tabs_n{$id}++;
@@ -4696,7 +4696,7 @@ sub create_table{
 		}elsif($end eq "!"){
 			$tfoot .= create_table_row($_);
 		}else{
-			$_ = substr $_, 0, length($_) - 1 if($end eq "_");
+			$_ = substr $_, 0, length($_) - 1 if $end eq "_";
 			$tbody .= create_table_row($_);
 			if($end eq "_" && $tbody ne ""){
 				$tbody = update_table_rowspan($tbody);
@@ -4727,10 +4727,10 @@ sub create_table{
 		my $enc_id = encode_url_safe($id);
 		$lot .= "<li><a href=\"#$enc_id\">$tab$title</a></li>\n";
 	}
-	$table .= "<caption>$tab$caption</caption>\n" if($caption ne "");
-	$table .= "<thead>\n$thead</thead>\n" if($thead ne "");
-	$table .= $tbodies if($tbodies ne "");
-	$table .= "<tfoot>\n$tfoot</tfoot>\n" if($tfoot ne "");
+	$table .= "<caption>$tab$caption</caption>\n" if $caption ne "";
+	$table .= "<thead>\n$thead</thead>\n" if $thead ne "";
+	$table .= $tbodies if $tbodies ne "";
+	$table .= "<tfoot>\n$tfoot</tfoot>\n" if $tfoot ne "";
 	$table .= "</table>\n";
 
 	# Inline perl code
@@ -4781,24 +4781,24 @@ sub update_table_rowspan{
 
 	my @rs = split /\n/, $rowspan;
 	# Only one row
-	return $rows if($#rs == 0);
+	return $rows if $#rs == 0;
 
 	# The first row cannot be spanned from above.
 	$rs[0] = "1" x length($rs[0]);
 	# No row spans
-	return $rows if(index(join("\n", @rs), "+") == -1);
+	return $rows if index(join("\n", @rs), "+") == -1;
 
 	my @counts;
 	for my $i (0..$#rs){
 		my $c = 0;
-		$counts[$i][$c++] = $_ foreach(split //, $rs[$i]);
+		$counts[$i][$c++] = $_ foreach split //, $rs[$i];
 	}
 	# Count the number of row spans.
 	for my $i (0..($#rs-1)){
 		for my $c (0..$#{$counts[$i]}){
-			last if($counts[$i][$c] eq "+");
+			last if $counts[$i][$c] eq "+";
 			for my $j (($i+1)..$#rs){
-				last if($counts[$j][$c] ne "+");
+				last if $counts[$j][$c] ne "+";
 				$counts[$i][$c]++;
 			}
 		}
@@ -4813,7 +4813,7 @@ sub update_table_rowspan{
 	my @rows = split /\n/, $rows;
 	for my $i (0..$#rows){
 		my $c = 0;
-		$cells[$i][$c++] = $_ foreach(split /\x03/, $rows[$i]);
+		$cells[$i][$c++] = $_ foreach split /\x03/, $rows[$i];
 	}
 
 	for my $i (0..$#rs){
@@ -4849,13 +4849,13 @@ sub create_figure{
 			my $inc_lof = $1 eq "" ? 1 : 0;
 			my $del_punct_from_title = $3 eq "" ? 1 : 0;
 			(my $line = $2) =~ s/^[ \t]+|[ \t]+$//g;
-			next if($line eq "");
-			$figcaption .= "\n" if($figcaption ne "");
+			next if $line eq "";
+			$figcaption .= "\n" if $figcaption ne "";
 			$figcaption .= $line;
 			if($inc_lof && $id eq ""){
 				$line =~ s/<[^>]*>|\x00//g;
 				$line =~ s/[`~!@#\$%^&*_=+\\|;:,.\/?-]+$//
-					if($del_punct_from_title);
+					if $del_punct_from_title;
 				if($line ne ""){
 					$id = convert_page_name("figure $line");
 					my $j = $figs_n{$id}++;
@@ -4869,13 +4869,13 @@ sub create_figure{
 		}else{
 			my $line = substr $_, 2, length($_) - 4;
 			$line =~ s/^[ \t]+|[ \t]+$//g;
-			next if($line eq "");
-			$content .= " " if($content ne "");
+			next if $line eq "";
+			$content .= " " if $content ne "";
 			$content .= $line;
 		}
 	}
 
-	return $figure if($content eq "" && $figcaption eq "");
+	return $figure if $content eq "" && $figcaption eq "";
 
 	my $fig = "";
 	if($id eq ""){
@@ -4887,9 +4887,9 @@ sub create_figure{
 		my $enc_id = encode_url_safe($id);
 		$lof .= "<li><a href=\"#$enc_id\">$fig$title</a></li>\n";
 	}
-	$figure .= "$content\n" if($content ne "");
+	$figure .= "$content\n" if $content ne "";
 	$figure .= "<figcaption>$fig$figcaption</figcaption>\n"
-		if($figcaption ne "");
+		if $figcaption ne "";
 	$figure .= "</figure>\n";
 
 	# Inline perl code
@@ -4950,14 +4950,14 @@ sub preprocess_line{
 		if(/\n/){
 			local $re_start = $re_n;
 			$text .= parse($_, @parse_line)
-				foreach(split /\n/, $_, -1);
+				foreach split /\n/, $_, -1;
 			return;
 		}
 	}
 	# Wiki but not asis
 	if($wiki && !$asis){
 		# Skip admin code
-		return if("##" eq substr $_, 0, 2);
+		return if "##" eq substr $_, 0, 2;
 		# Escape inline perl code
 		s/``(.*?)``(?!`)/`\x00`$1`\x00`/g;
 	}
@@ -5007,7 +5007,7 @@ sub process_asis_lines{
 			$asis = 0;
 			$nosyntax = 0;
 		}else{
-			$_->() foreach(@close_all_open);
+			$_->() foreach @close_all_open;
 			$asis = 1;
 			$nosyntax = length($1);
 		}
@@ -5033,7 +5033,7 @@ sub process_asis_lines{
 			$asis = 0;
 			$pre = 0;
 		}else{
-			$_->() foreach(@close_all_open);
+			$_->() foreach @close_all_open;
 			if($2 eq ""){
 				$text .= "<pre>";
 			}else{
@@ -5061,7 +5061,7 @@ sub skip_comment{
 	local $_ = shift;
 
 	# Skip comment
-	return if("%" eq substr $_, 0, 1);
+	return if "%" eq substr $_, 0, 1;
 
 	return $_;
 }
@@ -5080,9 +5080,9 @@ sub process_wiki_command{
 
 		my $i;
 		for($i = 0; $i < $re_n; $i++){
-			last if($re[$i] eq $2);
+			last if $re[$i] eq $2;
 		}
-		$re[$re_n++] = $2 if($i == $re_n);
+		$re[$re_n++] = $2 if $i == $re_n;
 		$_ = $3;
 		# Treat a single backslash as an escape character.
 		s/\\(?![\\a-zA-Z0-9])/\x00/g;
@@ -5147,12 +5147,12 @@ sub process_nonwiki_command{
 			my $line = <FH>;
 			my $inc_wiki = 0;
 			if($line eq "#!wiki\n"){
-				$inc_wiki = 1 unless($wiki);
+				$inc_wiki = 1 unless $wiki;
 			}else{
 				$text .= parse($line, @parse_line);
 			}
-			local $wiki = 1 if($inc_wiki);
-			$text .= parse($_, @parse_line) while(<FH>);
+			local $wiki = 1 if $inc_wiki;
+			$text .= parse($_, @parse_line) while <FH>;
 			close FH;
 		}
 		return;
@@ -5166,7 +5166,7 @@ sub process_nonwiki_command{
 	if(/^##((?:sub |{).*)$/){
 		if("}" eq substr $1, -1){
 			eval $1;
-			$text .= "<pre>$@</pre>" if($preview && $@);
+			$text .= "<pre>$@</pre>" if $preview && $@;
 			return;
 		}
 		$code_block = "$1\n";
@@ -5182,7 +5182,7 @@ sub skip_unknown_command{
 	local $_ = shift;
 
 	# Ignore other lines starting with #
-	return if("#" eq substr $_, 0, 1);
+	return if "#" eq substr $_, 0, 1;
 
 	return $_;
 }
@@ -5247,7 +5247,7 @@ sub process_paragraph_break{
 		# Close the current paragraph or draw a horizontal line
 		close_paragraph();
 		# Horizontal line
-		$text .= "<hr />\n" if($_ ne "");
+		$text .= "<hr />\n" if $_ ne "";
 		return;
 	}
 
@@ -5383,33 +5383,33 @@ sub process_line_syntax{
 			return;
 		}
 
-		$text .= "\x05" if($inc_toc && $toc eq "");
+		$text .= "\x05" if $inc_toc && $toc eq "";
 
 		if($i > $h_prev){
 			if($h_prev){
 				while($h_prev++ < $i){
-					$toc .= "<li><ul>" if($inc_toc);
-					$text .= "<section>\n" if($h_prev < $i);
+					$toc .= "<li><ul>" if $inc_toc;
+					$text .= "<section>\n" if $h_prev < $i;
 				}
 				$h_prev--;
 			}else{
 				while(++$h_prev < $i){
-					$toc .= "<li><ul>" if($inc_toc);
+					$toc .= "<li><ul>" if $inc_toc;
 					$text .= "<section>\n"
-						if($h_prev < $i-1);
+						if $h_prev < $i-1;
 				}
 				$h_top = $i;
 			}
 			$toc .= "\n";
 		}elsif($i < $h_prev){
 			while(--$h_prev >= $i){
-				$toc .= "</ul></li>" if($inc_toc);
+				$toc .= "</ul></li>" if $inc_toc;
 				$text .= "</section>\n";
 			}
-			$toc .= "\n" if($inc_toc);
+			$toc .= "\n" if $inc_toc;
 			$text .= "</section>\n";
 			$h_prev++;
-			$h_top = $i if($i < $h_top);
+			$h_top = $i if $i < $h_top;
 		}else{
 			$text .= "</section>\n";
 		}
@@ -5441,8 +5441,7 @@ sub process_line_syntax{
 				}elsif(!$found){
 					next;
 				}
-				$sec .= $SECTION_NUMBER_SEPARATOR
-					if($sec ne "");
+				$sec .= $SECTION_NUMBER_SEPARATOR if $sec ne "";
 				$sec .= $secs_no{$j};
 			}
 			$h_secs{$id} = $sec;
@@ -5555,7 +5554,7 @@ sub verify_input{
 		(my $text = $$var{text}) =~ s/[`~!@#\$%^&*_=+\\|;:'",.\/?()\[\]{}<>0-9-]//g;
 		$text =~ s/[ \t\n]+/ /g;
 		$text =~ s/^ | $//g;
-		return 0 if($text eq "");
+		return 0 if $text eq "";
 
 		$$var{text} =~ s/^[ \t\n]+|[ \t\n]+$//g;
 	}
@@ -5650,16 +5649,16 @@ sub parse_line{
 sub end_parsing{
 	my $block_level = shift;
 
-	$_->() foreach(@close_all_open);
+	$_->() foreach @close_all_open;
 
 	if(!$block_level){
-		create_edit_section() if($#h_lines >= 0);
-		$text = "\x05$text" unless($text =~ /\x05/);
+		create_edit_section() if $#h_lines >= 0;
+		$text = "\x05$text" unless $text =~ /\x05/;
 		my $clean_toc = !$notoc && $toc ne "";
 		my $i = $h_prev;
-		$toc = "<ul class=\"toc-list\">\n$toc" if($clean_toc);
+		$toc = "<ul class=\"toc-list\">\n$toc" if $clean_toc;
 		while(--$h_prev > 0){
-			$toc .= "</ul></li>" if($clean_toc);
+			$toc .= "</ul></li>" if $clean_toc;
 			$text .= "</section>\n";
 		}
 		if($clean_toc){
@@ -5757,7 +5756,7 @@ if($PAGE eq $CGI && $FILE ne ""){
 
 $PAGE = convert_page_name($PAGE);
 die_message("page_not_allowed", $PAGE)
-	if($PAGES_NOT_ALLOWED ne "" && $PAGE =~ /$PAGES_NOT_ALLOWED/o);
+	if $PAGES_NOT_ALLOWED ne "" && $PAGE =~ /$PAGES_NOT_ALLOWED/o;
 
 ################################################################################
 # Login, logout
@@ -5875,7 +5874,7 @@ if($QUERY_STRING eq "css"){
 #					(id=comment, down, rows=80, cols=6)
 	my %var = get_var();
 	if($REQUEST_METHOD eq "GET"){
-		$PAGE = $var{page} if($var{page} ne "");
+		$PAGE = $var{page} if $var{page} ne "";
 		if($PAGE eq ""){
 			die_message("specify_comment_page");
 		}elsif(!-f "$PAGE.txt"){
@@ -5894,12 +5893,12 @@ if($QUERY_STRING eq "css"){
 		my $msg_id = "not_allowed_to_comment_in_nonwiki_page";
 		die_message($msg_id, $PAGE);
 	}
-	die_rebuild($PAGE) unless(verify_input("comment", \%var));
+	die_rebuild($PAGE) unless verify_input("comment", \%var);
 
-	die_message("page_not_found", $PAGE) unless(-f "$PAGE.txt");
+	die_message("page_not_found", $PAGE) unless -f "$PAGE.txt";
 
 	die_message("invalid_comment_tag", $var{comment})
-		unless($var{comment} =~ /^[a-zA-Z0-9_-]+$/);
+		unless $var{comment} =~ /^[a-zA-Z0-9_-]+$/;
 
 	$var{text} = escape_comment($var{text});
 
@@ -5924,7 +5923,7 @@ if($QUERY_STRING eq "css"){
 		}
 		close FH;
 	}
-	die_message("comment_tag_not_found", "#%$var{comment}") unless($added);
+	die_message("comment_tag_not_found", "#%$var{comment}") unless $added;
 	save($PAGE, $TEXT);
 	unlock_file("$PAGE.txt");
 }elsif($QUERY_STRING eq "forgot_password"){
@@ -5973,9 +5972,9 @@ if($QUERY_STRING eq "css"){
 		}
 	}
 
-	die_message("user_blocked", $user) if($pw eq "blocked");
+	die_message("user_blocked", $user) if $pw eq "blocked";
 	die_message("password_reset_token_still_valid")
-		if(is_password_reset_token_valid($token));
+		if is_password_reset_token_valid($token);
 
 	$token = generate_password_reset_token($user);
 
@@ -6002,7 +6001,7 @@ if($QUERY_STRING eq "css"){
 	}
 
 	# Something's wrong because a username already found does not exist.
-	die_message("internal_errors") unless($token_added);
+	die_message("internal_errors") unless $token_added;
 
 	my $link = "$HTTP_BASE$SCRIPT_NAME?reset_password=$token";
 	my $subject = get_msg("reset_password_email_subject", $DOC_BASE);
@@ -6022,7 +6021,7 @@ if($QUERY_STRING eq "css"){
 # u/PAGE?reset_password	Reset password
 	my %var = get_var();
 	die_message("invalid_password_reset_token")
-		unless(is_password_reset_token_valid($var{token}));
+		unless is_password_reset_token_valid($var{token});
 	my %user_info = find_user_info_by_password_reset_token($var{token});
 	my $user = $user_info{user};
 	my $saved_pw = $user_info{pw};
@@ -6058,7 +6057,7 @@ if($QUERY_STRING eq "css"){
 		close FH;
 	}
 	# Password reset token cannot be found this time?
-	die_message("internal_errors") unless($reset);
+	die_message("internal_errors") unless $reset;
 
 	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
@@ -6156,7 +6155,7 @@ if($QUERY_STRING eq "css"){
 		$new_pw = "$userline\n";
 	}
 	# How did you login when your username is not found?
-	die_message("internal_errors") unless($updated);
+	die_message("internal_errors") unless $updated;
 
 	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
@@ -6175,7 +6174,7 @@ if($QUERY_STRING eq "css"){
 		local *FH;
 		open FH, $PASSWORD_FILE;
 		while(<FH>){
-			$nadmins++ if($admin && /^(?:[^:]*:){2}admin:/);
+			$nadmins++ if $admin && /^(?:[^:]*:){2}admin:/;
 			if(/^$USER:/){
 				$deleted = 1;
 				next;
@@ -6185,10 +6184,10 @@ if($QUERY_STRING eq "css"){
 		close FH;
 	}
 	# How did you login when your username is not found?
-	die_message("internal_errors") unless($deleted);
+	die_message("internal_errors") unless $deleted;
 
 	# You cannot delete yourself when you are the only admin.
-	die_message("cannot_delete_only_admin") if($nadmins == 1);
+	die_message("cannot_delete_only_admin") if $nadmins == 1;
 
 	clear_user_sessions($USER);
 
@@ -6212,7 +6211,7 @@ if($QUERY_STRING eq "css"){
 # u/PAGE/FILE		No action specified
 	die_path("$PAGE/$FILE") if($FILE ne "" ||
 		($PAGE ne "" && "/" eq substr $PATH_INFO, -1));
-	die_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE") if($PAGE eq "");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE") if $PAGE eq "";
 	unless(-f "$PAGE.txt"){
 		my $msg_id = has_write_access() ?
 			"create_page" : "page_not_found";
@@ -6237,7 +6236,7 @@ if($QUERY_STRING eq "css"){
 # u/PAGE?diff		Diff current and previous version
 # u/PAGE?diff=([0-9]+)	Diff current and \1 version
 # u/PAGE?diff=-([0-9]+)	Diff current and current-\1 version
-	die_message("page_not_found", $PAGE) unless(-f "$PAGE.txt");
+	die_message("page_not_found", $PAGE) unless -f "$PAGE.txt";
 
 	my $current_version = get_version($PAGE);
 	my $version = $1 > 0 ? $1 : $current_version + ($1 < 0 ? $1 : -1);
@@ -6256,7 +6255,7 @@ if($QUERY_STRING eq "css"){
 	while(<FH>){
 		/^([0-9]+):.*?\n(.*)\x00\n$/s;
 		$text = patch($text, $2);
-		last if($version == $1 - 1);
+		last if $version == $1 - 1;
 	}
 	close FH;
 
@@ -6410,15 +6409,15 @@ if($QUERY_STRING eq "css"){
 	my $i = 0;
 	my @list;
 	foreach(<$glob.txt>){
-		next if(substr($_,0,1) eq "." || index($_,"/") >= 0 || !-f $_);
+		next if substr($_,0,1) eq "." || index($_,"/") >= 0 || !-f $_;
 		s/\.txt$//;
 		if($PAGES_NOT_ALLOWED ne "" && /$PAGES_NOT_ALLOWED/o){
 			next;
 		}
 		my $page = $_;
-		next unless(-f "$page.html");
+		next unless -f "$page.html";
 		local $wiki = is_wiki($page);
-		next unless(has_read_access());
+		next unless has_read_access();
 
 		my $t = (stat "$page.txt")[9];
 		my @t = split / +/, scalar gmtime($t);
@@ -6426,8 +6425,8 @@ if($QUERY_STRING eq "css"){
 			$t, $t[0], $t[2], $t[1], $t[4], $t[3], $page;
 	}
 	my $n = 10;
-	$n = $1 if($var{rss} =~ /^([0-9]+)$/);
-	$n = $i if($n > $i || !$n);
+	$n = $1 if $var{rss} =~ /^([0-9]+)$/;
+	$n = $i if $n > $i || !$n;
 	(my $site_title = $SITE_TITLE) =~ s/<[^>]*>//g;
 	(my $site_description = $SITE_DESCRIPTION) =~ s/<[^>]*>//g;
 	print <<EOT;
@@ -6485,7 +6484,7 @@ EOT
 <pubDate>$time</pubDate>
 </item>
 EOT
-		last if(++$i == $n);
+		last if ++$i == $n;
 	}
 	print <<EOT;
 </channel>
@@ -6588,7 +6587,7 @@ EOT
 				while(<FH>){
 					/^([0-9]+):.*?\n(.*)\x00\n$/s;
 					$TEXT = patch($TEXT, $2);
-					last if($version == $1 - 1);
+					last if $version == $1 - 1;
 				}
 				close FH;
 				if("#!wiki\n" ne substr $TEXT, 0, 7){
@@ -6607,7 +6606,7 @@ EOT
 			die;
 		}else{
 			my %var = get_var();
-			die_rebuild($PAGE) unless(verify_input($QUERY_STRING, \%var));
+			die_rebuild($PAGE) unless verify_input($QUERY_STRING, \%var);
 
 			local *FH;
 			my $t = time;
@@ -6628,9 +6627,9 @@ EOT
 				die;
 			}
 			if($var{file} ne "" && $var{file} =~ /$WIKI_FILES_ALLOWED/oi){
-				mkdir $PAGE, 0755 if(!-d $PAGE);
+				mkdir $PAGE, 0755 if !-d $PAGE;
 				write_file("$PAGE/$t.$var{file}", $var{"file="}, 1);
-				chmod 0755, "$PAGE/$t.$var{file}" if($hosting eq "awardspace");
+				chmod 0755, "$PAGE/$t.$var{file}" if $hosting eq "awardspace";
 				if($var{preview} eq ""){
 					(my $f = $var{file}) =~ s/ /%20/g;
 					$TEXT .= "\n[$PAGE/$t.$f $var{file}]";
@@ -6671,7 +6670,7 @@ EOT
 			local $VERSION = get_version($PAGE) + 1;
 			local $START = $1;
 			local $COUNT = $2;
-			$START = 2 if($START < 2);
+			$START = 2 if $START < 2;
 			local $TEXT = read_lines("$PAGE.txt", $START, $COUNT);
 			if($TEXT ne ""){
 				$TEXT =~ s/&/&amp;/g;
@@ -6684,7 +6683,7 @@ EOT
 			die;
 		}else{
 			my %var = get_var();
-			die_rebuild($PAGE) unless(verify_input($QUERY_STRING, \%var));
+			die_rebuild($PAGE) unless verify_input($QUERY_STRING, \%var);
 
 			local *FH;
 			my $t = time;
@@ -6707,9 +6706,10 @@ EOT
 				die;
 			}
 			if($var{file} ne "" && $var{file} =~ /$WIKI_FILES_ALLOWED/oi){
-				mkdir $PAGE, 0755 if(!-d $PAGE);
+				mkdir $PAGE, 0755 if !-d $PAGE;
 				write_file("$PAGE/$t.$var{file}", $var{"file="}, 1);
-				chmod 0755, "$PAGE/$t.$var{file}" if($hosting eq "awardspace");
+				chmod 0755, "$PAGE/$t.$var{file}"
+					if $hosting eq "awardspace";
 				if($var{preview} eq ""){
 					(my $f = $var{file}) =~ s/ /%20/g;
 					$TEXT .= "\n[$PAGE/$t.$f $var{file}]";
@@ -6735,13 +6735,13 @@ EOT
 #-------------------------------------------------------------------------------
 # u/PAGE?wiki_upload	Wiki upload
 		my %var = get_var();
-		die_rebuild($PAGE) unless(verify_input($QUERY_STRING, \%var));
+		die_rebuild($PAGE) unless verify_input($QUERY_STRING, \%var);
 
 		local *FH;
 		my $t = time;
 
-		die_message("internal_errors") if($var{file} eq "");
-		die_message("page_not_found", $PAGE) unless(-f "$PAGE.txt");
+		die_message("internal_errors") if $var{file} eq "";
+		die_message("page_not_found", $PAGE) unless -f "$PAGE.txt";
 		die_message("wiki_file_not_allowed", $var{file})
 			if($WIKI_FILES_ALLOWED eq "" ||
 			   $var{file} !~ /$WIKI_FILES_ALLOWED/oi);
@@ -6753,9 +6753,9 @@ EOT
 		}
 		close FH;
 
-		mkdir $PAGE, 0755 if(!-d $PAGE);
+		mkdir $PAGE, 0755 if !-d $PAGE;
 		write_file("$PAGE/$t.$var{file}", $var{"file="}, 1);
-		chmod 0755, "$PAGE/$t.$var{file}" if($hosting eq "awardspace");
+		chmod 0755, "$PAGE/$t.$var{file}" if $hosting eq "awardspace";
 		die_message("wiki_file_uploaded", $var{file}, "$t.$var{file}");
 	}
 }elsif(!$admin){
@@ -6788,9 +6788,9 @@ EOT
 	}else{
 		$file = "$PAGE.zip";
 		foreach("txt", "txt.v", "html"){
-			$zip->addFile("$PAGE.$_") if(-f "$PAGE.$_");
+			$zip->addFile("$PAGE.$_") if -f "$PAGE.$_";
 		}
-		$zip->addTree($PAGE, $PAGE) if(-d $PAGE);
+		$zip->addTree($PAGE, $PAGE) if -d $PAGE;
 	}
 	print <<EOT;
 Content-Type: application/zip
@@ -6820,7 +6820,7 @@ EOT
 	$zip->removeMember($cgi);
 	$zip->removeMember($PASSWORD_FILE);
 	foreach($zip->memberNames()){
-		$zip->removeMember($_) if(-f $_ && !-w $_);
+		$zip->removeMember($_) if -f $_ && !-w $_;
 		if($hosting eq "awardspace" && (m#\.html$# || m#/#)){
 			my $member = $zip->memberNamed($_);
 			$member->unixFileAttributes(0755);
@@ -6832,7 +6832,7 @@ EOT
 
 	if($hosting eq "awardspace"){
 		foreach($zip->memberNames()){
-			chmod 0755, $_ if(m#\.html$# || m#/#);
+			chmod 0755, $_ if m#\.html$# || m#/#;
 		}
 	}
 
@@ -6850,7 +6850,7 @@ EOT
 	print_header();
 	print qq(<div id="list">\n<h1>$title</h1>\n<ul>\n);
 	foreach($glob eq "" ? (<.*.txt>, <*.txt>) : <$glob.txt>){
-		next if(index($_, "/") >= 0 || !-f $_);
+		next if index($_, "/") >= 0 || !-f $_;
 		s/\.txt$//;
 		if($PAGES_NOT_ALLOWED ne "" && /$PAGES_NOT_ALLOWED/o){
 			next;
@@ -7035,7 +7035,7 @@ EOT
 		}
 		$new_pw = "$userline\n";
 	}
-	die_message("user_not_found", $var{user}) unless($updated);
+	die_message("user_not_found", $var{user}) unless $updated;
 
 	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
@@ -7079,7 +7079,7 @@ EOT
 		}
 		close FH;
 	}
-	die_message("user_not_found", $var{user}) unless($blocked);
+	die_message("user_not_found", $var{user}) unless $blocked;
 
 	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
@@ -7139,7 +7139,7 @@ EOT
 		}
 		close FH;
 	}
-	die_message("user_not_found", $var{user}) unless($unblocked);
+	die_message("user_not_found", $var{user}) unless $unblocked;
 
 	if($token ne ""){
 		my $link = "$HTTP_BASE$SCRIPT_NAME?reset_password=$token";
@@ -7189,7 +7189,7 @@ EOT
 		}
 		close FH;
 	}
-	die_message("user_not_found", $var{user}) unless($deleted);
+	die_message("user_not_found", $var{user}) unless $deleted;
 
 	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
@@ -7218,7 +7218,7 @@ EOT
 # u?install_template		Install the template files, but don't overwrite
 # u/PAGE?install_template	Install the template files, but don't overwrite
 	if($TEMPLATE_DIRECTORY ne ""){
-		mkdir $TEMPLATE_DIRECTORY, 0755 unless(-d $TEMPLATE_DIRECTORY);
+		mkdir $TEMPLATE_DIRECTORY, 0755 unless -d $TEMPLATE_DIRECTORY;
 		print_header(1);
 		print_footer(1);
 		print_login(1);
@@ -7247,12 +7247,12 @@ EOT
 #-------------------------------------------------------------------------------
 # u/PAGE?upload		Upload PAGE/FILE
 	my %var = get_var();
-	die_rebuild($PAGE) unless(verify_input("upload", \%var));
+	die_rebuild($PAGE) unless verify_input("upload", \%var);
 
 	if($var{file} ne ""){
-		mkdir $PAGE, 0755 if(!-d $PAGE);
+		mkdir $PAGE, 0755 if !-d $PAGE;
 		write_file("$PAGE/$var{file}", $var{"file="}, 1);
-		chmod 0755, "$PAGE/$var{file}" if($hosting eq "awardspace");
+		chmod 0755, "$PAGE/$var{file}" if $hosting eq "awardspace";
 		$rebuild = 1;
 	}
 }elsif($QUERY_STRING eq "delete" && $FILE ne ""){
@@ -7290,7 +7290,7 @@ EOT
 				while(<FH>){
 					/^([0-9]+):.*?\n(.*)\x00\n$/s;
 					$TEXT = patch($TEXT, $2);
-					last if($version == $1 - 1);
+					last if $version == $1 - 1;
 				}
 				close FH;
 			}
@@ -7306,7 +7306,7 @@ EOT
 	}
 
 	my %var = get_var();
-	die_rebuild($PAGE) unless(verify_input("edit", \%var));
+	die_rebuild($PAGE) unless verify_input("edit", \%var);
 
 	$VERSION = $var{version};
 	$TEXT = $var{text};
@@ -7315,9 +7315,9 @@ EOT
 		die;
 	}
 	if($var{file} ne ""){
-		mkdir $PAGE, 0755 if(!-d $PAGE);
+		mkdir $PAGE, 0755 if !-d $PAGE;
 		write_file("$PAGE/$var{file}", $var{"file="}, 1);
-		chmod 0755, "$PAGE/$var{file}" if($hosting eq "awardspace");
+		chmod 0755, "$PAGE/$var{file}" if $hosting eq "awardspace";
 	}
 	if($var{preview} ne ""){
 		my $uploaded;
@@ -7359,7 +7359,7 @@ EOT
 	}
 
 	my %var = get_var();
-	die_rebuild($PAGE) unless(verify_input("edit", \%var));
+	die_rebuild($PAGE) unless verify_input("edit", \%var);
 
 	$VERSION = $var{version};
 	$START = $var{start};
@@ -7370,9 +7370,9 @@ EOT
 		die;
 	}
 	if($var{file} ne ""){
-		mkdir $PAGE, 0755 if(!-d $PAGE);
+		mkdir $PAGE, 0755 if !-d $PAGE;
 		write_file("$PAGE/$var{file}", $var{"file="}, 1);
-		chmod 0755, "$PAGE/$var{file}" if($hosting eq "awardspace");
+		chmod 0755, "$PAGE/$var{file}" if $hosting eq "awardspace";
 	}
 	if($var{preview} ne ""){
 		my $uploaded;
@@ -7438,11 +7438,11 @@ EOT
 
 #-------------------------------------------------------------------------------
 # Rebuild, if requested, and redirect
-make_html($PAGE) if($rebuild);
+make_html($PAGE) if $rebuild;
 
 if($nonwiki_read_access ne "open" || $wiki_read_access ne "open"){
-	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE") if($QUERY_STRING ne "");
-	die_message("page_not_found", $PAGE) unless(-f "$PAGE.html");
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE") if $QUERY_STRING ne "";
+	die_message("page_not_found", $PAGE) unless -f "$PAGE.html";
 
 	local *FH;
 	start_html();
