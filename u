@@ -1000,7 +1000,7 @@ sub encode_url_safe{
 	$url =~ y/\x03/>/;
 
 	# https://en.wikipedia.org/wiki/Percent-encoding
-	$url =~ s/([^!#\$&'()*+,\/:;=?@\[\]a-zA-Z0-9_.~-])/@{[sprintf "%%%x", ord($1)]}/g;
+	$url =~ s/([^!#\$&'()*+,\/:;=?@\[\]a-zA-Z0-9_.~-])/@{[sprintf "%%%02X", ord($1)]}/g;
 	$url =~ s/&/&amp;/g;
 	return $url;
 }
@@ -1015,7 +1015,7 @@ sub encode_url_most{
 	$url =~ y/\x03/>/;
 
 	# https://en.wikipedia.org/wiki/Percent-encoding
-	$url =~ s/([^a-zA-Z0-9_.~-])/@{[sprintf "%%%x", ord($1)]}/g;
+	$url =~ s/([^a-zA-Z0-9_.~-])/@{[sprintf "%%%02X", ord($1)]}/g;
 	return $url;
 }
 
@@ -1028,7 +1028,7 @@ sub encode_url_utf8{
 	$url =~ y/\x02/</;
 	$url =~ y/\x03/>/;
 
-	$url =~ s/([\x80-\xff])/@{[sprintf "%%%x", ord($1)]}/g;
+	$url =~ s/([\x80-\xff])/@{[sprintf "%%%02X", ord($1)]}/g;
 	$url =~ s/&/&amp;/g;
 	return $url;
 }
@@ -1043,7 +1043,7 @@ sub encode_url_reserved{
 	$url =~ y/\x03/>/;
 
 	# https://en.wikipedia.org/wiki/Percent-encoding
-	$url =~ s/([!#\$&'()*+,\/:;=?@\[\]])/@{[sprintf "%%%x", ord($1)]}/g;
+	$url =~ s/([!#\$&'()*+,\/:;=?@\[\]])/@{[sprintf "%%%02X", ord($1)]}/g;
 	return $url;
 }
 
