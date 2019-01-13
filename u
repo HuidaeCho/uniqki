@@ -3707,18 +3707,6 @@ sub generate_session_id{
 	return ($session_id, $expires);
 }
 
-# PBKDF2 for password hashing
-# http://www.ict.griffith.edu.au/anthony/software/pbkdf2.pl
-# Anthony Thyssen
-sub get_pbkdf2_key{
-	# key length: 128
-	my ($password, $salt) = @_;
-	my $prf = \&hmac_sha1;
-	my $iter = 8192;
-	my $keylen = 64;
-	return unpack("H*", pbkdf2($prf, $password, $salt, $iter, $keylen));
-}
-
 # http://www.perlmonks.org/?node_id=631963
 # Thanks to Jochen Hoenicke <hoenicke@gmail.com>
 # (one of the authors of Palm Keyring)
@@ -3737,12 +3725,23 @@ sub pbkdf2{
 	return substr $t, 0, $keylen;
 }
 
+# PBKDF2 for password hashing
+# http://www.ict.griffith.edu.au/anthony/software/pbkdf2.pl
+# Anthony Thyssen
+sub get_pbkdf2_key{
+	# key length: 128
+	my ($password, $salt) = @_;
+	my $prf = \&hmac_sha1;
+	my $iter = 8192;
+	my $keylen = 64;
+	return unpack("H*", pbkdf2($prf, $password, $salt, $iter, $keylen));
+}
+
 sub hash_password{
 	# hashed password length: 2*8+128=144
 	my ($user, $pw, $salt) = @_;
 	$salt = generate_salt() unless defined $salt;
 	return unpack("H*", $salt).get_pbkdf2_key("$user:$salt:$pw", $salt);
-
 }
 
 sub generate_password_set_token{
