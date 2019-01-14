@@ -2075,9 +2075,9 @@ sub print_preview_lines{
 	process_tpl("preview_lines.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="preview-warning">[[preview_warning]]</div>
-<section id="preview">
+<article id="preview">
 [[PREVIEW]]
-</section>
+</article>
 [[EDIT_LINES]]
 [[FOOTER]]
 EOT_UNIQKI
@@ -2201,9 +2201,9 @@ sub print_wiki_preview_lines{
 	process_tpl("wiki_preview_lines.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="wiki-preview-warning">[[preview_warning]]</div>
-<section id="wiki-preview">
+<article id="wiki-preview">
 [[PREVIEW]]
-</section>
+</article>
 [[WIKI_EDIT_LINES]]
 [[FOOTER]]
 EOT_UNIQKI
