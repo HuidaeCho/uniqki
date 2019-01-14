@@ -2951,6 +2951,7 @@ sub preview{
 	my $wiki_edit = shift;
 	my $txt;
 
+	# preview the entire document
 	local $preview = 1;
 	local $wiki;
 	local $html_started = 0;
@@ -2990,7 +2991,8 @@ sub preview_lines{
 	my $wiki_edit = shift;
 	my $txt;
 
-	local $preview = 1;
+	# start previewing partially, but not the current section yet
+	local $preview = 2;
 	local $wiki;
 	local $html_started = 0;
 	local $header_printed = 0;
@@ -3022,6 +3024,8 @@ sub preview_lines{
 
 sub make_html{
 	local $PAGE = shift;
+
+	# not preview
 	local $preview = 0;
 	local $wiki;
 	local $html_started = 0;
@@ -4258,6 +4262,7 @@ sub parse_file{
 		close UNIQKI_FH;
 	}
 
+	# to undefine $lineno for the last edit section
 	{
 		my $header = $text;
 
@@ -4269,8 +4274,11 @@ sub parse_file{
 		while(<UNIQKI_FH>){
 			$lineno++;
 			if(defined $start && $lineno == $start){
+				close_all_sections();
 				$output = $notoc = $nolot = $nolof = 1;
 				$text = $header;
+				# preview the current section
+				$preview = 3;
 			}
 			my $parsed_line = parse($_, @parse_line);
 			$text .= $parsed_line if $output;
@@ -4350,6 +4358,7 @@ sub parse_lines{
 }
 
 sub create_edit_section{
+	return if $preview;
 	push @h_lines, 1 + $wiki if $#h_lines == -1;
 	my $edit = ($wiki ? "wiki_" : "")."edit_lines";
 	my $start = $h_lines[$#h_lines];
@@ -4905,6 +4914,10 @@ sub close_paragraph{
 		$text .= "</p>\n";
 		$p = 0;
 	}
+}
+
+sub close_all_sections{
+	$text .= "</section>\n" while --$h_prev > 0;
 }
 
 sub process_child_block{
