@@ -5666,7 +5666,6 @@ sub end_parsing{
 
 	if(!$block_level){
 		create_edit_section() if $#h_lines >= 0;
-		$text = "\x05$text" unless $text =~ /\x05/;
 		my $clean_toc = !$notoc && $toc ne "";
 		my $i = $h_prev;
 		$toc = "<ul class=\"toc-list\">\n$toc" if $clean_toc;
