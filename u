@@ -1487,6 +1487,7 @@ email_notification_failed => q(Email notification failed for user %s <%s>.),
 
 page_not_allowed => q(%s: Page not allowed.),
 page_not_found => q(%s: Page not found.),
+page_already_exists => q(%s: Page already exists.),
 create_page => q(%s: Page not found. Create a new <a href="?edit">non-wiki</a> or <a href="?wiki_edit">wiki</a> page),
 not_wiki_page => q(%s: This page is not a wiki page.),
 not_allowed_to_create_nonwiki_page => q(%s: You are not allowed to create this non-wiki page.),
@@ -1511,6 +1512,7 @@ differences => q(Differences of <a href="%s">%1$s</a> between versions %d and %d
 
 goto_form => q(Goto form),
 goto_form_goto => q(Go to),
+rename_form_rename => q(Rename),
 search_form => q(Search form),
 search_form_search => q(Search),
 search_form_simple => q(Simple),
@@ -2673,6 +2675,11 @@ function window_onload(func){
 		window.attachEvent('onload', func);
 	}
 }
+
+var u_query = window.location.search.match(/^\?u-(([^=]+).*)$/);
+if(u_query && u_query[2].indexOf('delete') == -1){
+	window.location.href = window.location.origin + '/u' + window.location.pathname + '?' + u_query[1];
+}
 EOT_UNIQKI
 }
 
@@ -2814,9 +2821,7 @@ sub save_lines{
 	my $version = 1;
 	my $txtv;
 
-	unless(-f "$PAGE.txt"){
-		die_message("page_not_found", $PAGE);
-	}
+	die_message("page_not_found", $PAGE) unless page_exists();
 
 	local *FH;
 	if(open FH, "$PAGE.txt.v"){
@@ -3809,6 +3814,28 @@ sub create_goto_form{
 <div>
 <input accesskey="g" id="goto" name="goto" />
 <input type="submit" value="$goto" />
+</div>
+</form>
+EOT
+	if($mode == 1){
+		print $form;
+		return;
+	}
+	# Forms are not allowed inside a <p> block
+	close_paragraph();
+	return $form;
+}
+
+sub create_rename_form{
+	# $mode=undef: return
+	# $mode=1: print
+	my $mode = shift;
+	my $rename = get_msg("rename_form_rename");
+	my $form = <<EOT;
+<form class="rename-input" action="$SCRIPT_NAME/$PAGE" method="get">
+<div>
+<input accesskey="g" id="rename" name="rename" />
+<input type="submit" value="$rename" />
 </div>
 </form>
 EOT
@@ -5889,7 +5916,7 @@ if($QUERY_STRING eq "css"){
 		$PAGE = $var{page} if $var{page} ne "";
 		if($PAGE eq ""){
 			die_message("specify_comment_page");
-		}elsif(!-f "$PAGE.txt"){
+		}elsif(!page_exists()){
 			die_message("page_not_found", $PAGE);
 		}
 
@@ -5907,7 +5934,7 @@ if($QUERY_STRING eq "css"){
 	}
 	die_rebuild($PAGE) unless verify_input("comment", \%var);
 
-	die_message("page_not_found", $PAGE) unless -f "$PAGE.txt";
+	die_message("page_not_found", $PAGE) unless page_exists();
 
 	die_message("invalid_comment_tag", $var{comment})
 		unless $var{comment} =~ /^[a-zA-Z0-9_-]+$/;
@@ -6248,7 +6275,7 @@ if($QUERY_STRING eq "css"){
 # u/PAGE?diff		Diff current and previous version
 # u/PAGE?diff=([0-9]+)	Diff current and \1 version
 # u/PAGE?diff=-([0-9]+)	Diff current and current-\1 version
-	die_message("page_not_found", $PAGE) unless -f "$PAGE.txt";
+	die_message("page_not_found", $PAGE) unless page_exists();
 
 	my $current_version = get_version($PAGE);
 	my $version = $1 > 0 ? $1 : $current_version + ($1 < 0 ? $1 : -1);
@@ -6562,15 +6589,14 @@ EOT
 # u/PAGE?wiki_edit		Create/edit PAGE
 # u/PAGE?wiki_edit=([0-9]+)	Edit the version \1 of PAGE
 # u/PAGE?wiki_edit=-([0-9]+)	Edit the current-\1 version of PAGE
-			if($1 ne "" && !-f "$PAGE.txt"){
-				die_message("page_not_found", $PAGE);
-			}
+			die_message("page_not_found", $PAGE)
+				if $1 ne "" && !page_exists();
 
 			local $TITLE = $PAGE;
 			local $TEXT = "";
 			local $VERSION = get_version($PAGE);
 
-			if($1 eq "" && -f "$PAGE.txt"){
+			if($1 eq "" && page_exists()){
 				$TEXT = read_file("$PAGE.txt");
 				if("#!wiki\n" ne substr $TEXT, 0, 7){
 					die_message("internal_errors");
@@ -6668,9 +6694,8 @@ EOT
 # u/PAGE?wiki_edit_lines=([0-9]+),([0-9]+)	Edit PAGE \2 lines from \1
 # u/PAGE?wiki_edit_lines=([0-9]+)		Edit PAGE lines from \1 to end
 		if($REQUEST_METHOD eq "GET"){
-			unless(-f "$PAGE.txt"){
-				die_message("page_not_found", $PAGE);
-			}
+			die_message("page_not_found", $PAGE)
+				unless page_exists();
 			open FH, "$PAGE.txt";
 			if(<FH> ne "#!wiki\n"){
 				close FH;
@@ -6753,7 +6778,7 @@ EOT
 		my $t = time;
 
 		die_message("internal_errors") if $var{file} eq "";
-		die_message("page_not_found", $PAGE) unless -f "$PAGE.txt";
+		die_message("page_not_found", $PAGE) unless page_exists();
 		die_message("wiki_file_not_allowed", $var{file})
 			if($WIKI_FILES_ALLOWED eq "" ||
 			   $var{file} !~ /$WIKI_FILES_ALLOWED/oi);
@@ -7348,9 +7373,7 @@ EOT
 # u/PAGE?edit_lines			Save new PAGE lines
 # u/PAGE?edit_lines=([0-9]+),([0-9]+)	Edit PAGE \2 lines from \1
 # u/PAGE?edit_lines=([0-9]+)		Edit PAGE lines from \1 to end
-	unless(-f "$PAGE.txt"){
-		die_message("page_not_found", $PAGE);
-	}
+	die_message("page_not_found", $PAGE) unless page_exists();
 
 	local $TITLE = $PAGE;
 	local ($VERSION, $START, $COUNT, $TEXT);
@@ -7403,9 +7426,7 @@ EOT
 # u/PAGE?revert			Go back to the previous version of PAGE
 # u/PAGE?revert=([0-9]+)	Go back to the \1 version of PAGE
 # u/PAGE?revert=-([0-9]+)	Go back to the current-\1 version of PAGE
-	unless(-f "$PAGE.txt"){
-		die_message("page_not_found", $PAGE);
-	}
+	die_message("page_not_found", $PAGE) unless page_exists();
 
 	lock_file("$PAGE.txt");
 	my $current_version = get_version($PAGE);
@@ -7440,6 +7461,45 @@ EOT
 		}
 	}
 	unlock_file("$PAGE.txt");
+}elsif($QUERY_STRING =~ /^rename(?:[&=].+)?$/){
+#-------------------------------------------------------------------------------
+# u?rename=PAGE		Rename to PAGE
+	my %var = get_var();
+	if($var{rename} eq ""){
+		local $TITLE = get_msg("rename_form");
+		print_header();
+		create_rename_form(1);
+		print_footer();
+		die;
+	}
+
+	$_ = $var{rename};
+	s#\.html$##;
+	y#[/+]# #;
+
+	my $page = convert_page_name($_);
+
+	die_message("page_not_found", $PAGE) unless page_exists();
+	die_message("page_already_exists", $page) if page_exists($page);
+
+	if(-f "$PAGE.html"){
+		local *OLD, *NEW;
+		open OLD, "$PAGE.html";
+		open FH, ">$page.html";
+		while(<OLD>){
+			s!(["/=>])$PAGE(\.html[#?"]|["/%<?])!\1$page\2!g;
+			print FH;
+		}
+		close FH;
+		close OLD;
+		unlink "$PAGE.html";
+	}
+	foreach("txt", "txt.v"){
+		rename "$PAGE.$_", "$page.$_" if -f "$PAGE.$_";
+	}
+	rename $PAGE, $page if -d $PAGE;
+
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/".encode_url_safe($page));
 }elsif($QUERY_STRING eq "delete"){
 #-------------------------------------------------------------------------------
 # u/PAGE?delete		Delete PAGE
