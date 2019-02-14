@@ -7463,6 +7463,7 @@ EOT
 	unlock_file("$PAGE.txt");
 }elsif($QUERY_STRING =~ /^rename(?:[&=].+)?$/){
 #-------------------------------------------------------------------------------
+# u?rename		Create the rename form
 # u?rename=PAGE		Rename to PAGE
 	my %var = get_var();
 	if($var{rename} eq ""){
