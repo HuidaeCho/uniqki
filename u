@@ -6532,6 +6532,7 @@ EOT
 	die;
 }elsif($QUERY_STRING =~ /^search(?:[&=].+)?$/){
 #-------------------------------------------------------------------------------
+# u?search			Create the search form
 # u?search=(.*)			Search using regular expressions
 # u?search=(.*)&simple=1	Search using space separated words
 # u?search=(.*)&icase=1		Case-insensitive search
