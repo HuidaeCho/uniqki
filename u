@@ -603,6 +603,7 @@ my $sessions_file = $SESSIONS_FILE eq "" ? ".sessions" : $SESSIONS_FILE;
 my $debug_started = 0;
 my %locked_files = ();
 my $cookie_attributes = get_cookie_attributes();
+my $strip_query_string = 1;
 
 ################################################################################
 # Non-user-replaceable subroutines
@@ -6256,6 +6257,7 @@ if($QUERY_STRING eq "css"){
 			"create_page" : "page_not_found";
 		die_message($msg_id, $PAGE);
 	}
+	$strip_query_string = 0 if $QUERY_STRING eq "";
 }elsif($QUERY_STRING ne "delete" && $FILE ne ""){
 #-------------------------------------------------------------------------------
 # u/PAGE/FILE		Show/download PAGE/FILE
@@ -7508,6 +7510,10 @@ EOT
 	unlink "$PAGE.txt", "$PAGE.txt.v", "$PAGE.html";
 	rmrf($PAGE);
 	$PAGE = $INDEX_PAGE;
+}else{
+#-------------------------------------------------------------------------------
+# Unhandled query string; $QUERY_STRING eq "" is handled earlier
+	$strip_query_string = 0;
 }
 
 #-------------------------------------------------------------------------------
@@ -7515,7 +7521,7 @@ EOT
 make_html($PAGE) if $rebuild;
 
 if($nonwiki_read_access ne "open" || $wiki_read_access ne "open"){
-	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE") if $QUERY_STRING ne "";
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE") if $strip_query_string;
 	die_message("page_not_found", $PAGE) unless -f "$PAGE.html";
 
 	local *FH;
@@ -7526,4 +7532,5 @@ if($nonwiki_read_access ne "open" || $wiki_read_access ne "open"){
 	die;
 }
 
-die_redirect("$DOC_BASE/$PAGE.html");
+die_redirect("$DOC_BASE/$PAGE.html".
+	($strip_query_string ? "" : "?$QUERY_STRING"));
