@@ -6683,6 +6683,7 @@ EOT
 				$file_links .= "{{$t.$var{$key}|$var{$key}}}\n"
 					if -f "$PAGE/$t.$var{$key}";
 			}
+			chomp $file_links;
 			if($var{preview} eq ""){
 				$TEXT .= "\n$file_links" if $file_links;
 			}else{
@@ -6761,6 +6762,7 @@ EOT
 				$file_links .= "{{$t.$var{$key}|$var{$key}}}\n"
 					if -f "$PAGE/$t.var{$key}";
 			}
+			chomp $file_links;
 			if($var{preview} eq ""){
 				$TEXT .= "\n$file_links" if $file_links;
 			}else{
@@ -7366,6 +7368,7 @@ EOT
 		chmod 0755, "$PAGE/$var{$key}" if $hosting eq "awardspace";
 		$file_links .= "{{$var{$key}}}\n" if -f "$PAGE/$var{$key}";
 	}
+	chomp $file_links;
 	if($var{preview} ne ""){
 		my $uploaded;
 		$uploaded = get_msg("files_uploaded", $file_links)
@@ -7421,6 +7424,7 @@ EOT
 		chmod 0755, "$PAGE/$var{$key}" if $hosting eq "awardspace";
 		$file_links .= "{{$var{$key}}}\n" if -f "$PAGE/$var{$key}";
 	}
+	chomp $file_links;
 	if($var{preview} ne ""){
 		my $uploaded;
 		$uploaded = get_msg("files_uploaded", $file_links)
