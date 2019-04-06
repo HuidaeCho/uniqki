@@ -1694,10 +1694,11 @@ sub print_header{
 <link rel="alternate" type="application/rss+xml" title="[[recent_changes]]" href="[[CGI]]?rss" />
 <script src="[[CGI]]?js"></script>
 <script>
-window_onload(function(){
-	ajax_request('[[CGI]]/[[PAGE]]?user_info', null, process_menu,
-		'text/plain');
-});
+if(!window.location.href.match(/^file:/))
+	window_onload(function(){
+		ajax_request('[[CGI]]/[[PAGE]]?user_info', null, process_menu,
+			'text/plain');
+	});
 </script>
 </head>
 <body>
