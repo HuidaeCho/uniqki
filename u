@@ -6645,6 +6645,7 @@ EOT
 				$TEXT =~ s/</&lt;/g;
 				$TEXT =~ s/>/&gt;/g;
 			}
+			chomp $TEXT;
 			$VERSION++;
 			preprocess_text();
 			print_wiki_edit();
