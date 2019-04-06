@@ -1530,9 +1530,9 @@ invalid_comment_tag => q(%s: Invalid comment tag.),
 
 current_version => q(The current version of <a href="%s">%1$s</a> is %d.),
 wiki_file_not_allowed => q(%s: File not allowed.),
-wiki_file_uploaded => q(%s: File uploaded. Copy and paste the link below:<pre id="file-link-example">{{%s|%1$s}}</pre>),
-file_uploaded => q(%s: File uploaded. Copy and paste the link below:<pre id="file-link-example">{{%1$s}}</pre>),
-image_uploaded => q(Image uploaded. Copy and paste the link below:<pre id="file-link-example"></pre>),
+wiki_files_uploaded => q(Files uploaded. Copy and paste the links below:<pre id="file-links-example">%s</pre>),
+files_uploaded => q(Files uploaded. Copy and paste the links below:<pre id="file-links-example">%s</pre>),
+image_uploaded => q(Image uploaded. Copy and paste the link below:<pre id="file-links-example"></pre>),
 page_files => q(Files belonging to <a href="../%s">%1$s</a>),
 
 table_of_contents => q(Contents),
@@ -2017,7 +2017,7 @@ sub print_edit{
 <a accesskey="c" href="[[PAGE]].html">[[cancel]]</a> .
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 <br />
-[[file_upload]] <input accesskey="f" type="file" id="file" name="file" />
+[[file_upload]] <input accesskey="f" type="file" id="file" name="file" multiple="multiple" />
 <br />
 <input accesskey="u" type="text" id="filename" name="filename" /> [[paste_image]]
 <div id="image-uploaded" style="display:none;">[[image_uploaded]]</div>
@@ -2060,7 +2060,7 @@ sub print_edit_lines{
 <a accesskey="c" href="[[PAGE]].html">[[cancel]]</a> .
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 <br />
-[[file_upload]] <input accesskey="f" type="file" id="file" name="file" />
+[[file_upload]] <input accesskey="f" type="file" id="file" name="file" multiple="multiple" />
 <br />
 <input accesskey="u" type="text" id="filename" name="filename" /> [[paste_image]]
 <div id="image-uploaded" style="display:none;">[[image_uploaded]]</div>
@@ -2140,7 +2140,7 @@ sub print_wiki_edit{
 <a accesskey="c" href="[[PAGE]].html">[[cancel]]</a> .
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 <br />
-[[file_upload]] <input accesskey="f" type="file" id="file" name="file" />
+[[file_upload]] <input accesskey="f" type="file" id="file" name="file" multiple="multiple" />
 <br />
 <div id="paste_image" style="display:none;">
 <input accesskey="u" type="text" id="filename" name="filename" /> [[paste_image]]
@@ -2184,7 +2184,7 @@ sub print_wiki_edit_lines{
 <a accesskey="c" href="[[PAGE]].html">[[cancel]]</a> .
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 <br />
-[[file_upload]] <input accesskey="f" type="file" id="file" name="file" />
+[[file_upload]] <input accesskey="f" type="file" id="file" name="file" multiple="multiple" />
 <br />
 <div id="paste_image" style="display:none;">
 <input accesskey="u" type="text" id="filename" name="filename" /> [[paste_image]]
@@ -2345,7 +2345,7 @@ ol ol ol {
 	}
 	#updated {
 	}
-	#file-link-example {
+	#file-links-example {
 		margin-bottom:		30px;
 	}
 
@@ -2630,7 +2630,7 @@ function listen_to_paste_image(requestURL, version, type_filename, characters_no
 		document.getElementById('paste_image').style.display = 'block';
 
 	var imageUploadedEl = document.getElementById('image-uploaded');
-	var fileLinkExampleEl = document.getElementById('file-link-example');
+	var fileLinkExampleEl = document.getElementById('file-links-example');
 	filenameEl.addEventListener('paste', function(e){
 		if(!e.clipboardData || !e.clipboardData.items ||
 		   e.clipboardData.items.length != 1 ||
@@ -2660,7 +2660,7 @@ function listen_to_paste_image(requestURL, version, type_filename, characters_no
 			if(wiki){
 				var xml = ajax_responseXML(xhr);
 				imageUploadedEl.style.display = 'block';
-				fileLinkExampleEl.innerHTML = '{' + xml.getElementById('file-link-example').innerHTML + '}';
+				fileLinkExampleEl.innerHTML = '{' + xml.getElementById('file-links-example').innerHTML + '}';
 			}else{
 				imageUploadedEl.style.display = 'block';
 				fileLinkExampleEl.innerHTML = '{{{' + filename + '}}}';
@@ -3117,10 +3117,11 @@ sub find{
 sub get_var{
 	my (%var, $v);
 	foreach(split /&/, $QUERY_STRING){
-		/^([^=]*)=(.*)$/;
-		$v = $1; $var{$v} = $2;
-		$var{$v} =~ y/+/ /; $var{$v} =~ s/%0D//g;
-		$var{$v} = decode_url($var{$v});
+		if(/^([^=]*)=(.*)$/){
+			$v = $1; $var{$v} = $2;
+			$var{$v} =~ y/+/ /; $var{$v} =~ s/%0D//g;
+			$var{$v} = decode_url($var{$v});
+		}
 	}
 	return %var if $CONTENT_LENGTH eq "" || $CONTENT_LENGTH <= 0;
 
@@ -3141,6 +3142,7 @@ sub get_var{
 		}
 	}elsif($CONTENT_TYPE =~ m#^multipart/form-data; boundary=(.*)$#){
 		my $boundary = $1;
+		my $file_no = 2;
 		$content = substr $content, length($boundary) + 4,
 			$CONTENT_LENGTH - 2 * (length($boundary) + 4) - 4;
 		foreach(split /\r\n--$boundary\r\n/, $content){
@@ -3148,8 +3150,10 @@ sub get_var{
 			$header =~ / name="(.*?)"/;
 			my $name = $1;
 			if($header =~ / filename="(.*?)"/){
+				$name = "$name$file_no" if exists $var{$name};
 				($var{$name} = $1) =~ s#^.*[/\\]##;
 				$var{"$name="} = $body;
+				$file_no++;
 			}else{
 				$body =~ s/\r//g;
 				$var{$name} = $body;
@@ -6667,26 +6671,26 @@ EOT
 				print_updated();
 				die;
 			}
-			if($var{file} ne "" && $var{file} =~ /$WIKI_FILES_ALLOWED/oi){
+			my $file_links;
+			foreach my $key (keys %var){
+				next unless $key =~ /^file[0-9]*$/ &&
+					    $var{$key} =~ /$WIKI_FILES_ALLOWED/oi;
 				mkdir $PAGE, 0755 if !-d $PAGE;
-				write_file("$PAGE/$t.$var{file}", $var{"file="}, 1);
-				chmod 0755, "$PAGE/$t.$var{file}" if $hosting eq "awardspace";
-				if($var{preview} eq ""){
-					(my $f = $var{file}) =~ s/ /%20/g;
-					$TEXT .= "\n[$PAGE/$t.$f $var{file}]";
-				}
+				write_file("$PAGE/$t.$var{$key}", $var{"$key="}, 1);
+				chmod 0755, "$PAGE/$t.$var{$key}"
+					if $hosting eq "awardspace";
+				$file_links .= "{{$t.$var{$key}|$var{$key}}}\n"
+					if -f "$PAGE/$t.$var{$key}";
 			}
-			if($var{preview} ne ""){
+			if($var{preview} eq ""){
+				$TEXT .= "\n$file_links" if $file_links;
+			}else{
 				my $uploaded;
-				if($var{file} ne "" && -f "$PAGE/$t.$var{file}"){
-					$uploaded = get_msg("wiki_file_uploaded", $var{file},
-						"$t.$var{file}");
-				}
-
+				$uploaded = get_msg("wiki_files_uploaded",
+						    $file_links) if $file_links;
 				preview($PAGE, $TEXT, $uploaded, 1);
 				die;
 			}
-
 			lock_file("$PAGE.txt");
 			save($PAGE, "#!wiki\n$TEXT\n");
 			unlock_file("$PAGE.txt");
@@ -6745,28 +6749,27 @@ EOT
 				print_updated();
 				die;
 			}
-			if($var{file} ne "" && $var{file} =~ /$WIKI_FILES_ALLOWED/oi){
+			my $file_links;
+			foreach my $key (keys %var){
+				next unless $key =~ /^file[0-9]*$/ &&
+					    $var{$key} =~ /$WIKI_FILES_ALLOWED/oi;
 				mkdir $PAGE, 0755 if !-d $PAGE;
-				write_file("$PAGE/$t.$var{file}", $var{"file="}, 1);
-				chmod 0755, "$PAGE/$t.$var{file}"
+				write_file("$PAGE/$t.$var{$key}", $var{"$key="}, 1);
+				chmod 0755, "$PAGE/$t.$var{$key}"
 					if $hosting eq "awardspace";
-				if($var{preview} eq ""){
-					(my $f = $var{file}) =~ s/ /%20/g;
-					$TEXT .= "\n[$PAGE/$t.$f $var{file}]";
-				}
+				$file_links .= "{{$t.$var{$key}|$var{$key}}}\n"
+					if -f "$PAGE/$t.var{$key}";
 			}
-			if($var{preview} ne ""){
+			if($var{preview} eq ""){
+				$TEXT .= "\n$file_links" if $file_links;
+			}else{
 				my $uploaded;
-				if($var{file} ne "" && -f "$PAGE/$t.$var{file}"){
-					$uploaded = get_msg("wiki_file_uploaded", $var{file},
-						"$t.$var{file}");
-				}
-
+				$uploaded = get_msg("wiki_files_uploaded",
+						    $file_links) if $file_links;
 				preview_lines($PAGE, $START, $COUNT, $TEXT,
 					$uploaded, 1);
 				die;
 			}
-
 			lock_file("$PAGE.txt");
 			save_lines($PAGE, $START, $COUNT, "$TEXT\n");
 			unlock_file("$PAGE.txt");
@@ -6796,7 +6799,7 @@ EOT
 		mkdir $PAGE, 0755 if !-d $PAGE;
 		write_file("$PAGE/$t.$var{file}", $var{"file="}, 1);
 		chmod 0755, "$PAGE/$t.$var{file}" if $hosting eq "awardspace";
-		die_message("wiki_file_uploaded", $var{file}, "$t.$var{file}");
+		die_message("wiki_files_uploaded", $var{file}, "$t.$var{file}");
 	}
 }elsif(!$admin){
 ################################################################################
@@ -7354,16 +7357,18 @@ EOT
 		print_updated();
 		die;
 	}
-	if($var{file} ne ""){
+	my $file_links;
+	foreach my $key (keys %var){
+		next unless $key =~ /^file[0-9]*$/;
 		mkdir $PAGE, 0755 if !-d $PAGE;
-		write_file("$PAGE/$var{file}", $var{"file="}, 1);
-		chmod 0755, "$PAGE/$var{file}" if $hosting eq "awardspace";
+		write_file("$PAGE/$var{$key}", $var{"$key="}, 1);
+		chmod 0755, "$PAGE/$var{$key}" if $hosting eq "awardspace";
+		$file_links .= "{{$var{$key}}}\n" if -f "$PAGE/$var{$key}";
 	}
 	if($var{preview} ne ""){
 		my $uploaded;
-		if($var{file} ne "" && -f "$PAGE/$var{file}"){
-			$uploaded = get_msg("file_uploaded", $var{file});
-		}
+		$uploaded = get_msg("files_uploaded", $file_links)
+			if $file_links;
 
 		preview($PAGE, $TEXT, $uploaded, 0);
 		die;
@@ -7407,16 +7412,18 @@ EOT
 		print_updated();
 		die;
 	}
-	if($var{file} ne ""){
+	my $file_links;
+	foreach my $key (keys %var){
+		next unless $key =~ /^file[0-9]*$/;
 		mkdir $PAGE, 0755 if !-d $PAGE;
-		write_file("$PAGE/$var{file}", $var{"file="}, 1);
-		chmod 0755, "$PAGE/$var{file}" if $hosting eq "awardspace";
+		write_file("$PAGE/$var{$key}", $var{"$key="}, 1);
+		chmod 0755, "$PAGE/$var{$key}" if $hosting eq "awardspace";
+		$file_links .= "{{$var{$key}}}\n" if -f "$PAGE/$var{$key}";
 	}
 	if($var{preview} ne ""){
 		my $uploaded;
-		if($var{file} ne "" && -f "$PAGE/$var{file}"){
-			$uploaded = get_msg("file_uploaded", $var{file});
-		}
+		$uploaded = get_msg("files_uploaded", $file_links)
+			if $file_links;
 
 		preview_lines($PAGE, $START, $COUNT, $TEXT, $uploaded, 0);
 		die;
