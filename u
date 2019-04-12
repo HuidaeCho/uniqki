@@ -5131,7 +5131,7 @@ sub process_wiki_command{
 		$re[$re_n++] = $2 if $i == $re_n;
 		$_ = $3;
 		# Treat a single backslash as an escape character.
-		s/\\(?![\\a-zA-Z0-9])/\x00/g;
+		s/(?<!\\)\\(?![\\a-zA-Z0-9])/\x00/g;
 		# Don't allow access to variables.
 		s/([\$@%\[\]])/\\\1/g;
 		$re_sub[$i] = $_;
