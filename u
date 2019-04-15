@@ -4986,7 +4986,7 @@ sub preprocess_line{
 
 	# Apply regular expressions if not asis
 	if(!$asis && /^(?!#(?:no)?regex)/ && /^(?!##(?:sub |{))/ &&
-	   $code_block eq ""){
+	   $code_block eq "" && $syntax_block eq ""){
 		for(my $i = $re_start; $i < $re_n; $i++){
 			# Need it again to avoid regexing regexed output
 			if(/^(?!#(?:no)?regex)/){
