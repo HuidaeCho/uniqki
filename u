@@ -4417,6 +4417,7 @@ sub create_child_block{
 	$block =~ s/(\(\(\(_*)_$/$1/mg;
 	$block =~ s/^(\)\)\)_*)_/$1/mg;
 	my $parsed_block = parse_child_block($block);
+	return if $preview == 2;
 	chomp $parsed_block;
 	push @parsed_blocks, $parsed_block;
 	return "$begin\x06$end";
@@ -4432,6 +4433,7 @@ sub create_syntax_block{
 	$block =~ s/(?<!\()(\(\(_*)_$/$1/mg;
 	$block =~ s/^(\)\)_*)_/$1/mg;
 	my $parsed_block = parse_block($block);
+	return if $preview == 2;
 	chomp $parsed_block;
 	push @parsed_blocks, $parsed_block;
 	return "$begin\x06$end";
