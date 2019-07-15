@@ -2036,7 +2036,7 @@ sub print_preview{
 	process_tpl("preview.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="preview-warning">[[preview_warning]]</div>
-<article id="preview">
+<article id="preview-main">
 [[PREVIEW]]
 </article>
 [[EDIT]]
@@ -2079,7 +2079,7 @@ sub print_preview_lines{
 	process_tpl("preview_lines.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="preview-warning">[[preview_warning]]</div>
-<article id="preview">
+<article id="preview-main">
 [[PREVIEW]]
 </article>
 [[EDIT_LINES]]
