@@ -2161,7 +2161,7 @@ sub print_wiki_preview{
 	process_tpl("wiki_preview.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="wiki-preview-warning">[[preview_warning]]</div>
-<article id="wiki-preview">
+<article id="wiki-preview-main">
 [[PREVIEW]]
 </article>
 [[WIKI_EDIT]]
@@ -2205,7 +2205,7 @@ sub print_wiki_preview_lines{
 	process_tpl("wiki_preview_lines.tpl", shift, <<'EOT_UNIQKI');
 [[HEADER]]
 <div id="wiki-preview-warning">[[preview_warning]]</div>
-<article id="wiki-preview">
+<article id="wiki-preview-main">
 [[PREVIEW]]
 </article>
 [[WIKI_EDIT_LINES]]
@@ -2342,7 +2342,7 @@ ol ol ol {
 		padding:		5px;
 		margin-bottom:		10px;
 	}
-	#preview {
+	#preview-main {
 	}
 	#updated {
 	}
@@ -2364,7 +2364,7 @@ ol ol ol {
 		padding:		5px;
 		margin-bottom:		10px;
 	}
-	#wiki-preview {
+	#wiki-preview-main {
 	}
 	#wiki-menu {
 		padding:		5px 5px 0px 5px;
