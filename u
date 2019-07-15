@@ -1694,9 +1694,9 @@ sub print_header{
 <link rel="alternate" type="application/rss+xml" title="[[recent_changes]]" href="[[CGI]]?rss" />
 <script src="[[CGI]]?js"></script>
 <script>
-listen_to_event('load', function(){
+listenToEvent('load', function(){
 	if(!window.location.href.match(/^file:/))
-		ajax_request('[[CGI]]/[[PAGE]]?user_info', null, process_menu,
+		ajaxRequest('[[CGI]]/[[PAGE]]?user_info', null, processMenu,
 			'text/plain');
 });
 </script>
@@ -2023,7 +2023,7 @@ sub print_edit{
 <input accesskey="u" type="text" id="filename" name="filename" /> [[paste_image]]
 <div id="image-uploaded" style="display:none;">[[image_uploaded]]</div>
 <script>
-	listen_to_paste_image('../[[CGI]]/[[PAGE]]?upload', [[VERSION]], '[[type_filename]]', '[[characters_not_allowed_in_filename]]');
+	listenToPasteImage('../[[CGI]]/[[PAGE]]?upload', [[VERSION]], '[[type_filename]]', '[[characters_not_allowed_in_filename]]');
 </script>
 </div>
 </form>
@@ -2066,7 +2066,7 @@ sub print_edit_lines{
 <input accesskey="u" type="text" id="filename" name="filename" /> [[paste_image]]
 <div id="image-uploaded" style="display:none;">[[image_uploaded]]</div>
 <script>
-	listen_to_paste_image('../[[CGI]]/[[PAGE]]?upload', [[VERSION]], '[[type_filename]]', '[[characters_not_allowed_in_filename]]');
+	listenToPasteImage('../[[CGI]]/[[PAGE]]?upload', [[VERSION]], '[[type_filename]]', '[[characters_not_allowed_in_filename]]');
 </script>
 </div>
 </form>
@@ -2143,12 +2143,12 @@ sub print_wiki_edit{
 <br />
 [[file_upload]] <input accesskey="f" type="file" id="file" name="file" multiple="multiple" />
 <br />
-<div id="paste_image" style="display:none;">
+<div id="paste-image" style="display:none;">
 <input accesskey="u" type="text" id="filename" name="filename" /> [[paste_image]]
 <div id="image-uploaded" style="display:none;">[[image_uploaded]]</div>
 </div>
 <script>
-	listen_to_paste_image('../[[CGI]]/[[PAGE]]?wiki_upload', [[VERSION]], '[[type_filename]]', '[[characters_not_allowed_in_filename]]');
+	listenToPasteImage('../[[CGI]]/[[PAGE]]?wiki_upload', [[VERSION]], '[[type_filename]]', '[[characters_not_allowed_in_filename]]');
 </script>
 </div>
 </form>
@@ -2187,12 +2187,12 @@ sub print_wiki_edit_lines{
 <br />
 [[file_upload]] <input accesskey="f" type="file" id="file" name="file" multiple="multiple" />
 <br />
-<div id="paste_image" style="display:none;">
+<div id="paste-image" style="display:none;">
 <input accesskey="u" type="text" id="filename" name="filename" /> [[paste_image]]
 <div id="image-uploaded" style="display:none;">[[image_uploaded]]</div>
 </div>
 <script>
-	listen_to_paste_image('../[[CGI]]/[[PAGE]]?wiki_upload', [[VERSION]], '[[type_filename]]', '[[characters_not_allowed_in_filename]]');
+	listenToPasteImage('../[[CGI]]/[[PAGE]]?wiki_upload', [[VERSION]], '[[type_filename]]', '[[characters_not_allowed_in_filename]]');
 </script>
 </div>
 </form>
@@ -2501,7 +2501,7 @@ EOT_UNIQKI
 sub print_js{
 	process_tpl("u.js", shift, <<'EOT_UNIQKI');
 /* http://developer.mozilla.org/en/docs/AJAX:Getting_Started */
-function ajax_request(url, data, func, mime_type){
+function ajaxRequest(url, data, func, mimeType){
 	var xhr = null;
 
 	/* Create an XMLHTTP instance */
@@ -2509,7 +2509,7 @@ function ajax_request(url, data, func, mime_type){
 		xhr = new XMLHttpRequest();
 		if(xhr.overrideMimeType){
 			/* Some web servers return a non-standard mime type. */
-			xhr.overrideMimeType(mime_type || 'text/html');
+			xhr.overrideMimeType(mimeType || 'text/html');
 		}
 	}else
 	if(window.ActiveXObject){ /* IE */
@@ -2552,7 +2552,7 @@ function ajax_request(url, data, func, mime_type){
 }
 
 /* http://forum.java.sun.com/thread.jspa?threadID=696590&tstart=105 */
-function ajax_responseXML(xhr){
+function ajaxResponseXML(xhr){
 	var xml = null;
 
 	if(xhr.responseXML)
@@ -2583,44 +2583,44 @@ function ajax_responseXML(xhr){
 	return xml;
 }
 
-function remove_elements_by_class_name(class_name){
-	var elements = document.getElementsByClassName(class_name);
+function removeElementsByClassName(className){
+	var elements = document.getElementsByClassName(className);
 	while(elements.length > 0)
 		elements[0].parentNode.removeChild(elements[0]);
 }
 
-function set_elements_display_by_class_name(class_name, display){
-	var elements = document.getElementsByClassName(class_name);
+function setElementsDisplayByClassName(className, display){
+	var elements = document.getElementsByClassName(className);
 	for(var i = 0; i < elements.length; i++)
 		elements[i].style.display = display;
 }
 
-function process_menu(xhr){
+function processMenu(xhr){
 	var items = xhr.responseText.split(':');
 	var user = items[0];
 	var admin = items[1];
-	var has_read_access = items[2];
-	var has_write_access = items[3];
+	var hasReadAccess = items[2];
+	var hasWriteAccess = items[3];
 
-	remove_elements_by_class_name(user == '' ? 'user' : 'visitor');
+	removeElementsByClassName(user == '' ? 'user' : 'visitor');
 	if(admin == 0)
-		remove_elements_by_class_name('admin');
-	if(has_read_access == 0)
-		remove_elements_by_class_name('read-access');
-	if(has_write_access == 0)
-		remove_elements_by_class_name('write-access');
+		removeElementsByClassName('admin');
+	if(hasReadAccess == 0)
+		removeElementsByClassName('read-access');
+	if(hasWriteAccess == 0)
+		removeElementsByClassName('write-access');
 	else
-		set_elements_display_by_class_name('edit-section', 'block');
+		setElementsDisplayByClassName('edit-section', 'block');
 
-	var menu = document.getElementById('menu');
-	var wiki_menu = document.getElementById('wiki-menu');
-	if(menu != null)
-		menu.style.display = 'block';
-	if(wiki_menu != null)
-		wiki_menu.style.display = 'block';
+	var menuEl = document.getElementById('menu');
+	var wikiMenuEl = document.getElementById('wiki-menu');
+	if(menuEl != null)
+		menuEl.style.display = 'block';
+	if(wikiMenuEl != null)
+		wikiMenuEl.style.display = 'block';
 }
 
-function listen_to_paste_image(requestURL, version, type_filename, characters_not_allowed_in_filename){
+function listenToPasteImage(requestURL, version, typeFilename, charactersNotAllowedInFilename){
 	var filenameEl = document.getElementById('filename');
 	if(!filenameEl)
 		return;
@@ -2628,7 +2628,7 @@ function listen_to_paste_image(requestURL, version, type_filename, characters_no
 	var wiki = requestURL.indexOf('?wiki_') != -1;
 
 	if(wiki && version > 1)
-		document.getElementById('paste_image').style.display = 'block';
+		document.getElementById('paste-image').style.display = 'block';
 
 	var imageUploadedEl = document.getElementById('image-uploaded');
 	var fileLinkExampleEl = document.getElementById('file-links-example');
@@ -2643,11 +2643,11 @@ function listen_to_paste_image(requestURL, version, type_filename, characters_no
 		var filename = filenameEl.value.
 			replace(new RegExp('\\.' + extension + '$', 'i'), '');
 		if(!filename){
-			alert(type_filename);
+			alert(typeFilename);
 			return;
 		}
 		if(filename.match(/[\\/:*?"<>|]/)){
-			alert(characters_not_allowed_in_filename);
+			alert(charactersNotAllowedInFilename);
 			return;
 		}
 
@@ -2657,9 +2657,9 @@ function listen_to_paste_image(requestURL, version, type_filename, characters_no
 		var blob = e.clipboardData.items[0].getAsFile();
 		var formData = new FormData();
 		formData.append('file', blob, filename);
-		ajax_request(requestURL, formData, function(xhr){
+		ajaxRequest(requestURL, formData, function(xhr){
 			if(wiki){
-				var xml = ajax_responseXML(xhr);
+				var xml = ajaxResponseXML(xhr);
 				imageUploadedEl.style.display = 'block';
 				fileLinkExampleEl.innerHTML = '{' + xml.getElementById('file-links-example').innerHTML + '}';
 			}else{
@@ -2670,7 +2670,7 @@ function listen_to_paste_image(requestURL, version, type_filename, characters_no
 	});
 }
 
-function process_preview(){
+function processPreview(){
 	var textEl = document.getElementById('text');
 	var version = document.getElementById('version').value;
 	var text = textEl.value;
@@ -2685,28 +2685,29 @@ function process_preview(){
 	for(var i = 0; i < fileEl.files.length; i++)
 		formData.append('file', fileEl.files[i]);
 
-	ajax_request(requestURL, formData, function(xhr){
+	ajaxRequest(requestURL, formData, function(xhr){
 		var wiki = requestURL.indexOf('?wiki_') != -1;
 		var preview = (wiki ? 'wiki-' : '') + 'preview';
-		var preview_warning = preview + '-warning';
-		var preview_main = preview + '-main';
-		var xml = ajax_responseXML(xhr);
-		document.getElementById(preview_warning).style.display = 'block';
-		document.getElementById(preview_main).innerHTML = xml.getElementById(preview_main).innerHTML;
+		var previewMainId = preview + '-main';
+		var previewWarningEl = document.getElementById(preview + '-warning');
+		var previewMainEl = document.getElementById(previewMainId);
+		var xml = ajaxResponseXML(xhr);
+		previewWarningEl.style.display = 'block';
+		previewMainEl.innerHTML = xml.getElementById(previewMainId).innerHTML;
 		fileEl.value = null;
 	});
 }
 
-function listen_to_event(event, func){
+function listenToEvent(event, func){
 	if(window.addEventListener)
 		window.addEventListener(event, func);
 	else
 		window.attachEvent('on' + event, func);
 }
 
-var u_query = window.location.search.match(/^\?u-(([^=]+).*)$/);
-if(u_query && u_query[2].indexOf('delete') == -1)
-	window.location.href = window.location.origin + '/u' + window.location.pathname + '?' + u_query[1];
+var uQuery = window.location.search.match(/^\?u-(([^=]+).*)$/);
+if(uQuery && uQuery[2].indexOf('delete') == -1)
+	window.location.href = window.location.origin + '/u' + window.location.pathname + '?' + uQuery[1];
 EOT_UNIQKI
 }
 
