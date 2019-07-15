@@ -2584,15 +2584,15 @@ function ajaxResponseXML(xhr){
 }
 
 function removeElementsByClassName(className){
-	var elements = document.getElementsByClassName(className);
-	while(elements.length > 0)
-		elements[0].parentNode.removeChild(elements[0]);
+	[...document.getElementsByClassName(className)].reverse().forEach(function(element){
+		element.parentNode.removeChild(element);
+	});
 }
 
 function setElementsDisplayByClassName(className, display){
-	var elements = document.getElementsByClassName(className);
-	for(var i = 0; i < elements.length; i++)
-		elements[i].style.display = display;
+	[...document.getElementsByClassName(className)].forEach(function(element){
+		element.style.display = display;
+	});
 }
 
 function processMenu(xhr){
@@ -2682,10 +2682,12 @@ function processPreview(){
 	formData.append('version', version);
 	formData.append('text', text);
 	formData.append('preview', preview);
-	for(var i = 0; i < fileEl.files.length; i++)
-		formData.append('file', fileEl.files[i]);
+	[...fileEl.files].forEach(function(file){
+		formData.append('file', file);
+	});
 
 	ajaxRequest(requestURL, formData, function(xhr){
+		fileEl.value = null;
 		var wiki = requestURL.indexOf('?wiki_') != -1;
 		var preview = (wiki ? 'wiki-' : '') + 'preview';
 		var previewMainId = preview + '-main';
@@ -2693,8 +2695,21 @@ function processPreview(){
 		var previewMainEl = document.getElementById(previewMainId);
 		var xml = ajaxResponseXML(xhr);
 		previewWarningEl.style.display = 'block';
-		previewMainEl.innerHTML = xml.getElementById(previewMainId).innerHTML;
-		fileEl.value = null;
+		var first = previewMainEl.childNodes.length == 0;
+		while(previewMainEl.firstChild)
+			previewMainEl.removeChild(previewMainEl.firstChild);
+		[...xml.getElementById(previewMainId).childNodes].forEach(function(node){
+			var childNode = node;
+			if(node.nodeName.toLowerCase() == 'script'){
+				if(!first)
+					return;
+				var childNode = document.createElement('script');
+				[...node.attributes].forEach(function(attr){
+					childNode.setAttribute(attr.name, attr.value);
+				});
+			}
+			previewMainEl.appendChild(childNode);
+		});
 	});
 }
 
