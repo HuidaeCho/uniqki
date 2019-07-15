@@ -2687,9 +2687,13 @@ function process_preview(){
 	}
 
 	ajax_request(requestURL, formData, function(xhr){
+		var wiki = requestURL.indexOf('?wiki_') != -1;
+		var preview = (wiki ? 'wiki-' : '') + 'preview';
+		var preview_warning = preview + '-warning';
+		var preview_main = preview + '-main';
 		var xml = ajax_responseXML(xhr);
-		document.getElementById('preview-warning').style.display = 'block';
-		document.getElementById('preview-main').innerHTML = xml.getElementById('preview-main').innerHTML;
+		document.getElementById(preview_warning).style.display = 'block';
+		document.getElementById(preview_main).innerHTML = xml.getElementById(preview_main).innerHTML;
 		fileEl.value = null;
 	});
 }
