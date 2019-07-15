@@ -2670,15 +2670,7 @@ function listen_to_paste_image(requestURL, version, type_filename, characters_no
 	});
 }
 
-function window_onload(func){
-	if(window.addEventListener){
-		window.addEventListener('load', func);
-	}else{
-		window.attachEvent('onload', func);
-	}
-}
-
-function ajax_preview(){
+function process_preview(){
 	var textEl = document.getElementById('text');
 	var version = document.getElementById('version').value;
 	var text = textEl.value;
@@ -2700,6 +2692,14 @@ function ajax_preview(){
 		document.getElementById('preview-main').innerHTML = xml.getElementById('preview-main').innerHTML;
 		fileEl.value = null;
 	});
+}
+
+function window_onload(func){
+	if(window.addEventListener){
+		window.addEventListener('load', func);
+	}else{
+		window.attachEvent('onload', func);
+	}
 }
 
 var u_query = window.location.search.match(/^\?u-(([^=]+).*)$/);
