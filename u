@@ -1694,7 +1694,7 @@ sub print_header{
 <link rel="alternate" type="application/rss+xml" title="[[recent_changes]]" href="[[CGI]]?rss" />
 <script src="[[CGI]]?js"></script>
 <script>
-window_onload(function(){
+listen_to_event('load', function(){
 	if(!window.location.href.match(/^file:/))
 		ajax_request('[[CGI]]/[[PAGE]]?user_info', null, process_menu,
 			'text/plain');
@@ -2682,9 +2682,8 @@ function process_preview(){
 	formData.append('version', version);
 	formData.append('text', text);
 	formData.append('preview', preview);
-	for(var i = 0; i < fileEl.files.length; i++){
+	for(var i = 0; i < fileEl.files.length; i++)
 		formData.append('file', fileEl.files[i]);
-	}
 
 	ajax_request(requestURL, formData, function(xhr){
 		var wiki = requestURL.indexOf('?wiki_') != -1;
@@ -2698,18 +2697,16 @@ function process_preview(){
 	});
 }
 
-function window_onload(func){
-	if(window.addEventListener){
-		window.addEventListener('load', func);
-	}else{
-		window.attachEvent('onload', func);
-	}
+function listen_to_event(event, func){
+	if(window.addEventListener)
+		window.addEventListener(event, func);
+	else
+		window.attachEvent('on' + event, func);
 }
 
 var u_query = window.location.search.match(/^\?u-(([^=]+).*)$/);
-if(u_query && u_query[2].indexOf('delete') == -1){
+if(u_query && u_query[2].indexOf('delete') == -1)
 	window.location.href = window.location.origin + '/u' + window.location.pathname + '?' + u_query[1];
-}
 EOT_UNIQKI
 }
 
