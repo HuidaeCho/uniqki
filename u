@@ -2703,7 +2703,7 @@ function processPreview(callback){
 			if(node.nodeName.toLowerCase() == 'script'){
 				if(!first)
 					return;
-				var childNode = document.createElement('script');
+				childNode = document.createElement('script');
 				[...node.attributes].forEach(function(attr){
 					childNode.setAttribute(attr.name, attr.value);
 				});
