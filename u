@@ -2678,6 +2678,30 @@ function window_onload(func){
 	}
 }
 
+function ajax_preview(){
+	var textEl = document.getElementById('text');
+	var version = document.getElementById('version').value;
+	var text = textEl.value;
+	var preview = document.getElementById('preview').value;
+	var fileEl = document.getElementById('file');
+
+	var requestURL = textEl.form.action;
+	var formData = new FormData();
+	formData.append('version', version);
+	formData.append('text', text);
+	formData.append('preview', preview);
+	for(var i = 0; i < fileEl.files.length; i++){
+		formData.append('file', fileEl.files[i]);
+	}
+
+	ajax_request(requestURL, formData, function(xhr){
+		var xml = ajax_responseXML(xhr);
+		document.getElementById('preview-warning').style.display = 'block';
+		document.getElementById('preview-main').innerHTML = xml.getElementById('preview-main').innerHTML;
+		fileEl.value = null;
+	});
+}
+
 var u_query = window.location.search.match(/^\?u-(([^=]+).*)$/);
 if(u_query && u_query[2].indexOf('delete') == -1){
 	window.location.href = window.location.origin + '/u' + window.location.pathname + '?' + u_query[1];
@@ -6805,7 +6829,7 @@ EOT
 		mkdir $PAGE, 0755 if !-d $PAGE;
 		write_file("$PAGE/$t.$var{file}", $var{"file="}, 1);
 		chmod 0755, "$PAGE/$t.$var{file}" if $hosting eq "awardspace";
-		die_message("wiki_files_uploaded", $var{file}, "$t.$var{file}");
+		die_message("wiki_files_uploaded", "{{$t.$var{file}|$var{file}}}");
 	}
 }elsif(!$admin){
 ################################################################################
