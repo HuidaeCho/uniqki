@@ -2670,7 +2670,7 @@ function listenToPasteImage(requestURL, version, typeFilename, charactersNotAllo
 	});
 }
 
-function processPreview(){
+function processPreview(callback){
 	var textEl = document.getElementById('text');
 	var version = document.getElementById('version').value;
 	var text = textEl.value;
@@ -2710,6 +2710,8 @@ function processPreview(){
 			}
 			previewMainEl.appendChild(childNode);
 		});
+		if(callback)
+			callback();
 	});
 }
 
