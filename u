@@ -7408,7 +7408,7 @@ EOT
 	}
 	my $file_links;
 	foreach my $key (keys %var){
-		next unless $key =~ /^file[0-9]*$/;
+		next unless $key =~ /^file[0-9]*$/ && $var{$key} ne "";
 		mkdir $PAGE, 0755 if !-d $PAGE;
 		write_file("$PAGE/$var{$key}", $var{"$key="}, 1);
 		chmod 0755, "$PAGE/$var{$key}" if $hosting eq "awardspace";
@@ -7464,7 +7464,7 @@ EOT
 	}
 	my $file_links;
 	foreach my $key (keys %var){
-		next unless $key =~ /^file[0-9]*$/;
+		next unless $key =~ /^file[0-9]*$/ && $var{$key} ne "";
 		mkdir $PAGE, 0755 if !-d $PAGE;
 		write_file("$PAGE/$var{$key}", $var{"$key="}, 1);
 		chmod 0755, "$PAGE/$var{$key}" if $hosting eq "awardspace";
