@@ -2052,9 +2052,10 @@ function onTextKeyup(){
 }
 
 function livePreview(){
-	if(livePreviewEl.checked)
+	if(livePreviewEl.checked){
 		addEvent(textEl, 'keyup', onTextKeyup);
-	else
+		onTextKeyup();
+	}else
 		removeEvent(textEl, 'keyup', onTextKeyup);
 }
 </script>
@@ -2127,9 +2128,10 @@ function onTextKeyup(){
 }
 
 function livePreview(){
-	if(livePreviewEl.checked)
+	if(livePreviewEl.checked){
 		addEvent(textEl, 'keyup', onTextKeyup);
-	else
+		onTextKeyup();
+	}else
 		removeEvent(textEl, 'keyup', onTextKeyup);
 }
 </script>
@@ -2242,9 +2244,10 @@ function onTextKeyup(){
 }
 
 function livePreview(){
-	if(livePreviewEl.checked)
+	if(livePreviewEl.checked){
 		addEvent(textEl, 'keyup', onTextKeyup);
-	else
+		onTextKeyup();
+	}else
 		removeEvent(textEl, 'keyup', onTextKeyup);
 }
 </script>
@@ -2319,9 +2322,10 @@ function onTextKeyup(){
 }
 
 function livePreview(){
-	if(livePreviewEl.checked)
+	if(livePreviewEl.checked){
 		addEvent(textEl, 'keyup', onTextKeyup);
-	else
+		onTextKeyup();
+	}else
 		removeEvent(textEl, 'keyup', onTextKeyup);
 }
 </script>
