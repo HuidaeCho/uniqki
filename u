@@ -1423,9 +1423,9 @@ parsing_time => q(Parsing time: [[PARSING_TIME]] seconds),
 html5 => q(HTML5),
 css => q(CSS),
 
-live => q(Live),
 preview => q(Preview),
 save => q(Save),
+live_preview => q(Live Preview),
 file_upload => q(File upload: ),
 paste_image => q(Type filename and paste image.),
 type_filename => q(Please type filename.),
@@ -2014,9 +2014,9 @@ sub print_edit{
 <input type="hidden" id="version" name="version" value="[[VERSION]]" />
 <textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
 <br />
-<input accesskey="l" type="checkbox" id="live-preview" name="live-preview" onclick="livePreview();" /> [[live]]
 <input accesskey="p" type="submit" id="preview" name="preview" value="[[preview]]" />
-<input accesskey="s" type="submit" id="save" name="save" value="[[save]]" /> .
+<input accesskey="s" type="submit" id="save" name="save" value="[[save]]" />
+<input accesskey="l" type="checkbox" id="live-preview" name="live-preview" onclick="livePreview();" /> [[live_preview]] .
 <a accesskey="c" href="[[PAGE]].html">[[cancel]]</a> .
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 <br />
@@ -2053,9 +2053,9 @@ function onTextKeyup(){
 
 function livePreview(){
 	if(livePreviewEl.checked)
-		addEventListener(textEl, 'keyup', onTextKeyup);
+		addEvent(textEl, 'keyup', onTextKeyup);
 	else
-		removeEventListener(textEl, 'keyup', onTextKeyup);
+		removeEvent(textEl, 'keyup', onTextKeyup);
 }
 </script>
 </div>
@@ -2089,9 +2089,9 @@ sub print_edit_lines{
 <input type="hidden" id="count" name="count" value="[[COUNT]]" />
 <textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
 <br />
-<input accesskey="l" type="checkbox" id="live-preview" name="live-preview" onclick="livePreview();" /> [[live]]
 <input accesskey="p" type="submit" id="preview" name="preview" value="[[preview]]" />
-<input accesskey="s" type="submit" id="save" name="save" value="[[save]]" /> .
+<input accesskey="s" type="submit" id="save" name="save" value="[[save]]" />
+<input accesskey="l" type="checkbox" id="live-preview" name="live-preview" onclick="livePreview();" /> [[live_preview]] .
 <a accesskey="c" href="[[PAGE]].html">[[cancel]]</a> .
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 <br />
@@ -2128,9 +2128,9 @@ function onTextKeyup(){
 
 function livePreview(){
 	if(livePreviewEl.checked)
-		addEventListener(textEl, 'keyup', onTextKeyup);
+		addEvent(textEl, 'keyup', onTextKeyup);
 	else
-		removeEventListener(textEl, 'keyup', onTextKeyup);
+		removeEvent(textEl, 'keyup', onTextKeyup);
 }
 </script>
 </div>
@@ -2202,9 +2202,9 @@ sub print_wiki_edit{
 <input type="hidden" id="version" name="version" value="[[VERSION]]" />
 <textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
 <br />
-<input accesskey="l" type="checkbox" id="live-preview" name="live-preview" onclick="livePreview();" /> [[live]]
 <input accesskey="p" type="submit" id="preview" name="preview" value="[[preview]]" />
-<input accesskey="s" type="submit" id="save" name="save" value="[[save]]" /> .
+<input accesskey="s" type="submit" id="save" name="save" value="[[save]]" />
+<input accesskey="l" type="checkbox" id="live-preview" name="live-preview" onclick="livePreview();" /> [[live_preview]] .
 <a accesskey="c" href="[[PAGE]].html">[[cancel]]</a> .
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 <br />
@@ -2243,9 +2243,9 @@ function onTextKeyup(){
 
 function livePreview(){
 	if(livePreviewEl.checked)
-		addEventListener(textEl, 'keyup', onTextKeyup);
+		addEvent(textEl, 'keyup', onTextKeyup);
 	else
-		removeEventListener(textEl, 'keyup', onTextKeyup);
+		removeEvent(textEl, 'keyup', onTextKeyup);
 }
 </script>
 </div>
@@ -2279,9 +2279,9 @@ sub print_wiki_edit_lines{
 <input type="hidden" id="count" name="count" value="[[COUNT]]" />
 <textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
 <br />
-<input accesskey="l" type="checkbox" id="live-preview" name="live-preview" onclick="livePreview();" /> [[live]]
 <input accesskey="p" type="submit" id="preview" name="preview" value="[[preview]]" />
-<input accesskey="s" type="submit" id="save" name="save" value="[[save]]" /> .
+<input accesskey="s" type="submit" id="save" name="save" value="[[save]]" />
+<input accesskey="l" type="checkbox" id="live-preview" name="live-preview" onclick="livePreview();" /> [[live_preview]] .
 <a accesskey="c" href="[[PAGE]].html">[[cancel]]</a> .
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 <br />
@@ -2320,9 +2320,9 @@ function onTextKeyup(){
 
 function livePreview(){
 	if(livePreviewEl.checked)
-		addEventListener(textEl, 'keyup', onTextKeyup);
+		addEvent(textEl, 'keyup', onTextKeyup);
 	else
-		removeEventListener(textEl, 'keyup', onTextKeyup);
+		removeEvent(textEl, 'keyup', onTextKeyup);
 }
 </script>
 </div>
@@ -2751,7 +2751,7 @@ function processMenu(xhr){
 		wikiMenuEl.style.display = 'block';
 }
 
-function addEventListener(el, event, func){
+function addEvent(el, event, func){
 	if(el.addEventListener)
 		el.addEventListener(event, func);
 	else
@@ -2759,7 +2759,7 @@ function addEventListener(el, event, func){
 		el.attachEvent('on' + event, func);
 }
 
-function removeEventListener(el, event, func){
+function removeEvent(el, event, func){
 	if(el.removeEventListener)
 		el.removeEventListener(event, func);
 	else
@@ -2768,7 +2768,7 @@ function removeEventListener(el, event, func){
 }
 
 function windowOnLoad(func){
-	addEventListener(window, 'load', func);
+	addEvent(window, 'load', func);
 }
 
 function listenToPasteImage(requestURL, version, typeFilename, charactersNotAllowedInFilename){
@@ -2783,7 +2783,7 @@ function listenToPasteImage(requestURL, version, typeFilename, charactersNotAllo
 
 	var imageUploadedEl = document.getElementById('image-uploaded');
 	var fileLinkExampleEl = document.getElementById('file-links-example');
-	addEventListener(filenameEl, 'paste', function(e){
+	addEvent(filenameEl, 'paste', function(e){
 		if(!e.clipboardData || !e.clipboardData.items ||
 		   e.clipboardData.items.length != 1 ||
 		   e.clipboardData.items[0].type.indexOf('image/') == -1)
@@ -4582,6 +4582,7 @@ sub create_edit_section{
 	my $start = $h_lines[$#h_lines];
 	my $lines = $start.($lineno ? ",".($lineno-$start) : "");
 	push @h_lines, $lineno;
+	chomp $text;
 	$text .= qq(<div class="write-access edit-section"><a href="$CGI/$PAGE?$edit=$lines">$MESSAGES{edit}</a></div>\n);
 }
 
