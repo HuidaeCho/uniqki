@@ -1425,6 +1425,7 @@ css => q(CSS),
 
 preview => q(Preview),
 save => q(Save),
+save_edit => q(Save & Edit),
 live_preview => q(Live Preview),
 file_upload => q(File upload: ),
 paste_image => q(Type filename and paste image.),
@@ -2012,10 +2013,11 @@ sub print_edit{
 <form action="[[PAGE]]?edit" method="post" enctype="multipart/form-data">
 <div>
 <input type="hidden" id="version" name="version" value="[[VERSION]]" />
-<textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
+<textarea accesskey="t" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
 <br />
 <input accesskey="p" type="submit" id="preview" name="preview" value="[[preview]]" />
 <input accesskey="s" type="submit" id="save" name="save" value="[[save]]" />
+<input accesskey="e" type="button" id="save-edit" name="save-edit" value="[[save_edit]]" onclick="saveEdit();" />
 <input accesskey="l" type="checkbox" id="live-preview" name="live-preview" onclick="livePreview();" /> [[live_preview]] .
 <a accesskey="c" href="[[PAGE]].html">[[cancel]]</a> .
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
@@ -2026,38 +2028,6 @@ sub print_edit{
 <div id="image-uploaded" style="display:none;">[[image_uploaded]]</div>
 <script>
 listenToPasteImage('../[[CGI]]/[[PAGE]]?upload', [[VERSION]], '[[type_filename]]', '[[characters_not_allowed_in_filename]]');
-
-var textEl = document.getElementById('text');
-var livePreviewEl = document.getElementById('live-preview');
-var keyupHandler;
-function onTextKeyup(){
-	if(keyupHandler)
-		clearTimeout(keyupHandler);
-	keyupHandler = setTimeout(function(){
-		var wait = function(){
-			var passed = 0, numChecks = 0;
-			if(typeof MathJax != 'undefined') passed++; numChecks++;
-			if(typeof pseudocode != 'undefined') passed++; numChecks++;
-			if(typeof hljs != 'undefined') passed++; numChecks++;
-			if(typeof presentOnLoad != 'undefined') passed++; numChecks++;
-			if(passed < numChecks)
-				setTimeout(wait, 100);
-			else{
-				MathJax.Hub.Queue(['Typeset', MathJax.Hub]);
-				presentOnLoad();
-			}
-		}
-		processPreview(wait);
-	}, 1000);
-}
-
-function livePreview(){
-	if(livePreviewEl.checked){
-		addEvent(textEl, 'keyup', onTextKeyup);
-		onTextKeyup();
-	}else
-		removeEvent(textEl, 'keyup', onTextKeyup);
-}
 </script>
 </div>
 </form>
@@ -2088,10 +2058,11 @@ sub print_edit_lines{
 <input type="hidden" id="version" name="version" value="[[VERSION]]" />
 <input type="hidden" id="start" name="start" value="[[START]]" />
 <input type="hidden" id="count" name="count" value="[[COUNT]]" />
-<textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
+<textarea accesskey="t" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
 <br />
 <input accesskey="p" type="submit" id="preview" name="preview" value="[[preview]]" />
 <input accesskey="s" type="submit" id="save" name="save" value="[[save]]" />
+<input accesskey="e" type="button" id="save-edit" name="save-edit" value="[[save_edit]]" onclick="saveEdit();" />
 <input accesskey="l" type="checkbox" id="live-preview" name="live-preview" onclick="livePreview();" /> [[live_preview]] .
 <a accesskey="c" href="[[PAGE]].html">[[cancel]]</a> .
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
@@ -2102,38 +2073,6 @@ sub print_edit_lines{
 <div id="image-uploaded" style="display:none;">[[image_uploaded]]</div>
 <script>
 listenToPasteImage('../[[CGI]]/[[PAGE]]?upload', [[VERSION]], '[[type_filename]]', '[[characters_not_allowed_in_filename]]');
-
-var textEl = document.getElementById('text');
-var livePreviewEl = document.getElementById('live-preview');
-var keyupHandler;
-function onTextKeyup(){
-	if(keyupHandler)
-		clearTimeout(keyupHandler);
-	keyupHandler = setTimeout(function(){
-		var wait = function(){
-			var passed = 0, numChecks = 0;
-			if(typeof MathJax != 'undefined') passed++; numChecks++;
-			if(typeof pseudocode != 'undefined') passed++; numChecks++;
-			if(typeof hljs != 'undefined') passed++; numChecks++;
-			if(typeof presentOnLoad != 'undefined') passed++; numChecks++;
-			if(passed < numChecks)
-				setTimeout(wait, 100);
-			else{
-				MathJax.Hub.Queue(['Typeset', MathJax.Hub]);
-				presentOnLoad();
-			}
-		}
-		processPreview(wait);
-	}, 1000);
-}
-
-function livePreview(){
-	if(livePreviewEl.checked){
-		addEvent(textEl, 'keyup', onTextKeyup);
-		onTextKeyup();
-	}else
-		removeEvent(textEl, 'keyup', onTextKeyup);
-}
 </script>
 </div>
 </form>
@@ -2161,7 +2100,7 @@ sub print_updated{
 <h1>[[page_updated]]</h1>
 [[save_your_changes_and_read_latest_version]]
 <br />
-<textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
+<textarea accesskey="t" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
 </section>
 [[FOOTER]]
 EOT_UNIQKI
@@ -2202,10 +2141,11 @@ sub print_wiki_edit{
 <form action="[[PAGE]]?wiki_edit" method="post" enctype="multipart/form-data">
 <div>
 <input type="hidden" id="version" name="version" value="[[VERSION]]" />
-<textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
+<textarea accesskey="t" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
 <br />
 <input accesskey="p" type="submit" id="preview" name="preview" value="[[preview]]" />
 <input accesskey="s" type="submit" id="save" name="save" value="[[save]]" />
+<input accesskey="e" type="button" id="save-edit" name="save-edit" value="[[save_edit]]" onclick="saveEdit();" />
 <input accesskey="l" type="checkbox" id="live-preview" name="live-preview" onclick="livePreview();" /> [[live_preview]] .
 <a accesskey="c" href="[[PAGE]].html">[[cancel]]</a> .
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
@@ -2218,38 +2158,6 @@ sub print_wiki_edit{
 </div>
 <script>
 listenToPasteImage('../[[CGI]]/[[PAGE]]?upload', [[VERSION]], '[[type_filename]]', '[[characters_not_allowed_in_filename]]');
-
-var textEl = document.getElementById('text');
-var livePreviewEl = document.getElementById('live-preview');
-var keyupHandler;
-function onTextKeyup(){
-	if(keyupHandler)
-		clearTimeout(keyupHandler);
-	keyupHandler = setTimeout(function(){
-		var wait = function(){
-			var passed = 0, numChecks = 0;
-			if(typeof MathJax != 'undefined') passed++; numChecks++;
-			if(typeof pseudocode != 'undefined') passed++; numChecks++;
-			if(typeof hljs != 'undefined') passed++; numChecks++;
-			if(typeof presentOnLoad != 'undefined') passed++; numChecks++;
-			if(passed < numChecks)
-				setTimeout(wait, 100);
-			else{
-				MathJax.Hub.Queue(['Typeset', MathJax.Hub]);
-				presentOnLoad();
-			}
-		}
-		processPreview(wait);
-	}, 1000);
-}
-
-function livePreview(){
-	if(livePreviewEl.checked){
-		addEvent(textEl, 'keyup', onTextKeyup);
-		onTextKeyup();
-	}else
-		removeEvent(textEl, 'keyup', onTextKeyup);
-}
 </script>
 </div>
 </form>
@@ -2280,10 +2188,11 @@ sub print_wiki_edit_lines{
 <input type="hidden" id="version" name="version" value="[[VERSION]]" />
 <input type="hidden" id="start" name="start" value="[[START]]" />
 <input type="hidden" id="count" name="count" value="[[COUNT]]" />
-<textarea accesskey="e" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
+<textarea accesskey="t" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
 <br />
 <input accesskey="p" type="submit" id="preview" name="preview" value="[[preview]]" />
 <input accesskey="s" type="submit" id="save" name="save" value="[[save]]" />
+<input accesskey="e" type="button" id="save-edit" name="save-edit" value="[[save_edit]]" onclick="saveEdit();" />
 <input accesskey="l" type="checkbox" id="live-preview" name="live-preview" onclick="livePreview();" /> [[live_preview]] .
 <a accesskey="c" href="[[PAGE]].html">[[cancel]]</a> .
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
@@ -2296,38 +2205,6 @@ sub print_wiki_edit_lines{
 </div>
 <script>
 listenToPasteImage('../[[CGI]]/[[PAGE]]?upload', [[VERSION]], '[[type_filename]]', '[[characters_not_allowed_in_filename]]');
-
-var textEl = document.getElementById('text');
-var livePreviewEl = document.getElementById('live-preview');
-var keyupHandler;
-function onTextKeyup(){
-	if(keyupHandler)
-		clearTimeout(keyupHandler);
-	keyupHandler = setTimeout(function(){
-		var wait = function(){
-			var passed = 0, numChecks = 0;
-			if(typeof MathJax != 'undefined') passed++; numChecks++;
-			if(typeof pseudocode != 'undefined') passed++; numChecks++;
-			if(typeof hljs != 'undefined') passed++; numChecks++;
-			if(typeof presentOnLoad != 'undefined') passed++; numChecks++;
-			if(passed < numChecks)
-				setTimeout(wait, 100);
-			else{
-				MathJax.Hub.Queue(['Typeset', MathJax.Hub]);
-				presentOnLoad();
-			}
-		}
-		processPreview(wait);
-	}, 1000);
-}
-
-function livePreview(){
-	if(livePreviewEl.checked){
-		addEvent(textEl, 'keyup', onTextKeyup);
-		onTextKeyup();
-	}else
-		removeEvent(textEl, 'keyup', onTextKeyup);
-}
 </script>
 </div>
 </form>
@@ -2639,7 +2516,7 @@ sub print_js{
 function ajaxRequest(url, data, func, mimeType){
 	var xhr = null;
 
-	/* Create an XMLHTTP instance. */
+	/* Create an XMLHTTP instance */
 	if(window.XMLHttpRequest){ /* Mozilla, Safari, ... */
 		xhr = new XMLHttpRequest();
 		if(xhr.overrideMimeType){
@@ -2682,7 +2559,7 @@ function ajaxRequest(url, data, func, mimeType){
 	xhr.open(method, url, true);
 
 	/* xhr.send(POST data) */
-	/* Required even if the method is not POST. */
+	/* required even if the method is not POST. */
 	xhr.send(data);
 }
 
@@ -2825,7 +2702,7 @@ function listenToPasteImage(requestURL, version, typeFilename, charactersNotAllo
 	});
 }
 
-function processPreview(){
+function processPreview(callback){
 	var textEl = document.getElementById('text');
 	var version = document.getElementById('version').value;
 	var text = textEl.value;
@@ -2865,12 +2742,60 @@ function processPreview(){
 			}
 			previewMainEl.appendChild(childNode);
 		});
+		if(callback)
+			callback();
+	});
+}
+
+function saveEdit(){
+	var textEl = document.getElementById('text');
+	var version = document.getElementById('version').value;
+	var text = textEl.value;
+	var save = document.getElementById('save').value;
+	var fileEl = document.getElementById('file');
+
+	var requestURL = textEl.form.action;
+	var formData = new FormData();
+	formData.append('version', version);
+	formData.append('text', text);
+	formData.append('save', save);
+	[...fileEl.files].forEach(function(file){
+		formData.append('file', file);
+	});
+
+	ajaxRequest(requestURL, formData, function(xhr){
+		fileEl.value = null;
 	});
 }
 
 var uQuery = window.location.search.match(/^\?u-(([^=]+).*)$/);
 if(uQuery && uQuery[2].indexOf('delete') == -1)
 	window.location.href = window.location.origin + '/u' + window.location.pathname + '?' + uQuery[1];
+else if(window.location.search.match(/^\?(wiki_)?edit(_lines)?(=|$)/)){
+	var livePreview;
+	windowOnLoad(function(){
+		var textEl = document.getElementById('text');
+		var livePreviewEl = document.getElementById('live-preview');
+		var keyupHandler;
+		var callback;
+		function onTextKeyup(){
+			if(keyupHandler)
+				clearTimeout(keyupHandler);
+			keyupHandler = setTimeout(function(){
+				processPreview(callback);
+			}, 1000);
+		}
+
+		livePreview = function(func){
+			callback = func;
+			if(livePreviewEl.checked){
+				addEvent(textEl, 'keyup', onTextKeyup);
+				onTextKeyup();
+			}else
+				removeEvent(textEl, 'keyup', onTextKeyup);
+		}
+	});
+}
 EOT_UNIQKI
 }
 
@@ -4099,7 +4024,7 @@ sub create_comment_form{
 <input type="hidden" id="id" name="id" value="$id" />
 <input type="hidden" id="page" name="page" value="$page" />
 <input type="hidden" id="direction" name="direction" value="$direction" />
-<textarea accesskey="c" id="text" name="text" rows="$rows" cols="$cols"></textarea>
+<textarea accesskey="t" id="text" name="text" rows="$rows" cols="$cols"></textarea>
 <input type="submit" value="$write" />
 </div>
 </form>
@@ -7583,6 +7508,8 @@ EOT
 	local $TITLE = $PAGE;
 	local ($VERSION, $START, $COUNT, $TEXT);
 	if($REQUEST_METHOD eq "GET"){
+		die_message("internal_errors") unless $1 ne "" && $2 ne "";
+
 		$VERSION = get_version($PAGE) + 1;
 		$START = $1;
 		$COUNT = $2;
