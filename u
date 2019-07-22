@@ -2325,7 +2325,6 @@ ol ol ol {
 	#message {
 	}
 	#menu {
-		display:		none;
 	}
 	#metadata {
 		padding-top:		2px;
@@ -2380,7 +2379,6 @@ ol ol ol {
 	}
 	#wiki-menu {
 		padding:		5px 5px 0px 5px;
-		display:		none;
 	}
 
 /******************************************************************************/
@@ -2398,7 +2396,8 @@ ol ol ol {
 		display:		none;
 	}
 	#metadata {
-		display:		none;
+		padding-top:		2em;
+		font-size:		smaller;
 	}
 	#parsing-time {
 		display:		none;
@@ -2623,13 +2622,6 @@ function processMenu(xhr){
 		removeElementsByClassName('write-access');
 	else
 		setElementsDisplayByClassName('edit-section', 'block');
-
-	var menuEl = document.getElementById('menu');
-	var wikiMenuEl = document.getElementById('wiki-menu');
-	if(menuEl != null)
-		menuEl.style.display = 'block';
-	if(wikiMenuEl != null)
-		wikiMenuEl.style.display = 'block';
 }
 
 function addEvent(el, event, func){
@@ -2748,9 +2740,15 @@ function processPreview(callback){
 }
 
 function saveEdit(){
+	var saveEditEl = document.getElementById('save-edit');
+	saveEditEl.disabled = true;
+	var saveEdit = saveEditEl.value;
+	saveEditEl.value = '...';
+
 	var textEl = document.getElementById('text');
-	var version = document.getElementById('version').value;
 	var text = textEl.value;
+	var versionEl = document.getElementById('version');
+	var version = parseInt(versionEl.value);
 	var save = document.getElementById('save').value;
 	var fileEl = document.getElementById('file');
 
@@ -2765,6 +2763,13 @@ function saveEdit(){
 
 	ajaxRequest(requestURL, formData, function(xhr){
 		fileEl.value = null;
+		var xml = ajaxResponseXML(xhr);
+		if(!xml.getElementById('updated')){
+			versionEl.value = version + 1;
+			saveEditEl.disabled = false;
+			saveEditEl.value = saveEdit;
+		}else
+			saveEditEl.value = '!!!';
 	});
 }
 
