@@ -2269,7 +2269,7 @@ a {
 	color:			green;
 	text-decoration:	none;
 }
-a[href*="://"] {
+a[href*='://'] {
 	color:			blue;
 }
 form {
