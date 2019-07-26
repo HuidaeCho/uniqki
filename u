@@ -2764,12 +2764,23 @@ function saveEdit(){
 	ajaxRequest(requestURL, formData, function(xhr){
 		fileEl.value = null;
 		var xml = ajaxResponseXML(xhr);
-		if(!xml.getElementById('updated')){
+		var updatedEl = xml.getElementById('updated');
+		if(!updatedEl){
 			versionEl.value = version + 1;
 			saveEditEl.disabled = false;
 			saveEditEl.value = saveEdit;
-		}else
+		}else{
 			saveEditEl.value = '!!!';
+			var editEl = textEl.form.parentNode;
+			var lastNode = textEl.form;
+			[...updatedEl.childNodes].reverse().forEach(function(node){
+				var nodeName = node.nodeName.toLowerCase();
+				if(nodeName != 'h1' && nodeName != 'br' && nodeName != 'textarea'){
+					editEl.insertBefore(node, lastNode);
+					lastNode = node;
+				}
+			});
+		}
 	});
 }
 
