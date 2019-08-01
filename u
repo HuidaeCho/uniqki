@@ -2768,9 +2768,10 @@ function saveEdit(){
 		if(!updatedEl){
 			saveEditEl.disabled = false;
 			saveEditEl.value = saveEdit;
-			if(saveEditedText && saveEditedText != text)
+			if(saveEditedText != text){
 				versionEl.value = version + 1;
-			saveEditedText = text;
+				saveEditedText = text;
+			}
 		}else{
 			saveEditEl.value = '!!!';
 			var editEl = textEl.form.parentNode;
@@ -2795,6 +2796,7 @@ else if(window.location.search.match(/^\?(wiki_)?edit(_lines)?(=|$)/)){
 	var livePreview;
 	windowOnLoad(function(){
 		var textEl = document.getElementById('text');
+		saveEditedText = textEl.value;
 		var livePreviewEl = document.getElementById('live-preview');
 		var keyupHandler;
 		var callback;
@@ -2805,7 +2807,6 @@ else if(window.location.search.match(/^\?(wiki_)?edit(_lines)?(=|$)/)){
 				processPreview(callback);
 			}, 1000);
 		}
-
 		livePreview = function(func){
 			callback = func;
 			if(livePreviewEl.checked){
