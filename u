@@ -2766,9 +2766,11 @@ function saveEdit(){
 		var xml = ajaxResponseXML(xhr);
 		var updatedEl = xml.getElementById('updated');
 		if(!updatedEl){
-			versionEl.value = version + 1;
 			saveEditEl.disabled = false;
 			saveEditEl.value = saveEdit;
+			if(saveEditedText && saveEditedText != text)
+				versionEl.value = version + 1;
+			saveEditedText = text;
 		}else{
 			saveEditEl.value = '!!!';
 			var editEl = textEl.form.parentNode;
@@ -2783,6 +2785,8 @@ function saveEdit(){
 		}
 	});
 }
+
+var saveEditedText;
 
 var uQuery = window.location.search.match(/^\?u-(([^=]+).*)$/);
 if(uQuery && uQuery[2].indexOf('delete') == -1)
