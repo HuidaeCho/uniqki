@@ -2749,12 +2749,18 @@ function saveEdit(){
 	var text = textEl.value;
 	var versionEl = document.getElementById('version');
 	var version = parseInt(versionEl.value);
+	var startEl = document.getElementById('start');
+	var countEl = document.getElementById('count');
 	var save = document.getElementById('save').value;
 	var fileEl = document.getElementById('file');
 
 	var requestURL = textEl.form.action;
 	var formData = new FormData();
 	formData.append('version', version);
+	if(startEl)
+		formData.append('start', startEl.value);
+	if(countEl)
+		formData.append('count', countEl.value);
 	formData.append('text', text);
 	formData.append('save', save);
 	[...fileEl.files].forEach(function(file){
