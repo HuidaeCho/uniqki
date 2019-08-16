@@ -7535,7 +7535,7 @@ EOT
 	local $TITLE = $PAGE;
 	local ($VERSION, $START, $COUNT, $TEXT);
 	if($REQUEST_METHOD eq "GET"){
-		die_message("internal_errors") unless $1 ne "" && $2 ne "";
+		die_message("internal_errors") unless $1 ne "";
 
 		$VERSION = get_version($PAGE) + 1;
 		$START = $1;
