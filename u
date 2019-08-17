@@ -6392,12 +6392,15 @@ if($QUERY_STRING eq "css"){
 # User actions
 }elsif($QUERY_STRING eq "login" || $QUERY_STRING eq ""){
 #-------------------------------------------------------------------------------
-# u?login		After a successful login
-# u/PAGE?login		After a successful login
-# u/PAGE/FILE?login	After a successful login
-# u			No action specified
-# u/PAGE		No action specified
-# u/PAGE/FILE		No action specified
+# u?login		Redirect to index after a successful login
+# u/PAGE?login		Show PAGE after a successful login
+# u/PAGE/FILE?login	Download PAGE/FILE after a successful login
+# u/PAGE/DIR/...?login	Redirect to u/DIR/... after a successful login
+# u			Redirect to index
+# u/PAGE		Show PAGE
+# u/PAGE/FILE		Download PAGE/FILE
+# u/PAGE/DIR/...	Redirect to u/DIR/...
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$FILE") if $FILE =~ m#/#;
 	die_path("$PAGE/$FILE") if($FILE ne "" ||
 		($PAGE ne "" && "/" eq substr $PATH_INFO, -1));
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE") if $PAGE eq "";
@@ -6409,8 +6412,8 @@ if($QUERY_STRING eq "css"){
 	$strip_query_string = 0 if $QUERY_STRING eq "";
 }elsif($QUERY_STRING ne "delete" && $FILE ne ""){
 #-------------------------------------------------------------------------------
-# u/PAGE/FILE		Show/download PAGE/FILE
-	die_path("$PAGE/$FILE");
+# u/PAGE/FILE?query	Redirect to u/PAGE?query
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?$QUERY_STRING");
 }elsif($QUERY_STRING eq "refresh" && $PAGE ne ""){
 #-------------------------------------------------------------------------------
 # u/PAGE?refresh	Refresh PAGE
