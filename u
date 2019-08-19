@@ -4586,7 +4586,6 @@ sub create_blockquote{
 	my $blockquote = "";
 	my @cite = ();
 	my $q_i = 0;
-	my $use_p = 0;
 	my $p = 0;
 
 	foreach(@lines){
@@ -4610,7 +4609,6 @@ sub create_blockquote{
 				$q_i++;
 			}
 			if($line eq "" || $line eq "."){
-				$use_p = 1;
 				if($p){
 					$blockquote .= "</p>\n";
 					$p = 0;
@@ -4622,12 +4620,10 @@ sub create_blockquote{
 				$cite[$qi] .= "\n" if $cite[$qi] ne "";
 				$cite[$qi] .= $1;
 			}else{
-				if($use_p){
-					$line =~ s#(\x06)#</p>$1<p>#g;
-					if(!$p){
-						$blockquote .= "<p>";
-						$p = 1;
-					}
+				$line =~ s#(\x06)#</p>$1<p>#g;
+				if(!$p){
+					$blockquote .= "<p>";
+					$p = 1;
 				}
 				$line =~ s#([ \t])\([ \t]*(.*?)[ \t]*\)$#$1<cite>$2</cite>#;
 				$line =~ s/^[ \t]*(.*?)[ \t]*$/$1/;
@@ -4636,7 +4632,6 @@ sub create_blockquote{
 			next unless $start;
 			$line = "";
 		}
-		$use_p = 0;
 		if($p){
 			$blockquote .= "</p>\n";
 			$p = 0;
