@@ -4640,22 +4640,26 @@ sub create_blockquote{
 				$blockquote .= "<blockquote>\n";
 			}
 			$q_i++;
-			$blockquote .= "<blockquote>\n";
 		}elsif($i < $q_i){
-			while(--$q_i >= $i){
+			while($q_i-- >= $i){
 				if($cite[$q_i] ne ""){
 					$blockquote .= "<footer><cite>$cite[$q_i]</cite></footer>\n";
 					$cite[$q_i] = "";
 				}
 				$blockquote .= "</blockquote>\n";
 			}
-			$q_i++;
+			$q_i += 2;
 		}else{
 			if($cite[$q_i-1] ne ""){
 				$blockquote .= "<footer><cite>$cite[$q_i-1]</cite></footer>\n";
 				$cite[$q_i-1] = "";
 			}
-			$blockquote .= "</blockquote>\n<blockquote>\n";
+			$blockquote .= "</blockquote>\n";
+		}
+		$blockquote .= "<blockquote>\n";
+		if(!$p){
+			$blockquote .= "<p>";
+			$p = 1;
 		}
 
 		$line =~ s#([ \t])\([ \t]*(.*?)[ \t]*\)$#$1<cite>$2</cite>#;
