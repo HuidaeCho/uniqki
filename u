@@ -5186,7 +5186,7 @@ sub process_asis_lines{
 	local $_ = shift;
 
 	# Start or close nosyntax
-	if(/^("""+)$/ && (!$nosyntax || $nosyntax == length($1))){
+	if(/^("""+)$/ && !$pre && (!$nosyntax || $nosyntax == length($1))){
 		if($nosyntax){
 			$asis = 0;
 			$nosyntax = 0;
