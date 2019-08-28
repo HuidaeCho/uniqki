@@ -4537,7 +4537,6 @@ sub create_edit_section{
 	my $start = $h_lines[$#h_lines];
 	my $lines = $start.($lineno ? ",".($lineno-$start) : "");
 	push @h_lines, $lineno;
-	chomp $text;
 	$text .= qq(<div class="write-access edit-section"><a href="$CGI/$PAGE?$edit=$lines">$MESSAGES{edit}</a></div>\n);
 }
 
