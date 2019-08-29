@@ -6393,7 +6393,7 @@ if($QUERY_STRING eq "css"){
 # u/PAGE?login		Show PAGE after a successful login
 # u			Redirect to index
 # u/PAGE		Show PAGE
-# u/PAGE/		List files under PAGE
+# u/PAGE/		List files belonging to PAGE
 # u/PAGE/FILE		Download PAGE/FILE
 # u/PAGE/DIR/...	Redirect to u/DIR/...
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$FILE") if $FILE =~ m#/#;
@@ -6407,7 +6407,7 @@ if($QUERY_STRING eq "css"){
 	}
 	$strip_query_string = 0 if $QUERY_STRING eq "";
 }elsif($QUERY_STRING eq "files"){
-# u/PAGE?files		List files under PAGE
+# u/PAGE?files		List files belonging to PAGE
 	die_path($PAGE);
 }elsif($QUERY_STRING ne "delete" && $FILE ne ""){
 #-------------------------------------------------------------------------------
