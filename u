@@ -705,7 +705,7 @@ sub die_path{
 	die_message("path_not_found", $path) unless -e $path;
 
 	if(-d $path){
-		$path =~ s#/+$##;
+		my $parent = "$path/" if($path !~ s#/+$##);
 		my $title = get_msg("page_files", $path);
 		(local $TITLE = $title) =~ s/<[^>]*>//g;
 		print_header();
@@ -713,7 +713,7 @@ sub die_path{
 		foreach(<$path/*>){
 			my $file = $_;
 			s#^[^/]*/##;
-			my $url = encode_url_safe($_);
+			my $url = $parent.encode_url_safe($_);
 			s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
 			my $name = $_;
 			my @t = localtime((stat $file)[9]);
@@ -6391,10 +6391,9 @@ if($QUERY_STRING eq "css"){
 #-------------------------------------------------------------------------------
 # u?login		Redirect to index after a successful login
 # u/PAGE?login		Show PAGE after a successful login
-# u/PAGE/FILE?login	Download PAGE/FILE after a successful login
-# u/PAGE/DIR/...?login	Redirect to u/DIR/... after a successful login
 # u			Redirect to index
 # u/PAGE		Show PAGE
+# u/PAGE/		List files under PAGE
 # u/PAGE/FILE		Download PAGE/FILE
 # u/PAGE/DIR/...	Redirect to u/DIR/...
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$FILE") if $FILE =~ m#/#;
@@ -6407,6 +6406,9 @@ if($QUERY_STRING eq "css"){
 		die_message($msg_id, $PAGE);
 	}
 	$strip_query_string = 0 if $QUERY_STRING eq "";
+}elsif($QUERY_STRING eq "files"){
+# u/PAGE?files		List files under PAGE
+	die_path($PAGE);
 }elsif($QUERY_STRING ne "delete" && $FILE ne ""){
 #-------------------------------------------------------------------------------
 # u/PAGE/FILE?query	Redirect to u/PAGE?query
