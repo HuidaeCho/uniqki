@@ -775,7 +775,7 @@ sub start_html{
 
 sub convert_page_name{
 	my $page_name = shift;
-	my $forbidden_chars = q(`~!@#\$%^&*=+\\|;:'",\/?()\[\]{}<>);
+	my $forbidden_chars = q(`~!@#\$%^&*=+\\\\|;:'",\/?()\[\]{}<>);
 
 	# from parse_line
 	# escaped html codes
