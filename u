@@ -5575,13 +5575,13 @@ sub process_line_syntax{
 		if($i > $h_prev){
 			if($h_prev){
 				while($h_prev++ < $i){
-					$toc .= "<li><ul>" if $inc_toc;
+					$toc .= "<li><ul>";
 					$text .= "<section>\n" if $h_prev < $i;
 				}
 				$h_prev--;
 			}else{
 				while(++$h_prev < $i){
-					$toc .= "<li><ul>" if $inc_toc;
+					$toc .= "<li><ul>";
 					$text .= "<section>\n"
 						if $h_prev < $i-1;
 				}
@@ -5590,10 +5590,10 @@ sub process_line_syntax{
 			$toc .= "\n";
 		}elsif($i < $h_prev){
 			while(--$h_prev >= $i){
-				$toc .= "</ul></li>" if $inc_toc;
+				$toc .= "</ul></li>";
 				$text .= "</section>\n";
 			}
-			$toc .= "\n" if $inc_toc;
+			$toc .= "\n";
 			$text .= "</section>\n";
 			$h_prev++;
 			$h_top = $i if $i < $h_top;
