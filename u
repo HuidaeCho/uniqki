@@ -2511,9 +2511,41 @@ EOT_UNIQKI
 
 sub print_js{
 	process_tpl("u.js", shift, <<'EOT_UNIQKI');
+const reAbsoluteURL = /^(?:https?:\/\/|\/)/;
+let head = document.getElementsByTagName('head')[0];
+
+function getAbsoluteURL(url){
+	if(!url.match(reAbsoluteURL)){
+		if(window.location.pathname.match(/^.*\/u(?:\/.*)?$/))
+			url = window.location.pathname.replace(/^(.*\/)u(?:\/.*)?$/, '$1') + url;
+		else
+			url = window.location.pathname.replace(/^(.*\/).*$/, '$1') + url;
+	}
+	return url;
+}
+
+function loadJS(js, async, callback){
+	let script = document.createElement('script');
+	script.src = getAbsoluteURL(js);
+	if(async)
+		script.async = true;
+	if(callback)
+		script.onload = callback;
+	head.appendChild(script);
+}
+
+function loadCSS(css, media){
+	let link = document.createElement('link');
+	link.rel = 'stylesheet';
+	link.href = getAbsoluteURL(css);
+	if(media)
+		link.media = media;
+	head.appendChild(link);
+}
+
 /* http://developer.mozilla.org/en/docs/AJAX:Getting_Started */
 function ajaxRequest(url, data, func, mimeType){
-	var xhr = null;
+	let xhr = null;
 
 	/* Create an XMLHTTP instance */
 	if(window.XMLHttpRequest){ /* Mozilla, Safari, ... */
@@ -2549,10 +2581,7 @@ function ajaxRequest(url, data, func, mimeType){
 			func(xhr);
 	}
 
-	if(data == null)
-		var method = 'GET';
-	else
-		var method = 'POST';
+	let method = data == null ? 'GET' : 'POST';
 
 	/* xhr.open(method, url, asynchronous) */
 	xhr.open(method, url, true);
@@ -2564,7 +2593,7 @@ function ajaxRequest(url, data, func, mimeType){
 
 /* http://forum.java.sun.com/thread.jspa?threadID=696590&tstart=105 */
 function ajaxResponseXML(xhr){
-	var xml = null;
+	let xml = null;
 
 	if(xhr.responseXML)
 		xml = xhr.responseXML;
@@ -2575,8 +2604,8 @@ function ajaxResponseXML(xhr){
 
 		/* Huidae Cho <https://idea.isnew.info> */
 		xml.getElementByIdRecursively = function(childNodes, id){
-			var element = null;
-			for(var i = 0; i < childNodes.length; i++){
+			let element = null;
+			for(let i = 0; i < childNodes.length; i++){
 				if(id == childNodes[i].id)
 					element = childNodes[i];
 				else
@@ -2607,11 +2636,11 @@ function setElementsDisplayByClassName(className, display){
 }
 
 function processMenu(xhr){
-	var items = xhr.responseText.split(':');
-	var user = items[0];
-	var admin = items[1];
-	var hasReadAccess = items[2];
-	var hasWriteAccess = items[3];
+	let items = xhr.responseText.split(':');
+	let user = items[0];
+	let admin = items[1];
+	let hasReadAccess = items[2];
+	let hasWriteAccess = items[3];
 
 	removeElementsByClassName(user == '' ? 'user' : 'visitor');
 	if(admin == 0)
@@ -2645,26 +2674,26 @@ function windowOnLoad(func){
 }
 
 function listenToPasteImage(requestURL, version, typeFilename, charactersNotAllowedInFilename){
-	var filenameEl = document.getElementById('filename');
+	let filenameEl = document.getElementById('filename');
 	if(!filenameEl)
 		return;
 
-	var wiki = requestURL.indexOf('?wiki_') != -1;
+	let wiki = requestURL.indexOf('?wiki_') != -1;
 
 	if(wiki && version > 1)
 		document.getElementById('paste-image').style.display = 'block';
 
-	var imageUploadedEl = document.getElementById('image-uploaded');
-	var fileLinkExampleEl = document.getElementById('file-links-example');
+	let imageUploadedEl = document.getElementById('image-uploaded');
+	let fileLinkExampleEl = document.getElementById('file-links-example');
 	addEvent(filenameEl, 'paste', function(e){
 		if(!e.clipboardData || !e.clipboardData.items ||
 		   e.clipboardData.items.length != 1 ||
 		   e.clipboardData.items[0].type.indexOf('image/') == -1)
 			return;
 
-		var item = e.clipboardData.items[0];
-		var extension = item.type.substr(6);
-		var filename = filenameEl.value.
+		let item = e.clipboardData.items[0];
+		let extension = item.type.substr(6);
+		let filename = filenameEl.value.
 			replace(new RegExp('\\.' + extension + '$', 'i'), '');
 		if(!filename){
 			alert(typeFilename);
@@ -2678,12 +2707,12 @@ function listenToPasteImage(requestURL, version, typeFilename, charactersNotAllo
 		filename += '.' + extension;
 		filenameEl.value = filename;
 
-		var blob = e.clipboardData.items[0].getAsFile();
-		var formData = new FormData();
+		let blob = e.clipboardData.items[0].getAsFile();
+		let formData = new FormData();
 		formData.append('file', blob, filename);
 		ajaxRequest(requestURL, formData, function(xhr){
 			if(wiki){
-				var xml = ajaxResponseXML(xhr);
+				let xml = ajaxResponseXML(xhr);
 				imageUploadedEl.style.display = 'block';
 				fileLinkExampleEl.innerHTML = '{' + xml.getElementById('file-links-example').innerHTML + '}';
 			}else{
@@ -2695,14 +2724,14 @@ function listenToPasteImage(requestURL, version, typeFilename, charactersNotAllo
 }
 
 function processPreview(callback){
-	var textEl = document.getElementById('text');
-	var version = document.getElementById('version').value;
-	var text = textEl.value;
-	var preview = document.getElementById('preview').value;
-	var fileEl = document.getElementById('file');
+	let textEl = document.getElementById('text');
+	let version = document.getElementById('version').value;
+	let text = textEl.value;
+	let preview = document.getElementById('preview').value;
+	let fileEl = document.getElementById('file');
 
-	var requestURL = textEl.form.action;
-	var formData = new FormData();
+	let requestURL = textEl.form.action;
+	let formData = new FormData();
 	formData.append('version', version);
 	formData.append('text', text);
 	formData.append('preview', preview);
@@ -2712,18 +2741,18 @@ function processPreview(callback){
 
 	ajaxRequest(requestURL, formData, function(xhr){
 		fileEl.value = null;
-		var wiki = requestURL.indexOf('?wiki_') != -1;
-		var preview = (wiki ? 'wiki-' : '') + 'preview';
-		var previewMainId = preview + '-main';
-		var previewWarningEl = document.getElementById(preview + '-warning');
-		var previewMainEl = document.getElementById(previewMainId);
-		var xml = ajaxResponseXML(xhr);
+		let wiki = requestURL.indexOf('?wiki_') != -1;
+		let preview = (wiki ? 'wiki-' : '') + 'preview';
+		let previewMainId = preview + '-main';
+		let previewWarningEl = document.getElementById(preview + '-warning');
+		let previewMainEl = document.getElementById(previewMainId);
+		let xml = ajaxResponseXML(xhr);
 		previewWarningEl.style.display = 'block';
-		var first = previewMainEl.childNodes.length == 0;
+		let first = previewMainEl.childNodes.length == 0;
 		while(previewMainEl.firstChild)
 			previewMainEl.removeChild(previewMainEl.firstChild);
 		[...xml.getElementById(previewMainId).childNodes].forEach(function(node){
-			var childNode = node;
+			let childNode = node;
 			if(node.nodeName.toLowerCase() == 'script'){
 				if(!first)
 					return;
@@ -2740,22 +2769,22 @@ function processPreview(callback){
 }
 
 function saveEdit(){
-	var saveEditEl = document.getElementById('save-edit');
+	let saveEditEl = document.getElementById('save-edit');
 	saveEditEl.disabled = true;
-	var saveEdit = saveEditEl.value;
+	let saveEdit = saveEditEl.value;
 	saveEditEl.value = '...';
 
-	var textEl = document.getElementById('text');
-	var text = textEl.value;
-	var versionEl = document.getElementById('version');
-	var version = parseInt(versionEl.value);
-	var startEl = document.getElementById('start');
-	var countEl = document.getElementById('count');
-	var save = document.getElementById('save').value;
-	var fileEl = document.getElementById('file');
+	let textEl = document.getElementById('text');
+	let text = textEl.value;
+	let versionEl = document.getElementById('version');
+	let version = parseInt(versionEl.value);
+	let startEl = document.getElementById('start');
+	let countEl = document.getElementById('count');
+	let save = document.getElementById('save').value;
+	let fileEl = document.getElementById('file');
 
-	var requestURL = textEl.form.action;
-	var formData = new FormData();
+	let requestURL = textEl.form.action;
+	let formData = new FormData();
 	formData.append('version', version);
 	if(startEl)
 		formData.append('start', startEl.value);
@@ -2769,8 +2798,8 @@ function saveEdit(){
 
 	ajaxRequest(requestURL, formData, function(xhr){
 		fileEl.value = null;
-		var xml = ajaxResponseXML(xhr);
-		var updatedEl = xml.getElementById('updated');
+		let xml = ajaxResponseXML(xhr);
+		let updatedEl = xml.getElementById('updated');
 		if(!updatedEl){
 			saveEditEl.disabled = false;
 			saveEditEl.value = saveEdit;
@@ -2780,10 +2809,10 @@ function saveEdit(){
 			}
 		}else{
 			saveEditEl.value = '!!!';
-			var editEl = textEl.form.parentNode;
-			var lastNode = textEl.form;
+			let editEl = textEl.form.parentNode;
+			let lastNode = textEl.form;
 			[...updatedEl.childNodes].reverse().forEach(function(node){
-				var nodeName = node.nodeName.toLowerCase();
+				let nodeName = node.nodeName.toLowerCase();
 				if(nodeName != 'h1' && nodeName != 'br' && nodeName != 'textarea'){
 					editEl.insertBefore(node, lastNode);
 					lastNode = node;
@@ -2793,19 +2822,19 @@ function saveEdit(){
 	});
 }
 
-var saveEditedText;
+let saveEditedText;
 
-var uQuery = window.location.search.match(/^\?u-(([^=]+).*)$/);
+let uQuery = window.location.search.match(/^\?u-(([^=]+).*)$/);
 if(uQuery && uQuery[2].indexOf('delete') == -1)
 	window.location.href = window.location.origin + '/u' + window.location.pathname + '?' + uQuery[1];
 else if(window.location.search.match(/^\?(wiki_)?edit(_lines)?(=|$)/)){
-	var livePreview;
+	let livePreview;
 	windowOnLoad(function(){
-		var textEl = document.getElementById('text');
+		let textEl = document.getElementById('text');
 		saveEditedText = textEl.value;
-		var livePreviewEl = document.getElementById('live-preview');
-		var keyupHandler;
-		var callback;
+		let livePreviewEl = document.getElementById('live-preview');
+		let keyupHandler;
+		let callback;
 		function onTextKeyup(){
 			if(keyupHandler)
 				clearTimeout(keyupHandler);
