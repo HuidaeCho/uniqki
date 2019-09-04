@@ -1376,6 +1376,7 @@ manage_pages => q(Manage pages),
 backup => q(Backup),
 restore => q(Restore),
 
+all_users => q(All users),
 manage_users => q(Manage users),
 add_user => q(Add user),
 update_user => q(Update user),
@@ -3343,6 +3344,31 @@ sub set_cookie{
 sub clear_cookie{
 	print "Set-Cookie: uniqki=; expires=Tue, 01-Jan-1980 00:00:00 GMT; ".
 		"$cookie_attributes\n";
+}
+
+sub print_list_users{
+	my $TITLE = get_msg("all_users");
+
+	print qq(<div id="list">\n);
+	print qq(<h1>$TITLE</h1>\n);
+
+	return unless -f $PASSWORD_FILE;
+
+	print qq(<ul>\n);
+	local *FH;
+	open FH, $PASSWORD_FILE;
+	while(<FH>){
+		my @items = split /:/;
+		my $user = $items[0];
+		my $pw = $items[1];
+		my $group = $items[2];
+		my $email = $items[3];
+		my $name = $items[4];
+		my $token = $items[5];
+		print qq(<li>$user ($name), $group, $email</li>\n);
+	}
+	close FH;
+	print qq(</ul>\n</div>\n);
 }
 
 sub find_user_info{
@@ -7039,6 +7065,14 @@ EOT
 		print qq(<li><a href="$PAGE.html">$PAGE</a></li>\n);
 	}
 	print qq(</ul>\n</div>\n);
+	print_footer();
+	die;
+}elsif($QUERY_STRING eq "list_users"){
+#-------------------------------------------------------------------------------
+# u?list_users		List users
+# u/PAGE?list_users	List users
+	print_header();
+	print_list_users();
 	print_footer();
 	die;
 }elsif($QUERY_STRING eq "manage_users"){
