@@ -6129,15 +6129,13 @@ if($QUERY_STRING eq "css"){
 	}
 
 	my %var = get_var();
-	if($var{user} eq "" && $var{email} eq ""){
-		die_message("enter_username_or_email_address");
-	}
+	die_message("enter_username_or_email_address")
+		if $var{user} eq "" && $var{email} eq "";
 	my ($user, $pw, $group, $email, $name, $token);
 	$user = "";
 	if($var{email} ne ""){
-		if(!is_email_address($var{email})){
-			die_message("check_email_address");
-		}
+		die_message("check_email_address")
+			unless is_email_address($var{email});
 		my %user_info = find_user_info_by_email_address($var{email});
 		$user = $user_info{user};
 		$pw = $user_info{pw};
@@ -6145,12 +6143,10 @@ if($QUERY_STRING eq "css"){
 		$email = $user_info{email};
 		$name = $user_info{name};
 		$token = $user_info{token};
-		unless(defined $user){
-			die_message("email_address_not_found", $var{email});
-		}
-		if($var{user} ne "" && $var{user} ne $user){
-			die_message("user_info_mismatch");
-		}
+		die_message("email_address_not_found", $var{email})
+			unless defined $user;
+		die_message("user_info_mismatch")
+			if $var{user} ne "" && $var{user} ne $user;
 	}
 	if($user eq ""){
 		my %user_info = find_user_info($var{user});
@@ -6160,9 +6156,7 @@ if($QUERY_STRING eq "css"){
 		$email = $user_info{email};
 		$name = $user_info{name};
 		$token = $user_info{token};
-		unless(defined $user){
-			die_message("user_not_found", $var{user});
-		}
+		die_message("user_not_found", $var{user}) unless defined $user;
 	}
 
 	die_message("user_blocked", $user) if $pw eq "blocked";
@@ -6200,9 +6194,8 @@ if($QUERY_STRING eq "css"){
 	my $subject = get_msg("reset_password_email_subject", $DOC_BASE);
 	my $text = get_msg("reset_password_email_text", $var{user}, $DOC_BASE,
 		$link, $RESET_PASSWORD_TIMEOUT);
-	if(!send_email($email, $subject, $text)){
-		die_message("email_notification_failed", $user, $email);
-	}
+	die_message("email_notification_failed", $user, $email)
+		unless send_email($email, $subject, $text);
 
 	write_file($PASSWORD_FILE, $new_pw);
 	unlock_file($PASSWORD_FILE);
@@ -6223,12 +6216,8 @@ if($QUERY_STRING eq "css"){
 	my $name = $user_info{name};
 	die_message("password_reset_token_not_found") unless defined $user;
 
-	if($var{pw} ne $var{pw2}){
-		die_message("confirm_password");
-	}
-	unless(is_password($var{pw})){
-		die_message("check_password");
-	}
+	die_message("confirm_password") if $var{pw} ne $var{pw2};
+	die_message("check_password") unless is_password($var{pw});
 
 	my $new_pw = "";
 	my $reset = 0;
@@ -6283,15 +6272,11 @@ if($QUERY_STRING eq "css"){
 # u?update_myself	Update myself
 # u/PAGE?update_myself	Update myself
 	my %var = get_var();
-	if($var{pw} ne $var{pw2}){
-		die_message("confirm_password");
-	}
-	if($var{pw} ne "" && !is_password($var{pw})){
-		die_message("check_password");
-	}
-	if($var{pw} eq "" && $var{email} eq "" && $var{name} eq ""){
-		die_message("enter_user_info_to_update");
-	}
+	die_message("confirm_password") if $var{pw} ne $var{pw2};
+	die_message("check_password")
+		if $var{pw} ne "" && !is_password($var{pw});
+	die_message("enter_user_info_to_update")
+		if $var{pw} eq "" && $var{email} eq "" && $var{name} eq "";
 
 	my $new_pw = "";
 	my $updated = 0;
@@ -6317,7 +6302,8 @@ if($QUERY_STRING eq "css"){
 				my $userline = "$USER:$pw:$group:$email:$name:$token";
 				if($userline eq $_){
 					close FH;
-					die_message("enter_user_info_to_update", $USER);
+					die_message("enter_user_info_to_update",
+						$USER);
 				}
 				$_ = $userline;
 			}
@@ -6326,12 +6312,9 @@ if($QUERY_STRING eq "css"){
 		close FH;
 	}else{
 		my @items = split /:/, $adminpw;
-		if($USER ne $items[0]){
-			# Something's wrong because you're the only user, but
-			# the user line in this script is not you! How did you
-			# login?
-			die_message("internal_errors");
-		}
+		# Something's wrong because you're the only user, but the user
+		# line in this script is not you! How did you login?
+		die_message("internal_errors") if $USER ne $items[0];
 
 		$updated = 1;
 		my $pw = $var{pw} ne "" ? hash_password($USER, $var{pw}) :
@@ -6342,9 +6325,8 @@ if($QUERY_STRING eq "css"){
 		my $token = $items[5];
 		# new line from $items[5]
 		my $userline = "$USER:$pw:$group:$email:$name:$token";
-		if($userline eq $adminpw){
-			die_message("enter_user_info_to_update", $USER);
-		}
+		die_message("enter_user_info_to_update", $USER)
+			if $userline eq $adminpw;
 		$new_pw = "$userline\n";
 	}
 	# How did you login when your username is not found?
@@ -6440,9 +6422,8 @@ if($QUERY_STRING eq "css"){
 	my $current_version = get_version($PAGE);
 	my $version = $1 > 0 ? $1 : $current_version + ($1 < 0 ? $1 : -1);
 
-	if($version >= $current_version || $version <= 0){
-		die_message("current_version", $PAGE, $current_version)
-	}
+	die_message("current_version", $PAGE, $current_version)
+		if $version >= $current_version || $version <= 0;
 
 	my $title = get_msg("differences", $PAGE, $version, $current_version);
 	(local $TITLE = $title) =~ s/<[^>]*>//g;
@@ -6759,9 +6740,8 @@ EOT
 
 			if($1 eq "" && page_exists()){
 				$TEXT = read_file("$PAGE.txt");
-				if("#!wiki\n" ne substr $TEXT, 0, 7){
-					die_message("internal_errors");
-				}
+				die_message("internal_errors")
+					if "#!wiki\n" ne substr $TEXT, 0, 7;
 
 				$TEXT = substr $TEXT, 7;
 				$TEXT =~ s/&/&amp;/g;
@@ -6773,14 +6753,11 @@ EOT
 				my $version = $1 > 0 ? $1 : $VERSION + $1;
 
 				$TEXT = read_file("$PAGE.txt");
-				if("#!wiki\n" ne substr $TEXT, 0, 7){
-					die_message("internal_errors");
-				}
+				die_message("internal_errors")
+					if "#!wiki\n" ne substr $TEXT, 0, 7;
 
-				if($version >= $VERSION || $version <= 0){
-					die_message("current_version", $PAGE,
-						$version);
-				}
+				die_message("current_version", $PAGE, $version)
+					if $version >= $VERSION || $version <= 0;
 
 				open FH, "$PAGE.txt.v"; local $/ = "\x00\n";
 				while(<FH>){
@@ -6789,10 +6766,9 @@ EOT
 					last if $version == $1 - 1;
 				}
 				close FH;
-				if("#!wiki\n" ne substr $TEXT, 0, 7){
-					# Previous version was not a wiki page
-					die_message("not_wiki_page", $PAGE);
-				}
+				# Previous version was not a wiki page
+				die_message("not_wiki_page", $PAGE)
+					if "#!wiki\n" ne substr $TEXT, 0, 7;
 
 				$TEXT = substr $TEXT, 7;
 				$TEXT =~ s/&/&amp;/g;
@@ -6806,7 +6782,8 @@ EOT
 			die;
 		}else{
 			my %var = get_var();
-			die_rebuild($PAGE) unless verify_input($QUERY_STRING, \%var);
+			die_rebuild($PAGE)
+				unless verify_input($QUERY_STRING, \%var);
 
 			local *FH;
 			my $t = time;
@@ -6883,7 +6860,8 @@ EOT
 			die;
 		}else{
 			my %var = get_var();
-			die_rebuild($PAGE) unless verify_input($QUERY_STRING, \%var);
+			die_rebuild($PAGE)
+				unless verify_input($QUERY_STRING, \%var);
 
 			local *FH;
 			my $t = time;
@@ -6956,7 +6934,8 @@ EOT
 		mkdir $PAGE, 0755 if !-d $PAGE;
 		write_file("$PAGE/$t.$var{file}", $var{"file="}, 1);
 		chmod 0755, "$PAGE/$t.$var{file}" if $hosting eq "awardspace";
-		die_message("wiki_files_uploaded", "{{$t.$var{file}|$var{file}}}");
+		die_message("wiki_files_uploaded",
+			"{{$t.$var{file}|$var{file}}}");
 	}
 }elsif(!$admin){
 ################################################################################
@@ -7003,7 +6982,7 @@ EOT
 #-------------------------------------------------------------------------------
 # u?restore		Restore
 # u/PAGE?restore	Restore
-	eval "use Archive::Zip;1";
+	eval "use Archive::Zip;1" or
 		die_message("perl_module_not_installed", "Archive::Zip");
 
 	my $boundary = <STDIN>;
@@ -7073,33 +7052,16 @@ EOT
 # u?add_user		Add user
 # u/PAGE?add_user	Add user
 	my %var = get_var();
-	if($var{user} eq ""){
-		die_message("enter_username");
-	}
-	if(!is_username($var{user})){
-		die_message("check_username");
-	}
-	if($var{user} eq $USER){
-		die_message("cannot_add_yourself");
-	}
-	if($var{email} eq ""){
-		die_message("enter_email_address");
-	}
-	if(!is_email_address($var{email})){
-		die_message("check_email_address");
-	}
-	if($var{name} eq ""){
-		die_message("enter_full_name");
-	}
-	if(!is_full_name($var{name})){
-		die_message("check_full_name");
-	}
-	if($var{pw} ne $var{pw2}){
-		die_message("confirm_password");
-	}
-	if($var{pw} ne "" && !is_password($var{pw})){
-		die_message("check_password");
-	}
+	die_message("enter_username") if $var{user} eq "";
+	die_message("check_username") unless is_username($var{user});
+	die_message("cannot_add_yourself") if $var{user} eq $USER;
+	die_message("enter_email_address") if $var{email} eq "";
+	die_message("check_email_address") unless is_email_address($var{email});
+	die_message("enter_full_name") if $var{name} eq "";
+	die_message("check_full_name") unless is_full_name($var{name});
+	die_message("confirm_password") if $var{pw} ne $var{pw2};
+	die_message("check_password")
+		if $var{pw} ne "" && !is_password($var{pw});
 
 	(my $escaped_email = $var{email}) =~ s/\./\\./g;
 	my $new_pw = "";
@@ -7139,10 +7101,9 @@ EOT
 		my $subject = get_msg("new_user_email_subject", $DOC_BASE);
 		my $text = get_msg("new_user_email_text", $var{user}, $DOC_BASE,
 			$link, $SET_PASSWORD_TIMEOUT);
-		if(!send_email($var{email}, $subject, $text)){
-			die_message("email_notification_failed", $var{user},
-				$var{email});
-		}
+		die_message("email_notification_failed", $var{user},
+			$var{email})
+			unless send_email($var{email}, $subject, $text);
 	}else{
 		$pw = hash_password($var{user}, $var{pw});
 		$token = "";
@@ -7158,25 +7119,16 @@ EOT
 # u?update_user		Update user
 # u/PAGE?update_user	Update user
 	my %var = get_var();
-	if($var{user} eq ""){
-		die_message("enter_username");
-	}
-	if(!is_username($var{user})){
-		die_message("check_username");
-	}
-	if($var{name} ne "" && !is_full_name($var{name})){
-		die_message("check_full_name");
-	}
-	if($var{pw} ne $var{pw2}){
-		die_message("confirm_password");
-	}
-	if($var{pw} ne "" && !is_password($var{pw})){
-		die_message("check_password");
-	}
-	if($var{pw} eq "" && $var{email} eq "" &&
-	   $var{admin} ne "yes" && $var{admin} ne "no"){
-		die_message("enter_user_info_to_update");
-	}
+	die_message("enter_username") if $var{user} eq "";
+	die_message("check_username") unless is_username($var{user});
+	die_message("check_full_name")
+		if $var{name} ne "" && !is_full_name($var{name});
+	die_message("confirm_password") if $var{pw} ne $var{pw2};
+	die_message("check_password")
+		if $var{pw} ne "" && !is_password($var{pw});
+	die_message("enter_user_info_to_update")
+		if $var{pw} eq "" && $var{email} eq "" &&
+		   $var{admin} ne "yes" && $var{admin} ne "no";
 
 	my $new_pw = "";
 	my $updated = 0;
@@ -7204,7 +7156,8 @@ EOT
 				my $userline = "$var{user}:$pw:$group:$email:$name:$token";
 				if($userline eq $_){
 					close FH;
-					die_message("enter_user_info_to_update", $var{user});
+					die_message("enter_user_info_to_update",
+						$var{user});
 				}
 				$_ = $userline;
 			}
@@ -7213,12 +7166,9 @@ EOT
 		close FH;
 	}else{
 		my @items = split /:/, $adminpw;
-		if($var{user} ne $items[0]){
-			# Something's wrong because you're the only user, but
-			# the user line in this script is not you! How did you
-			# login?
-			die_message("internal_errors");
-		}
+		# Something's wrong because you're the only user, but the user
+		# line in this script is not you! How did you login?
+		die_message("internal_errors") if $var{user} ne $items[0];
 
 		$updated = 1;
 		my $pw = $var{pw} ne "" ? hash_password($var{user}, $var{pw}) :
@@ -7230,9 +7180,8 @@ EOT
 		my $token = $items[5];
 		# new line from $items[5]
 		my $userline = "$var{user}:$pw:$group:$email:$name:$token";
-		if($userline eq $adminpw){
-			die_message("enter_user_info_to_update", $var{user});
-		}
+		die_message("enter_user_info_to_update", $var{user})
+			if $userline eq $adminpw;
 		$new_pw = "$userline\n";
 	}
 	die_message("user_not_found", $var{user}) unless $updated;
@@ -7246,15 +7195,9 @@ EOT
 # u?block_user		Block user
 # u/PAGE?block_user	Block user
 	my %var = get_var();
-	if($var{user} eq ""){
-		die_message("enter_username");
-	}
-	if(!is_username($var{user})){
-		die_message("check_username");
-	}
-	if($var{user} eq $USER){
-		die_message("cannot_block_yourself");
-	}
+	die_message("enter_username") if $var{user} eq "";
+	die_message("check_username") unless is_username($var{user});
+	die_message("cannot_block_yourself") if $var{user} eq $USER;
 
 	my $new_pw = "";
 	my $blocked = 0;
@@ -7290,22 +7233,13 @@ EOT
 # u?unblock_user	Unblock user
 # u/PAGE?unblock_user	Unblock user
 	my %var = get_var();
-	if($var{user} eq ""){
-		die_message("enter_username");
-	}
-	if(!is_username($var{user})){
-		die_message("check_username");
-	}
-	if($var{user} eq $USER){
-		die_message("cannot_unblock_yourself");
-	}
+	die_message("enter_username") if $var{user} eq "";
+	die_message("check_username") unless is_username($var{user});
+	die_message("cannot_unblock_yourself") if $var{user} eq $USER;
 
-	if($var{pw} ne $var{pw2}){
-		die_message("confirm_password");
-	}
-	if($var{pw} ne "" && !is_password($var{pw})){
-		die_message("check_password");
-	}
+	die_message("confirm_password") if $var{pw} ne $var{pw2};
+	die_message("check_password")
+		if $var{pw} ne "" && !is_password($var{pw});
 
 	my $new_pw = "";
 	my $unblocked = 0;
@@ -7347,10 +7281,9 @@ EOT
 			$DOC_BASE);
 		my $text = get_msg("unblocked_user_email_text", $var{user},
 			$DOC_BASE, $link, $SET_PASSWORD_TIMEOUT);
-		if(!send_email($var{email}, $subject, $text)){
-			die_message("email_notification_failed", $var{user},
-				$var{email});
-		}
+		die_message("email_notification_failed", $var{user},
+			$var{email})
+			unless send_email($var{email}, $subject, $text);
 	}
 
 	write_file($PASSWORD_FILE, $new_pw);
@@ -7362,15 +7295,9 @@ EOT
 # u?delete_user		Delete user
 # u/PAGE?delete_user	Delete user
 	my %var = get_var();
-	if($var{user} eq ""){
-		die_message("enter_username");
-	}
-	if(!is_username($var{user})){
-		die_message("check_username");
-	}
-	if($var{user} eq $USER){
-		die_message("cannot_delete_yourself");
-	}
+	die_message("enter_username") if $var{user} eq "";
+	die_message("check_username") unless is_username($var{user});
+	die_message("cannot_delete_yourself") if $var{user} eq $USER;
 
 	my $new_pw = "";
 	my $deleted = 0;
