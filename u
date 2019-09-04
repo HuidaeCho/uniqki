@@ -3642,10 +3642,9 @@ sub authenticate_user{
 	clear_user_sessions($user) if $logout_others eq "1";
 	start_session($user);
 
-	if($insecure_pw){
-		# Force to change the password
-		die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_myself");
-	}
+	# Force to change the password
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_myself")
+		if $insecure_pw;
 
 	clear_password_reset_token($token);
 
@@ -6963,22 +6962,20 @@ EOT
 		die_message("wiki_files_uploaded",
 			"{{$t.$var{file}|$var{file}}}");
 	}
-}elsif(!$admin){
 ################################################################################
 # Admin actions
-	die_message("admin_actions_not_allowed");
-}elsif($insecure_pw){
+}elsif($admin && $insecure_pw){
 #-------------------------------------------------------------------------------
 # Admin password is still temporary. No admin actions are allowed other than
 # changing the password.
 	die_message("change_admin_password");
-}elsif($QUERY_STRING eq "manage_pages"){
+}elsif($admin && $QUERY_STRING eq "manage_pages"){
 #-------------------------------------------------------------------------------
 # u?manage_pages	Manage pages
 # u/PAGE?manage_pages	Manage pages
 	print_manage_pages();
 	die;
-}elsif($QUERY_STRING eq "backup"){
+}elsif($admin && $QUERY_STRING eq "backup"){
 #-------------------------------------------------------------------------------
 # u?backup		Backup all pages
 # u/PAGE?backup		Backup PAGE
@@ -7004,7 +7001,7 @@ Content-Disposition: attachment; filename="$file"
 EOT
 	$zip->writeToFileHandle(*STDOUT);
 	die;
-}elsif($QUERY_STRING eq "restore"){
+}elsif($admin && $QUERY_STRING eq "restore"){
 #-------------------------------------------------------------------------------
 # u?restore		Restore
 # u/PAGE?restore	Restore
@@ -7042,7 +7039,7 @@ EOT
 	}
 
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_pages");
-}elsif($QUERY_STRING =~ /^refresh(?:&.+)?$/){
+}elsif($admin && $QUERY_STRING =~ /^refresh(?:&.+)?$/){
 #-------------------------------------------------------------------------------
 # u?refresh		Refresh all pages
 # u?refresh&glob=GLOB	Refresh GLOB pages
@@ -7067,7 +7064,7 @@ EOT
 	print qq(</ul>\n</div>\n);
 	print_footer();
 	die;
-}elsif($QUERY_STRING eq "list_users"){
+}elsif($admin && $QUERY_STRING eq "list_users"){
 #-------------------------------------------------------------------------------
 # u?list_users		List users
 # u/PAGE?list_users	List users
@@ -7075,13 +7072,13 @@ EOT
 	print_list_users();
 	print_footer();
 	die;
-}elsif($QUERY_STRING eq "manage_users"){
+}elsif($admin && $QUERY_STRING eq "manage_users"){
 #-------------------------------------------------------------------------------
 # u?manage_users	Manage users
 # u/PAGE?manage_users	Manage users
 	print_manage_users();
 	die;
-}elsif($QUERY_STRING eq "add_user" && $REQUEST_METHOD eq "POST"){
+}elsif($admin && $QUERY_STRING eq "add_user" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
 # u?add_user		Add user
 # u/PAGE?add_user	Add user
@@ -7148,7 +7145,7 @@ EOT
 	unlock_file($PASSWORD_FILE);
 
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
-}elsif($QUERY_STRING eq "update_user" && $REQUEST_METHOD eq "POST"){
+}elsif($admin && $QUERY_STRING eq "update_user" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
 # u?update_user		Update user
 # u/PAGE?update_user	Update user
@@ -7224,7 +7221,7 @@ EOT
 	unlock_file($PASSWORD_FILE);
 
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
-}elsif($QUERY_STRING eq "block_user" && $REQUEST_METHOD eq "POST"){
+}elsif($admin && $QUERY_STRING eq "block_user" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
 # u?block_user		Block user
 # u/PAGE?block_user	Block user
@@ -7262,7 +7259,7 @@ EOT
 	unlock_file($PASSWORD_FILE);
 
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
-}elsif($QUERY_STRING eq "unblock_user" && $REQUEST_METHOD eq "POST"){
+}elsif($admin && $QUERY_STRING eq "unblock_user" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
 # u?unblock_user	Unblock user
 # u/PAGE?unblock_user	Unblock user
@@ -7324,7 +7321,7 @@ EOT
 	unlock_file($PASSWORD_FILE);
 
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
-}elsif($QUERY_STRING eq "delete_user" && $REQUEST_METHOD eq "POST"){
+}elsif($admin && $QUERY_STRING eq "delete_user" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
 # u?delete_user		Delete user
 # u/PAGE?delete_user	Delete user
@@ -7356,25 +7353,25 @@ EOT
 	unlock_file($PASSWORD_FILE);
 
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_users");
-}elsif($QUERY_STRING eq "install_password"){
+}elsif($admin && $QUERY_STRING eq "install_password"){
 #-------------------------------------------------------------------------------
 # u?install_password		Install the password file, but don't overwrite
 # u/PAGE?install_password	Install the password file, but don't overwrite
 	write_pw();
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
-}elsif($QUERY_STRING eq "install_config"){
+}elsif($admin && $QUERY_STRING eq "install_config"){
 #-------------------------------------------------------------------------------
 # u?install_config	Install the config file, but don't overwrite
 # u/PAGE?install_config	Install the config file, but don't overwrite
 	process_cfg(1);
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
-}elsif($QUERY_STRING eq "install_messages"){
+}elsif($admin && $QUERY_STRING eq "install_messages"){
 #-------------------------------------------------------------------------------
 # u?install_messages		Install the messages file, but don't overwrite
 # u/PAGE?install_messages	Install the messages file, but don't overwrite
 	process_msg(1);
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
-}elsif($QUERY_STRING eq "install_template"){
+}elsif($admin && $QUERY_STRING eq "install_template"){
 #-------------------------------------------------------------------------------
 # u?install_template		Install the template files, but don't overwrite
 # u/PAGE?install_template	Install the template files, but don't overwrite
@@ -7400,11 +7397,11 @@ EOT
 		print_js(1);
 	}
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE");
-}elsif($PAGE eq ""){
+}elsif($admin && $PAGE eq ""){
 #-------------------------------------------------------------------------------
 # u?ACTION		Redirect to index
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE");
-}elsif($QUERY_STRING eq "upload"){
+}elsif($admin && $QUERY_STRING eq "upload"){
 #-------------------------------------------------------------------------------
 # u/PAGE?upload		Upload PAGE/FILE
 	my %var = get_var();
@@ -7416,7 +7413,7 @@ EOT
 		chmod 0755, "$PAGE/$var{file}" if $hosting eq "awardspace";
 		$rebuild = 1;
 	}
-}elsif($QUERY_STRING eq "delete" && $FILE ne ""){
+}elsif($admin && $QUERY_STRING eq "delete" && $FILE ne ""){
 #-------------------------------------------------------------------------------
 # u/PAGE/FILE?delete	Delete PAGE/FILE
 	my $dir = "";
@@ -7433,7 +7430,7 @@ EOT
 		rmdir $dir;
 	}
 	$rebuild = 1;
-}elsif($QUERY_STRING =~ /^edit(?:=(-?[0-9]+))?$/){
+}elsif($admin && $QUERY_STRING =~ /^edit(?:=(-?[0-9]+))?$/){
 #-------------------------------------------------------------------------------
 # u/PAGE?edit		Create/edit PAGE
 # u/PAGE?edit=([0-9]+)	Edit the version \1 of PAGE
@@ -7495,7 +7492,7 @@ EOT
 	lock_file("$PAGE.txt");
 	save($PAGE, "$TEXT\n");
 	unlock_file("$PAGE.txt");
-}elsif($QUERY_STRING =~ /^edit_lines(?:=([0-9]+)(?:,([0-9]+))?)?$/){
+}elsif($admin && $QUERY_STRING =~ /^edit_lines(?:=([0-9]+)(?:,([0-9]+))?)?$/){
 #-------------------------------------------------------------------------------
 # u/PAGE?edit_lines			Save new PAGE lines
 # u/PAGE?edit_lines=([0-9]+),([0-9]+)	Edit PAGE \2 lines from \1
@@ -7553,7 +7550,7 @@ EOT
 	lock_file("$PAGE.txt");
 	save_lines($PAGE, $START, $COUNT, "$TEXT\n");
 	unlock_file("$PAGE.txt");
-}elsif($QUERY_STRING =~ /^revert(?:=(-?[0-9]+))?$/){
+}elsif($admin && $QUERY_STRING =~ /^revert(?:=(-?[0-9]+))?$/){
 #-------------------------------------------------------------------------------
 # u/PAGE?revert			Go back to the previous version of PAGE
 # u/PAGE?revert=([0-9]+)	Go back to the \1 version of PAGE
@@ -7593,7 +7590,7 @@ EOT
 		}
 	}
 	unlock_file("$PAGE.txt");
-}elsif($QUERY_STRING =~ /^rename(?:[&=].+)?$/){
+}elsif($admin && $QUERY_STRING =~ /^rename(?:[&=].+)?$/){
 #-------------------------------------------------------------------------------
 # u?rename		Create the rename form
 # u?rename=PAGE		Rename to PAGE
@@ -7633,7 +7630,7 @@ EOT
 	rename $PAGE, $page if -d $PAGE;
 
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/".encode_url_safe($page));
-}elsif($QUERY_STRING eq "delete"){
+}elsif($admin && $QUERY_STRING eq "delete"){
 #-------------------------------------------------------------------------------
 # u/PAGE?delete		Delete PAGE
 	unlink "$PAGE.txt", "$PAGE.txt.v", "$PAGE.html";
