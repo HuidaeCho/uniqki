@@ -5662,44 +5662,46 @@ sub process_line_syntax{
 			$text .= "</section>\n";
 		}
 
+		(my $title = $_) =~ s/<[^>]*>//g;
+		my $id = $title;
+		$id =~ s/&amp;/&/g;
+		$id =~ s/&lt;/</g;
+		$id =~ s/&gt;/>/g;
+		$id = convert_page_name($id);
+		my $sec = "";
+
+		my $i = $h_n{$id}++;
+		if($i > 0){
+			$id .= $i + 1;
+			$h_n{$id}++;
+		}
+
+		$secs_no{$h}++;
+		for($i = $h + 1; $i <= 6; $i++){
+			$secs_no{$i} = 0;
+		}
+
+		my $found = 0;
+		for($i = 2; $i <= $h; $i++){
+			if($secs_no{$i}){
+				$found = 1;
+			}elsif(!$found){
+				next;
+			}
+			$sec .= $SECTION_NUMBER_SEPARATOR if $sec ne "";
+			$sec .= $secs_no{$i};
+		}
+		$h_secs{$id} = $sec;
 		if($num_sec){
-			(my $title = $_) =~ s/<[^>]*>//g;
-			my $id = $title;
-			$id =~ s/&amp;/&/g;
-			$id =~ s/&lt;/</g;
-			$id =~ s/&gt;/>/g;
-			$id = convert_page_name($id);
-			my $sec = "";
-
-			my $i = $h_n{$id}++;
-			if($i > 0){
-				$id .= $i + 1;
-				$h_n{$id}++;
-			}
-
-			$secs_no{$h}++;
-			for($i = $h + 1; $i <= 6; $i++){
-				$secs_no{$i} = 0;
-			}
-
-			my $found = 0;
-			for($i = 2; $i <= $h; $i++){
-				if($secs_no{$i}){
-					$found = 1;
-				}elsif(!$found){
-					next;
-				}
-				$sec .= $SECTION_NUMBER_SEPARATOR if $sec ne "";
-				$sec .= $secs_no{$i};
-			}
-			$h_secs{$id} = $sec;
 			$sec = qq(<span class="section-number">$SECTION_NUMBER_PREFIX$sec$SECTION_NUMBER_SUFFIX</span>);
 			my $enc_id = encode_url_safe($id);
-			$toc .= "<li><a href=\"#$enc_id\">$sec$title</a></li>\n" if $h <= $toc_dep;
-			$text .= qq(<section id="$id">\n<h$h>$sec$_</h$h>\n);
+			$toc .= "<li><a href=\"#$enc_id\">$sec$title</a></li>\n"
+				if $h <= $toc_dep;
 		}else{
-			$text .= qq(<section>\n<h$h>$_</h$h>\n);
+			$sec = "";
 		}
+		$text .= qq(<section id="$id">\n<h$h>$sec$_</h$h>\n);
+
 		return;
 	}
 
