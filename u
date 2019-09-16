@@ -5147,6 +5147,7 @@ sub close_paragraph{
 
 sub close_all_sections{
 	$text .= "</section>\n" while --$h_prev > 0;
+	$h_prev = 0;
 }
 
 sub process_child_block{
