@@ -831,7 +831,7 @@ sub unescape_comment{
 sub escape_comment{
 	my $text = shift;
 	$text =~ s/^([#%])/\x00$1/mg;
-	$text =~ s/``(.*?)``(?!`)/`\x00`$1`\x00`/g;
+	$text =~ s/``(.*?)``/`\x00`$1`\x00`/g;
 	$text =~ s/^(---+)$/\x00$1/mg;
 	$text =~ s/^\x00(---+)\n(.*?)\n\x00\1$/$1\n@{[unescape_comment($2)]}\n$1/smg;
 	$text =~ s/\x00/''''/g;
@@ -4733,7 +4733,7 @@ sub create_blockquote{
 	}
 
 	# Inline perl code
-	$blockquote =~ s/``(.*?)``(?!`)/$1/eeg;
+	$blockquote =~ s/``(.*?)``/$1/eeg;
 	# Discard none characters
 	$blockquote =~ y/\x00//d;
 
@@ -4889,7 +4889,7 @@ sub create_list{
 	}
 
 	# Inline perl code
-	$list =~ s/``(.*?)``(?!`)/$1/eeg;
+	$list =~ s/``(.*?)``/$1/eeg;
 	# Discard none characters
 	$list =~ y/\x00//d;
 
@@ -4972,7 +4972,7 @@ sub create_table{
 	$table .= "</table>\n";
 
 	# Inline perl code
-	$table =~ s/``(.*?)``(?!`)/$1/eeg;
+	$table =~ s/``(.*?)``/$1/eeg;
 	# Discard none characters
 	$table =~ y/\x00//d;
 
@@ -5131,7 +5131,7 @@ sub create_figure{
 	$figure .= "</figure>\n";
 
 	# Inline perl code
-	$figure =~ s/``(.*?)``(?!`)/$1/eeg;
+	$figure =~ s/``(.*?)``/$1/eeg;
 	# Discard none characters
 	$figure =~ y/\x00//d;
 
@@ -5202,7 +5202,7 @@ sub preprocess_line{
 		# Skip admin code
 		return if "##" eq substr $_, 0, 2;
 		# Escape inline perl code
-		s/``(.*?)``(?!`)/`\x00`$1`\x00`/g;
+		s/``(.*?)``/`\x00`$1`\x00`/g;
 	}
 	# Process code block
 	if($code_block ne ""){
@@ -5614,7 +5614,7 @@ sub process_line_syntax{
 		my $num_sec = "!" ne substr $_, $h, 1 ? 1 : 0;
 		$_ = $2;
 		# Inline perl code
-		s/``(.*?)``(?!`)/$1/eeg;
+		s/``(.*?)``/$1/eeg;
 		s/^[ \t]+|[ \t]+$//g;
 		# Discard none characters
 		y/\x00//d;
@@ -5731,7 +5731,7 @@ sub postprocess_line{
 	# Handle <p> tags around syntax blocks
 	s#(\x06)#</p>$1<p>#g;
 	# Inline perl code
-	s/``(.*?)``(?!`)/$1/eeg;
+	s/``(.*?)``/$1/eeg;
 	# Discard none characters
 	y/\x00//d;
 
