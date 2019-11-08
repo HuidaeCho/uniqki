@@ -2255,7 +2255,6 @@ table th {
 table td {
 	border:			1px solid #999999;
 	padding:		3px;
-	word-break:		break-all;
 }
 figure {
 }
