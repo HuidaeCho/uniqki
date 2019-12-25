@@ -5159,13 +5159,13 @@ sub process_fresh_block{
 	# return the current line for further processing
 	local $_ = shift;
 
-	# Child block
+	# Fresh block
 	if(!$asis && !/^[%#]/ && "(((" eq substr $_, -3){
 		# Process the first line later
 		$fresh_block = (substr $_, 0, length($_) - 3)."\n";
 		return;
 	}
-	# Process child block
+	# Process fresh block
 	if($fresh_block ne ""){
 		if(")))" eq substr($_, 0, 3) && "_" ne substr($_, 3, 1)){
 			my $block = $fresh_block.substr($_, 3);
