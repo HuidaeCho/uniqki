@@ -105,7 +105,7 @@ use vars qw(
 	@begin_parsing
 	@parse_line
 	@end_parsing
-	@process_child_block
+	@process_fresh_block
 	@preprocess_line
 	@process_syntax_block
 	@process_asis_lines
@@ -127,7 +127,7 @@ use vars qw(
 
 # parse_file() local variables
 use vars qw(
-	$lineno $text $url_char $url_punct $child_block $code_block
+	$lineno $text $url_char $url_punct $fresh_block $code_block
 	$syntax_block @parsed_blocks $re_start $re_n @re @re_sub $p $asis
 	$nosyntax $pre $pre_code $blockquote $list $table $figure @h_lines %h_n
 	$h_top $h_prev %h_secs %secs_no $toc $toc_dep $tab_no %tabs_n %tabs $lot
@@ -4398,7 +4398,7 @@ sub prepare_parser{
 	@parse_line = \&parse_line;
 	@end_parsing = \&end_parsing;
 
-	@process_child_block = \&process_child_block;
+	@process_fresh_block = \&process_fresh_block;
 	@preprocess_line = \&preprocess_line;
 	@process_syntax_block = \&process_syntax_block;
 	@process_asis_lines = \&process_asis_lines;
@@ -4419,6 +4419,7 @@ sub prepare_parser{
 }
 
 sub parse{
+	# parse one line $_[0] using parsers in the rest of arguments
 	local $_ = shift;
 	my @parsers = @_;
 	foreach my $parser (@parsers){
@@ -4429,6 +4430,7 @@ sub parse{
 }
 
 sub parse_file{
+	# parser an entire file $_[0] optionally starting from line $_[1]
 	my ($file, $start) = @_;
 	local *UNIQKI_FH;
 
@@ -4437,7 +4439,7 @@ sub parse_file{
 	$wiki = <UNIQKI_FH> eq "#!wiki\n" ? 1 : 0;
 	close UNIQKI_FH;
 
-	local ($text, $url_char, $url_punct, $child_block, $code_block,
+	local ($text, $url_char, $url_punct, $fresh_block, $code_block,
 		$syntax_block, @parsed_blocks, $re_start, $re_n, @re, @re_sub,
 		$p, $asis, $nosyntax, $pre, $pre_code, $blockquote, $list,
 		$table, $figure, @h_lines, %h_n, $h_top, $h_prev, %h_secs,
@@ -4458,7 +4460,7 @@ sub parse_file{
 	my @_parse_line = @parse_line;
 	my @_end_parsing = @end_parsing;
 
-	my @_process_child_block = @process_child_block;
+	my @_process_fresh_block = @process_fresh_block;
 	my @_preprocess_line = @preprocess_line;
 	my @_process_syntax_block = @process_syntax_block;
 	my @_process_asis_lines = @process_asis_lines;
@@ -4526,7 +4528,7 @@ sub parse_file{
 	@parse_line = @_parse_line;
 	@end_parsing = @_end_parsing;
 
-	@process_child_block = @_process_child_block;
+	@process_fresh_block = @_process_fresh_block;
 	@preprocess_line = @_preprocess_line;
 	@process_syntax_block = @_process_syntax_block;
 	@process_asis_lines = @_process_asis_lines;
@@ -4548,9 +4550,10 @@ sub parse_file{
 	return $text;
 }
 
-sub parse_child_block{
+sub parse_fresh_block{
+	# parse a text block $_[0] in a fresh parsing environment
 	my $txt = shift;
-	local ($text, $url_char, $url_punct, $child_block, $code_block,
+	local ($text, $url_char, $url_punct, $fresh_block, $code_block,
 		$syntax_block, @parsed_blocks, $re_start, $re_n, @re, @re_sub,
 		$p, $asis, $nosyntax, $pre, $pre_code, $blockquote, $list,
 		$table, $figure, @h_lines, %h_n, $h_top, $h_prev, %h_secs,
@@ -4565,8 +4568,9 @@ sub parse_child_block{
 }
 
 sub parse_block{
+	# parse a text block $_[0] in the parent's parsing environment
 	my $txt = shift;
-	local ($text, $url_char, $url_punct, $child_block, $code_block,
+	local ($text, $url_char, $url_punct, $fresh_block, $code_block,
 		$syntax_block, @parsed_blocks, $p, $asis, $nosyntax, $pre,
 		$pre_code, $blockquote, $list, $table, $figure);
 
@@ -4578,6 +4582,7 @@ sub parse_block{
 }
 
 sub parse_lines{
+	# parse multiple lines in $_[0]
 	my $txt = shift;
 	local $text;
 	$text .= parse($_, @parse_line) foreach split /\n/, $txt, -1;
@@ -4601,7 +4606,7 @@ sub run_code_block{
 	$text .= "<pre>$@</pre>" if $preview && $@;
 }
 
-sub create_child_block{
+sub create_fresh_block{
 	my $block = shift;
 	my $i = index $block, "\n";
 	my $j = rindex $block, "\n";
@@ -4610,7 +4615,7 @@ sub create_child_block{
 	$block = substr $block, $i + 1, $j - $i - 1;
 	$block =~ s/(\(\(\(_*)_$/$1/mg;
 	$block =~ s/^(\)\)\)_*)_/$1/mg;
-	my $parsed_block = parse_child_block($block);
+	my $parsed_block = parse_fresh_block($block);
 	return if $preview == 2;
 	chomp $parsed_block;
 	push @parsed_blocks, $parsed_block;
@@ -5149,7 +5154,7 @@ sub close_all_sections{
 	$h_prev = 0;
 }
 
-sub process_child_block{
+sub process_fresh_block{
 	# return undef to skip to the next line
 	# return the current line for further processing
 	local $_ = shift;
@@ -5157,17 +5162,17 @@ sub process_child_block{
 	# Child block
 	if(!$asis && !/^[%#]/ && "(((" eq substr $_, -3){
 		# Process the first line later
-		$child_block = (substr $_, 0, length($_) - 3)."\n";
+		$fresh_block = (substr $_, 0, length($_) - 3)."\n";
 		return;
 	}
 	# Process child block
-	if($child_block ne ""){
+	if($fresh_block ne ""){
 		if(")))" eq substr($_, 0, 3) && "_" ne substr($_, 3, 1)){
-			my $block = $child_block.substr($_, 3);
-			$child_block = "";
-			$_ = create_child_block($block);
+			my $block = $fresh_block.substr($_, 3);
+			$fresh_block = "";
+			$_ = create_fresh_block($block);
 		}else{
-			$child_block .= "$_\n";
+			$fresh_block .= "$_\n";
 			return;
 		}
 	}
@@ -5738,10 +5743,10 @@ sub postprocess_line{
 }
 
 sub close_all_open{
-	if($child_block ne ""){
-		my $block = $child_block;
-		$child_block = "";
-		local $_ = create_child_block($block);
+	if($fresh_block ne ""){
+		my $block = $fresh_block;
+		$fresh_block = "";
+		local $_ = create_fresh_block($block);
 		$text .= parse($_, @parse_line);
 	}
 	if($code_block ne ""){
@@ -5819,7 +5824,7 @@ sub begin_parsing{
 
 	$text = "";
 
-	$child_block = "";
+	$fresh_block = "";
 	$code_block = "";
 	$syntax_block = "";
 	@parsed_blocks = ();
@@ -5860,6 +5865,7 @@ sub begin_parsing{
 }
 
 sub parse_line{
+	# parse one line $_[0] using the default parsers
 	# \x00: none or escape character
 	# \x01-\x04: temporary characters
 	# \x05: place holder for TOC
@@ -5873,7 +5879,7 @@ sub parse_line{
 	y/\n//d;
 
 	foreach my $parser (
-		@process_child_block,
+		@process_fresh_block,
 		@preprocess_line,
 		@process_syntax_block,
 		@process_asis_lines,
