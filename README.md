@@ -20,7 +20,7 @@ edition](http://strawberryperl.com), Uniqki can be self-served by itself using
 an embedded web server.
 
 It works with [the Uniqki Presenter](https://github.com/HuidaeCho/uniqki-presenter)
-to make presentation slides.
+to make presentation slides and posters.
 
 ## License
 
