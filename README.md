@@ -19,7 +19,8 @@ In a portable Perl environment like [the Strawberry Perl Portable
 edition](http://strawberryperl.com), Uniqki can be self-served by itself using
 an embedded web server.
 
-It works with [the Uniqki Presenter](https://github.com/HuidaeCho/uniqki-presenter) to make presentation slides.
+It works with [the Uniqki Presenter](https://github.com/HuidaeCho/uniqki-presenter)
+to make presentation slides.
 
 ## License
 
