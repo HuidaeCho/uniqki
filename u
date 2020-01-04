@@ -5160,15 +5160,15 @@ sub process_fresh_block{
 	local $_ = shift;
 
 	# Fresh block
-	if(!$asis && !/^[%#]/ && "(((" eq substr $_, -3){
+	if(!$asis && !/^[%#]/ && "((" eq substr $_, -2){
 		# Process the first line later
-		$fresh_block = (substr $_, 0, length($_) - 3)."\n";
+		$fresh_block = (substr $_, 0, length($_) - 2)."\n";
 		return;
 	}
 	# Process fresh block
 	if($fresh_block ne ""){
-		if(")))" eq substr($_, 0, 3) && "_" ne substr($_, 3, 1)){
-			my $block = $fresh_block.substr($_, 3);
+		if("))" eq substr($_, 0, 2) && "_" ne substr($_, 2, 1)){
+			my $block = $fresh_block.substr($_, 2);
 			$fresh_block = "";
 			$_ = create_fresh_block($block);
 		}else{
@@ -5230,8 +5230,8 @@ sub process_syntax_block{
 
 	# Process syntax block
 	if($syntax_block ne ""){
-		if("))" eq substr($_, 0, 2) && "_" ne substr($_, 2, 1)){
-			my $block = $syntax_block.substr($_, 2);
+		if(")" eq substr($_, 0, 1) && "_" ne substr($_, 1, 1)){
+			my $block = $syntax_block.substr($_, 1);
 			$syntax_block = "";
 			$_ = create_syntax_block($block);
 		}else{
@@ -5444,9 +5444,9 @@ sub start_syntax_block{
 	local $_ = shift;
 
 	# Syntax block
-	if("((" eq substr $_, -2){
+	if("(" eq substr $_, -1){
 		# Process the first line later
-		$syntax_block = (substr $_, 0, length($_) - 2)."\n";
+		$syntax_block = (substr $_, 0, length($_) - 1)."\n";
 		return;
 	}
 
