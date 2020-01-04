@@ -4613,8 +4613,8 @@ sub create_fresh_block{
 	my $begin = substr $block, 0, $i;
 	my $end = substr $block, $j + 1;
 	$block = substr $block, $i + 1, $j - $i - 1;
-	$block =~ s/(\(\(\(_*)_$/$1/mg;
-	$block =~ s/^(\)\)\)_*)_/$1/mg;
+	$block =~ s/(\(\(_*)_$/$1/mg;
+	$block =~ s/^(\)\)_*)_/$1/mg;
 	my $parsed_block = parse_fresh_block($block);
 	return if $preview == 2;
 	chomp $parsed_block;
@@ -4629,8 +4629,8 @@ sub create_syntax_block{
 	my $begin = substr $block, 0, $i;
 	my $end = substr $block, $j + 1;
 	$block = substr $block, $i + 1, $j - $i - 1;
-	$block =~ s/(?<!\()(\(\(_*)_$/$1/mg;
-	$block =~ s/^(\)\)_*)_/$1/mg;
+	$block =~ s/(?<!\()(\(_*)_$/$1/mg;
+	$block =~ s/^(\)_*)_/$1/mg;
 	my $parsed_block = parse_block($block);
 	return if $preview == 2;
 	chomp $parsed_block;
