@@ -5177,7 +5177,7 @@ sub process_raw_block{
 		}
 	}
 	if($re_block ne ""){
-		if(substr($re_block, 0, 1) eq substr($_, 0, 1)){
+		if(substr($re_block, 0, 1) eq $_){
 			chomp $re_block;
 			$re_block =~ s/^.(.*)\n//;
 
