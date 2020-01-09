@@ -2255,6 +2255,7 @@ table th {
 table td {
 	border:			1px solid #999999;
 	padding:		3px;
+	word-break:		break-all;
 }
 figure {
 }
@@ -2264,11 +2265,15 @@ figure figcaption {
 	font-size:		smaller;
 }
 a {
-	color:			green;
+	color:			#005500;
 	text-decoration:	none;
 }
 a[href*='://'] {
-	color:			blue;
+	color:			#0000cc;
+}
+a:hover {
+	color:			black;
+	text-decoration:	underline;
 }
 form {
 	margin:			0px;
@@ -2284,10 +2289,18 @@ ol ol ol {
 }
 
 /******************************************************************************/
+@media screen and (min-width: 640px) {
+	body {
+		max-width:		740px;
+		line-height:		1.5;
+	}
+	#main {
+		padding:		50px;
+	}
+}
 @media screen {
 	body {
 		background-color:	#eeeeee;
-		max-width:		960px;
 		margin:			auto;
 	}
 	#top {
@@ -2306,7 +2319,6 @@ ol ol ol {
 	#main {
 		background-color:	white;
 		border:			1px solid #aaaaaa;
-		padding:		10px;
 		box-shadow:		5px 5px 5px #aaaaaa;
 	}
 	#login {
@@ -2362,9 +2374,8 @@ ol ol ol {
 
 /******************************************************************************/
 	#wiki-view {
-		background-color:	#f7f7f7;
 		color:			#000000;
-		border:			1px solid #999999;
+		border-bottom:		1px solid #999999;
 		padding:		5px;
 	}
 	#wiki-edit {
