@@ -2291,11 +2291,11 @@ ol ol ol {
 /******************************************************************************/
 @media screen and (min-width: 640px) {
 	body {
-		max-width:		740px;
+		max-width:		690px;
 		line-height:		1.5;
 	}
 	#main {
-		padding:		50px;
+		padding:		25px;
 	}
 }
 @media screen {
