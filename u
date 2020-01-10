@@ -107,7 +107,7 @@ use vars qw(
 	@end_parsing
 	@process_raw_block
 	@preprocess_line
-	@process_preprocessed_block
+	@process_block
 	@process_asis_lines
 	@skip_comment
 	@process_wiki_command
@@ -4411,7 +4411,7 @@ sub prepare_parser{
 
 	@process_raw_block = \&process_raw_block;
 	@preprocess_line = \&preprocess_line;
-	@process_preprocessed_block = \&process_preprocessed_block;
+	@process_block = \&process_block;
 	@process_asis_lines = \&process_asis_lines;
 	@skip_comment = \&skip_comment;
 	@process_wiki_command = \&process_wiki_command;
@@ -4473,7 +4473,7 @@ sub parse_file{
 
 	my @_process_raw_block = @process_raw_block;
 	my @_preprocess_line = @preprocess_line;
-	my @_process_preprocessed_block = @process_preprocessed_block;
+	my @_process_block = @process_block;
 	my @_process_asis_lines = @process_asis_lines;
 	my @_skip_comment = @skip_comment;
 	my @_process_wiki_command = @process_wiki_command;
@@ -4541,7 +4541,7 @@ sub parse_file{
 
 	@process_raw_block = @_process_raw_block;
 	@preprocess_line = @_preprocess_line;
-	@process_preprocessed_block = @_process_preprocessed_block;
+	@process_block = @_process_block;
 	@process_asis_lines = @_process_asis_lines;
 	@skip_comment = @_skip_comment;
 	@process_wiki_command = @_process_wiki_command;
@@ -5264,7 +5264,7 @@ sub preprocess_line{
 	return $_;
 }
 
-sub process_preprocessed_block{
+sub process_block{
 	# return undef to skip to the next line
 	# return the current line for further processing
 	local $_ = shift;
@@ -5932,7 +5932,7 @@ sub parse_line{
 	foreach my $parser (
 		@process_raw_block,
 		@preprocess_line,
-		@process_preprocessed_block,
+		@process_block,
 		@process_asis_lines,
 		@skip_comment,
 		@process_wiki_command,
