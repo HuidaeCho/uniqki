@@ -113,7 +113,7 @@ use vars qw(
 	@process_wiki_command
 	@process_nonwiki_command
 	@skip_unknown_command
-	@start_syntax_block
+	@start_block
 	@process_collected_lines
 	@process_paragraph_break
 	@escape_inline_syntax
@@ -4417,7 +4417,7 @@ sub prepare_parser{
 	@process_wiki_command = \&process_wiki_command;
 	@process_nonwiki_command = \&process_nonwiki_command;
 	@skip_unknown_command = \&skip_unknown_command;
-	@start_syntax_block = \&start_syntax_block;
+	@start_block = \&start_block;
 	@process_collected_lines = \&process_collected_lines;
 	@process_paragraph_break = \&process_paragraph_break;
 	@escape_inline_syntax = \&escape_inline_syntax;
@@ -4479,7 +4479,7 @@ sub parse_file{
 	my @_process_wiki_command = @process_wiki_command;
 	my @_process_nonwiki_command = @process_nonwiki_command;
 	my @_skip_unknown_command = @skip_unknown_command;
-	my @_start_syntax_block = @start_syntax_block;
+	my @_start_block = @start_block;
 	my @_process_collected_lines = @process_collected_lines;
 	my @_process_paragraph_break = @process_paragraph_break;
 	my @_escape_inline_syntax = @escape_inline_syntax;
@@ -4547,7 +4547,7 @@ sub parse_file{
 	@process_wiki_command = @_process_wiki_command;
 	@process_nonwiki_command = @_process_nonwiki_command;
 	@skip_unknown_command = @_skip_unknown_command;
-	@start_syntax_block = @_start_syntax_block;
+	@start_block = @_start_block;
 	@process_collected_lines = @_process_collected_lines;
 	@process_paragraph_break = @_process_paragraph_break;
 	@escape_inline_syntax = @_escape_inline_syntax;
@@ -5488,7 +5488,7 @@ sub skip_unknown_command{
 	return $_;
 }
 
-sub start_syntax_block{
+sub start_block{
 	# return undef to skip to the next line
 	# return the current line for further processing
 	local $_ = shift;
@@ -5938,7 +5938,7 @@ sub parse_line{
 		@process_wiki_command,
 		@process_nonwiki_command,
 		@skip_unknown_command,
-		@start_syntax_block,
+		@start_block,
 		@process_collected_lines,
 		@process_paragraph_break,
 		@process_inline_syntax,
