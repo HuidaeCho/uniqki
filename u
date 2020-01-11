@@ -2428,6 +2428,7 @@ ol ol ol {
 }
 .toc-list, .toc-list ul {
 	list-style-type:	none;
+	padding-left:		1em;
 }
 .lot-heading {
 	font-weight:		bold;
