@@ -2517,6 +2517,10 @@ ol ol ol {
 }
 .comment-input {
 }
+.comment-input textarea {
+	width:			calc(100% - 2px);
+	padding:		0px;
+}
 EOT_UNIQKI
 }
 
