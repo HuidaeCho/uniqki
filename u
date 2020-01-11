@@ -2289,15 +2289,6 @@ ol ol ol {
 }
 
 /******************************************************************************/
-@media screen and (min-width: 640px) {
-	body {
-		max-width:		690px;
-		line-height:		1.5;
-	}
-	#main {
-		padding:		25px;
-	}
-}
 @media screen {
 	body {
 		background-color:	#eeeeee;
@@ -2396,6 +2387,15 @@ ol ol ol {
 		display:		none;
 		text-align:		right;
 		font-size:		70%;
+	}
+}
+@media screen and (min-width: 640px) {
+	body {
+		max-width:		690px;
+		line-height:		1.5;
+	}
+	#main {
+		padding:		25px;
 	}
 }
 @media print {
