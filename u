@@ -2265,7 +2265,7 @@ figure figcaption {
 	font-size:		smaller;
 }
 a {
-	color:			#005500;
+	color:			#007700;
 	text-decoration:	none;
 }
 a[href*='://'] {
