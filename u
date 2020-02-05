@@ -2234,6 +2234,22 @@ body {
 }
 h1 {
 	margin-top:		0px;
+	font-size:		calc(2em - 0.5em / 1.33 * 1.33);
+}
+h2 {
+	font-size:		calc(1.5em - 0.5em / 1.33 * 0.83);
+}
+h3 {
+	font-size:		calc(1.17em - 0.5em / 1.33 * 0.5);
+}
+h4 {
+	font-size:		calc(1em - 0.5em / 1.33 * 0.33);
+}
+h5 {
+	font-size:		calc(0.83em - 0.5em / 1.33 * 0.16);
+}
+h6 {
+	font-size:		0.67em;
 }
 pre {
 	background-color:	#eeeeee;
