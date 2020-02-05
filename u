@@ -2329,6 +2329,7 @@ ol ol ol {
 		background-color:	white;
 		border:			1px solid #aaaaaa;
 		box-shadow:		5px 5px 5px #aaaaaa;
+		padding:		5px;
 	}
 	#login {
 	}
