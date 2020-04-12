@@ -1456,6 +1456,7 @@ change_admin_password => q(The admin password cannot be the same as the temporar
 read_secured => q(You are not allowed to read this page.),
 login_not_allowed => q(Login is not allowed.),
 login_failed => q(Login failed.),
+user_actions_not_allowed => q(User actions are not allowed. Please <a href="?login">login</a> first.),
 admin_actions_not_allowed => q(Admin actions are not allowed. Please <a href="?login">login</a> first.),
 
 cannot_add_yourself => q(You cannot add yourself.),
@@ -6401,16 +6402,20 @@ if($QUERY_STRING eq "css"){
 	local $PASSWORD_RESET_TOKEN = $token;
 	print_reset_password();
 	die;
-}elsif($QUERY_STRING eq "manage_myself" && is_logged_in()){
+}elsif($QUERY_STRING eq "manage_myself"){
 #-------------------------------------------------------------------------------
 # u?manage_myself	Manage myself
 # u/PAGE?manage_myself	Manage myself
+	die_message("user_actions_not_allowed") unless is_logged_in();
 	print_manage_myself();
 	die;
-}elsif($QUERY_STRING eq "update_myself" && $REQUEST_METHOD eq "POST" && is_logged_in()){
+}elsif($QUERY_STRING eq "update_myself"){
 #-------------------------------------------------------------------------------
 # u?update_myself	Update myself
 # u/PAGE?update_myself	Update myself
+	die_message("user_actions_not_allowed") unless is_logged_in();
+	die_message("internal_errors") unless $REQUEST_METHOD eq "POST";
+
 	my %var = get_var();
 	die_message("confirm_password") if $var{pw} ne $var{pw2};
 	die_message("check_password")
@@ -6476,10 +6481,13 @@ if($QUERY_STRING eq "css"){
 	unlock_file($PASSWORD_FILE);
 
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE?manage_myself");
-}elsif($QUERY_STRING eq "delete_myself" && $REQUEST_METHOD eq "POST" && is_logged_in()){
+}elsif($QUERY_STRING eq "delete_myself"){
 #-------------------------------------------------------------------------------
 # u?delete_myself	Delete myself
 # u/PAGE?delete_myself	Delete myself
+	die_message("user_actions_not_allowed") unless is_logged_in();
+	die_message("internal_errors") unless $REQUEST_METHOD eq "POST";
+
 	my $new_pw = "";
 	my $deleted = 0;
 	my $nadmins = 0;
