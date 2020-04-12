@@ -6401,7 +6401,7 @@ if($QUERY_STRING eq "css"){
 	local $PASSWORD_RESET_TOKEN = $token;
 	print_reset_password();
 	die;
-}elsif($QUERY_STRING eq "manage_myself"){
+}elsif($QUERY_STRING eq "manage_myself" && is_logged_in()){
 #-------------------------------------------------------------------------------
 # u?manage_myself	Manage myself
 # u/PAGE?manage_myself	Manage myself
