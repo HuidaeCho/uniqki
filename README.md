@@ -24,7 +24,7 @@ to make presentation slides and posters.
 
 ## License
 
-Copyright (C) 2007-2008, 2010-2011, 2016-2019, Huidae Cho <<https://idea.isnew.info>>
+Copyright (C) 2007-2008, 2010-2011, 2016-2020, Huidae Cho <<https://idea.isnew.info>>
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
