@@ -709,7 +709,7 @@ sub die_path{
 		my $title = get_msg("page_files", $path);
 		(local $TITLE = $title) =~ s/<[^>]*>//g;
 		print_header();
-		print qq(<div id="list">\n<h1>$title</h1>\n<ul>\n);
+		print qq(<div class="list">\n<h1>$title</h1>\n<ul>\n);
 		foreach(<$path/*>){
 			my $file = $_;
 			s#^[^/]*/##;
@@ -2507,7 +2507,7 @@ ol ol ol {
 }
 
 /******************************************************************************/
-#list {
+.list {
 }
 .list-time {
 	font-size:		70%;
@@ -2523,7 +2523,7 @@ ol ol ol {
 }
 
 /******************************************************************************/
-#search {
+.search {
 }
 .search-highlight {
 	font-weight:		bold;
@@ -3413,7 +3413,7 @@ sub clear_cookie{
 sub print_list_users{
 	my $TITLE = get_msg("all_users");
 
-	print qq(<div id="list">\n);
+	print qq(<div class="list">\n);
 	print qq(<h1>$TITLE</h1>\n);
 
 	return unless -f $PASSWORD_FILE;
@@ -4226,7 +4226,7 @@ sub print_list_pages{
 	$n = 0 if $n eq "";
 	$glob = "*" if $glob eq "";
 
-	print qq(<div id="list">\n);
+	print qq(<div class="list">\n);
 	print qq(<h1>$TITLE</h1>\n) if $TITLE ne "";
 	print qq(<ul>\n);
 
@@ -4324,7 +4324,7 @@ sub print_search_pages{
 	my @search = split />/;
 	$glob = "*" if $glob eq "";
 
-	print qq(<div id="search">\n);
+	print qq(<div class="search">\n);
 	print qq(<h1>$TITLE</h1>\n) if $TITLE ne "";
 	print qq(<ul>\n);
 
@@ -7179,7 +7179,7 @@ EOT
 
 	local $TITLE = $title;
 	print_header();
-	print qq(<div id="list">\n<h1>$title</h1>\n<ul>\n);
+	print qq(<div class="list">\n<h1>$title</h1>\n<ul>\n);
 	foreach($glob eq "" ? (<.*.txt>, <*.txt>) : <$glob.txt>){
 		next if index($_, "/") >= 0 || !-f $_;
 		s/\.txt$//;
