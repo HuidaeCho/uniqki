@@ -6189,7 +6189,7 @@ if($QUERY_STRING eq "css"){
 
 	$_ = $var{goto};
 	s#\.html$##;
-	y#[/+]# #;
+	y#/# #;
 
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/".encode_url_most($_));
 }elsif($QUERY_STRING =~ /^comment(?:[&=].+)?$/){
@@ -7761,7 +7761,7 @@ EOT
 
 	$_ = $var{rename};
 	s#\.html$##;
-	y#[/+]# #;
+	y#/# #;
 
 	my $page = convert_page_name($_);
 
