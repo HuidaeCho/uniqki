@@ -135,11 +135,24 @@ use vars qw(
 );
 
 # Other global variables
+# $is_wiki
+#	0 non-wiki
+#	1 wiki
+# $is_preview
+#	0 non-preview
+#	1 entire document
+#	2 partial not current section
+#	3 current section
+# $is_block
+#	0 main text
+#	1 syntax block
+#	2 fresh block
 use vars qw(
+	$is_wiki
+	$is_preview
+	$is_block
 	$preprocess_text
 	$verify_input
-	$preview
-	$wiki
 	$html_started
 	$header_printed $footer_printed
 );
@@ -1064,7 +1077,7 @@ sub is_logged_in{
 
 sub has_read_access{
 	return 1 if $admin;
-	if($wiki){
+	if($is_wiki){
 		return 1 if $wiki_read_access eq "open";
 		return 1 if $wiki_read_access eq "closed" && is_logged_in();
 		return 0;
@@ -1077,7 +1090,7 @@ sub has_read_access{
 sub has_write_access{
 	my $comment = shift;
 	return 1 if $admin;
-	if($wiki){
+	if($is_wiki){
 		return 1 if $wiki_write_access eq "open";
 		return 1 if $wiki_write_access eq "closed" && is_logged_in();
 		return 0;
@@ -1100,9 +1113,9 @@ sub is_wiki{
 	my $page = shift;
 	local *FH;
 	open FH, "$page.txt";
-	my $wiki = <FH> eq "#!wiki\n" ? 1 : 0;
+	my $is_wiki = <FH> eq "#!wiki\n" ? 1 : 0;
 	close FH;
-	return $wiki;
+	return $is_wiki;
 }
 
 #-------------------------------------------------------------------------------
@@ -3169,9 +3182,9 @@ sub preview{
 	my $wiki_edit = shift;
 	my $txt;
 
+	local $is_wiki;
 	# preview the entire document
-	local $preview = 1;
-	local $wiki;
+	local $is_preview = 1;
 	local $html_started = 0;
 	local $header_printed = 0;
 	local $footer_printed = 0;
@@ -3209,9 +3222,9 @@ sub preview_lines{
 	my $wiki_edit = shift;
 	my $txt;
 
+	local $is_wiki;
 	# start previewing partially, but not the current section yet
-	local $preview = 2;
-	local $wiki;
+	local $is_preview = 2;
 	local $html_started = 0;
 	local $header_printed = 0;
 	local $footer_printed = 0;
@@ -3243,9 +3256,11 @@ sub preview_lines{
 sub make_html{
 	local $PAGE = shift;
 
+	local $is_wiki;
 	# not preview
-	local $preview = 0;
-	local $wiki;
+	local $is_preview = 0;
+	# main text
+	local $is_block = 0;
 	local $html_started = 0;
 	local $header_printed = 0;
 	local $footer_printed = 0;
@@ -3253,6 +3268,7 @@ sub make_html{
 	local $TIME = format_time((stat "$PAGE.txt")[9]);
 	local $TITLE;
 	my $start_time = Time::HiRes::time() if $show_parsing_time;
+	# sets $is_wiki
 	local $TEXT = parse_file("$PAGE.txt");
 	local $PARSING_TIME = sprintf "%.3f", Time::HiRes::time() - $start_time
 		if $show_parsing_time;
@@ -3268,7 +3284,7 @@ sub make_html{
 
 	my $html;
 	open FH, ">", \$html; my $fh = select FH;
-	if($wiki){
+	if($is_wiki){
 		print_wiki_view();
 	}else{
 		print_view();
@@ -4248,7 +4264,7 @@ sub print_list_pages{
 		}
 		my $page = $_;
 		next unless -f "$page.html";
-		local $wiki = is_wiki($page);
+		local $is_wiki = is_wiki($page);
 		next unless has_read_access();
 
 		my $page_title = $page;
@@ -4342,7 +4358,7 @@ sub print_search_pages{
 		}
 		my $page = $_;
 		next unless -f "$page.html";
-		local $wiki = is_wiki($page);
+		local $is_wiki = is_wiki($page);
 		next unless has_read_access();
 		my $text = read_file("$page.html");
 		next if $text eq "";
@@ -4478,7 +4494,7 @@ sub parse_file{
 
 	# "<" is required for the in-memory file
 	return "" unless open UNIQKI_FH, "<", $file;
-	$wiki = <UNIQKI_FH> eq "#!wiki\n" ? 1 : 0;
+	$is_wiki = <UNIQKI_FH> eq "#!wiki\n" ? 1 : 0;
 	close UNIQKI_FH;
 
 	local ($text, $url_char, $url_punct, $fresh_block, $code_block,
@@ -4490,12 +4506,12 @@ sub parse_file{
 
 	my @header_files = ();
 	push @header_files, $HEADER_FILE;
-	push @header_files, $NONWIKI_HEADER_FILE unless $wiki;
-	push @header_files, $WIKI_HEADER_FILE if $wiki;
+	push @header_files, $NONWIKI_HEADER_FILE unless $is_wiki;
+	push @header_files, $WIKI_HEADER_FILE if $is_wiki;
 
 	my @footer_files = ();
-	push @footer_files, $WIKI_FOOTER_FILE if $wiki;
-	push @footer_files, $NONWIKI_FOOTER_FILE unless $wiki;
+	push @footer_files, $WIKI_FOOTER_FILE if $is_wiki;
+	push @footer_files, $NONWIKI_FOOTER_FILE unless $is_wiki;
 	push @footer_files, $FOOTER_FILE;
 
 	my @_begin_parsing = @begin_parsing;
@@ -4549,7 +4565,7 @@ sub parse_file{
 				$toc_dep = 0;
 				$text = $header;
 				# preview the current section
-				$preview = 3;
+				$is_preview = 3;
 			}
 			my $parsed_line = parse($_, @parse_line);
 			$text .= $parsed_line if $output;
@@ -4595,12 +4611,16 @@ sub parse_file{
 sub parse_fresh_block{
 	# parse a text block $_[0] in a fresh parsing environment
 	my $txt = shift;
-	local ($text, $url_char, $url_punct, $fresh_block, $code_block,
-		$syntax_block, @parsed_blocks, $re_block, $re_start, $re_n,
-		@re, @re_sub, $p, $asis, $nosyntax, $pre, $pre_code,
-		$blockquote, $list, $table, $figure, @h_lines, %h_n, $h_top,
-		$h_prev, %h_secs, %secs_no, $toc, $toc_dep, $tab_no, %tabs_n,
-		%tabs, $lot, $nolot, $fig_no, %figs_n, %figs, $lof, $nolof);
+	local ($is_block, $text, $url_char, $url_punct, $fresh_block,
+		$code_block, $syntax_block, @parsed_blocks, $re_block,
+		$re_start, $re_n, @re, @re_sub, $p, $asis, $nosyntax, $pre,
+		$pre_code, $blockquote, $list, $table, $figure, @h_lines, %h_n,
+		$h_top, $h_prev, %h_secs, %secs_no, $toc, $toc_dep, $tab_no,
+		%tabs_n, %tabs, $lot, $nolot, $fig_no, %figs_n, %figs, $lof,
+		$nolof);
+
+	# fresh block
+	$is_block = 2;
 
 	$_->() foreach @begin_parsing;
 	$text .= parse_lines($txt);
@@ -4609,16 +4629,20 @@ sub parse_fresh_block{
 	return $text;
 }
 
-sub parse_block{
+sub parse_syntax_block{
 	# parse a text block $_[0] in the parent's parsing environment
 	my $txt = shift;
-	local ($text, $url_char, $url_punct, $fresh_block, $code_block,
-		$syntax_block, @parsed_blocks, $p, $asis, $nosyntax, $pre,
-		$pre_code, $blockquote, $list, $table, $figure);
+	local ($is_block, $text, $url_char, $url_punct, $fresh_block,
+		$code_block, $syntax_block, @parsed_blocks, $p, $asis,
+		$nosyntax, $pre, $pre_code, $blockquote, $list, $table,
+		$figure);
 
-	$_->(1) foreach @begin_parsing;
+	# syntax block
+	$is_block = 1;
+
+	$_->() foreach @begin_parsing;
 	$text .= parse_lines($txt);
-	$_->(1) foreach @end_parsing;
+	$_->() foreach @end_parsing;
 
 	return $text;
 }
@@ -4632,9 +4656,9 @@ sub parse_lines{
 }
 
 sub create_edit_section{
-	return if $preview;
-	push @h_lines, 1 + $wiki if $#h_lines == -1;
-	my $edit = ($wiki ? "wiki_" : "")."edit_lines";
+	return if $is_preview;
+	push @h_lines, 1 + $is_wiki if $#h_lines == -1;
+	my $edit = ($is_wiki ? "wiki_" : "")."edit_lines";
 	my $start = $h_lines[$#h_lines];
 	my $lines = $start.($lineno ? ",".($lineno-$start) : "");
 	push @h_lines, $lineno;
@@ -4645,7 +4669,7 @@ sub run_code_block{
 	my $block = shift;
 	$block =~ s/^(##[{}]_*)_$/$1/mg;
 	eval $block;
-	$text .= "<pre>$@</pre>" if $preview && $@;
+	$text .= "<pre>$@</pre>" if $is_preview && $@;
 }
 
 sub create_fresh_block{
@@ -4658,7 +4682,7 @@ sub create_fresh_block{
 	$block =~ s/(\(\(_*)_$/$1/mg;
 	$block =~ s/^(\)\)_*)_/$1/mg;
 	my $parsed_block = parse_fresh_block($block);
-	return if $preview == 2;
+	return if $is_preview == 2;
 	chomp $parsed_block;
 	push @parsed_blocks, $parsed_block;
 	return "$begin\x06$end";
@@ -4673,8 +4697,8 @@ sub create_syntax_block{
 	$block = substr $block, $i + 1, $j - $i - 1;
 	$block =~ s/(?<!\()(\(_*)_$/$1/mg;
 	$block =~ s/^(\)_*)_/$1/mg;
-	my $parsed_block = parse_block($block);
-	return if $preview == 2;
+	my $parsed_block = parse_syntax_block($block);
+	return if $is_preview == 2;
 	chomp $parsed_block;
 	push @parsed_blocks, $parsed_block;
 	return "$begin\x06$end";
@@ -5224,7 +5248,7 @@ sub process_raw_block{
 			$re_block =~ s/^.(.*)\n//;
 
 			# Don't allow code embedding in a wiki page
-			if($wiki && index($re_block, '@{[') != -1){
+			if($is_wiki && index($re_block, '@{[') != -1){
 				$re_block = "";
 				return;
 			}
@@ -5274,7 +5298,7 @@ sub preprocess_line{
 		}
 	}
 	# Wiki but not asis
-	if($wiki && !$asis){
+	if($is_wiki && !$asis){
 		# Skip admin code
 		return if "##" eq substr $_, 0, 2;
 		# Escape inline perl code
@@ -5393,9 +5417,9 @@ sub process_wiki_command{
 	# Register regular expressions
 	if(/^#regex (.)(.+)(?<!\\)\1(.*)(?<!\\)\1$/){
 		# Don't allow code embedding in a wiki page
-		return if($wiki && (index($2, '(?{') != -1 ||
-				    index($2, '(??{') != -1 ||
-				    index($3, '@{[') != -1));
+		return if($is_wiki && (index($2, '(?{') != -1 ||
+				       index($2, '(??{') != -1 ||
+				       index($3, '@{[') != -1));
 
 		my $i;
 		for($i = 0; $i < $re_n; $i++){
@@ -5413,8 +5437,8 @@ sub process_wiki_command{
 	# Register multi-line regular expressions
 	if(/^#regex (.)(.+)(?<!\\)\1$/){
 		# Don't allow code embedding in a wiki page
-		return if($wiki && (index($2, '(?{') != -1 ||
-				    index($2, '(??{') != -1));
+		return if($is_wiki && (index($2, '(?{') != -1 ||
+				       index($2, '(??{') != -1));
 
 		$re_block = "$1$2\n";
 		return;
@@ -5480,11 +5504,11 @@ sub process_nonwiki_command{
 			my $line = <FH>;
 			my $inc_wiki = 0;
 			if($line eq "#!wiki\n"){
-				$inc_wiki = 1 unless $wiki;
+				$inc_wiki = 1 unless $is_wiki;
 			}else{
 				$text .= parse($line, @parse_line);
 			}
-			local $wiki = 1 if $inc_wiki;
+			local $is_wiki = 1 if $inc_wiki;
 			$text .= parse($_, @parse_line) while <FH>;
 			close FH;
 		}
@@ -5500,7 +5524,7 @@ sub process_nonwiki_command{
 	if(/^##((?:sub |{).*)$/){
 		if("}" eq substr $1, -1){
 			eval $1;
-			$text .= "<pre>$@</pre>" if $preview && $@;
+			$text .= "<pre>$@</pre>" if $is_preview && $@;
 			return;
 		}
 		$code_block = "$1\n";
@@ -5900,8 +5924,6 @@ sub verify_input{
 }
 
 sub begin_parsing{
-	my $block_level = shift;
-
 	$url_char = 'a-zA-Z0-9:@/~%.,_$?=&;#+-';
 	$url_punct = '.,;:!?';
 
@@ -5921,7 +5943,9 @@ sub begin_parsing{
 	$table = "";
 	$figure = "";
 
-	if(!$block_level){
+	# if not syntax block
+	# for main text or fresh block only
+	if($is_block != 1){
 		$re_block = "";
 		$re_start = 0;
 		$re_n = 0;
@@ -5987,11 +6011,11 @@ sub parse_line{
 }
 
 sub end_parsing{
-	my $block_level = shift;
-
 	$_->() foreach @close_all_open;
 
-	if(!$block_level){
+	# if not syntax block
+	# for main text or fresh block only
+	if($is_block != 1){
 		create_edit_section() if $#h_lines >= 0;
 		my $clean_toc = $toc_dep > 0 && $toc ne "";
 		my $h = $h_prev;
@@ -6152,13 +6176,13 @@ if($QUERY_STRING eq "login"){
 	}else{
 		$page = $PAGE;
 	}
-	$wiki = 0;
+	$is_wiki = 0;
 	if($page ne ""){
 		if(-f "$page.txt"){
-			$wiki = is_wiki($page);
+			$is_wiki = is_wiki($page);
 		}elsif($WIKI_PAGES_ALLOWED ne "" &&
 		       $page =~ /$WIKI_PAGES_ALLOWED/o){
-			$wiki = 1;
+			$is_wiki = 1;
 		}
 	}
 }
@@ -6751,7 +6775,7 @@ if($QUERY_STRING eq "css"){
 		}
 		my $page = $_;
 		next unless -f "$page.html";
-		local $wiki = is_wiki($page);
+		local $is_wiki = is_wiki($page);
 		next unless has_read_access();
 
 		my $t = (stat "$page.txt")[9];
@@ -6865,7 +6889,7 @@ EOT
 # Uniqki Wiki
 	unless(has_write_access()){
 		my $msg_id;
-		if($wiki){
+		if($is_wiki){
 			if(-f "$PAGE.txt"){
 				$msg_id = "not_allowed_to_edit_wiki_page";
 			}else{
