@@ -80,8 +80,8 @@ use vars qw(
 
 # Config and messages variables
 use vars qw(
-	$SITE_TITLE $SITE_DESCRIPTION $INDEX_PAGE $LANG $CHARSET $LOCALE
-	$TIME_ZONE $TIME_FORMAT
+	$SITE_TITLE $SITE_DESCRIPTION $SITE_URL
+	$INDEX_PAGE $LANG $CHARSET $LOCALE $TIME_ZONE $TIME_FORMAT
 	$SHARE_COOKIES
 	$PASSWORD_FILE $SESSIONS_FILE $MESSAGES_FILE $TEMPLATE_DIRECTORY
 	$PAGE_NAME_STYLE
@@ -1144,6 +1144,7 @@ sub process_cfg{
 # Site information: HTML tags are allowed.
 $SITE_TITLE = 'Uniqki: A Personal Wiki Builder';
 $SITE_DESCRIPTION = 'A <a href="https://uniqki.isnew.info">Uniqki</a> site';
+$SITE_URL = $DOC_BASE;
 
 # Index page
 $INDEX_PAGE = 'index';
@@ -1648,10 +1649,10 @@ sub process_tpl_tag{
 		print_wiki_edit_lines();
 	}elsif($tag =~ /^[A-Z_]+$/){
 		my @tags = qw(
-			SITE_TITLE SITE_DESCRIPTION INDEX_PAGE TITLE LANG
-			CHARSET PAGE VERSION TEXT START COUNT HTTP_BASE DOC_BASE
-			PREVIEW TIME CGI MESSAGE PASSWORD_RESET_TOKEN NAME
-			AUTHOR PARSING_TIME
+			SITE_TITLE SITE_DESCRIPTION SITE_URL INDEX_PAGE TITLE
+			LANG CHARSET PAGE VERSION TEXT START COUNT HTTP_BASE
+			DOC_BASE PREVIEW TIME CGI MESSAGE PASSWORD_RESET_TOKEN
+			NAME AUTHOR PARSING_TIME
 		);
 		my %hash;
 		@hash{@tags} = undef;
@@ -1729,7 +1730,7 @@ windowOnLoad(function(){
 </head>
 <body>
 <header id="top">
-<div id="site-title"><a href="[[DOC_BASE]]">[[SITE_TITLE]]</a></div>
+<div id="site-title"><a href="[[SITE_URL]]">[[SITE_TITLE]]</a></div>
 <div id="site-description">[[SITE_DESCRIPTION]]</div>
 </header>
 <main id="main">
