@@ -2007,7 +2007,7 @@ sub print_view{
 <hr />
 <span class="write-access"><a accesskey="r" href="[[CGI]]/[[PAGE]]?refresh">[[refresh]]</a> .</span>
 <span class="write-access"><a accesskey="e" href="[[CGI]]/[[PAGE]]?edit">[[edit]]</a> .</span>
-<a accesskey="l" href="[[CGI]]?search=[[PAGE]]%5C.html&amp;link=1&amp;title=1">[[backlinks]]</a> .
+<a accesskey="l" href="[[CGI]]?search=[[PAGE]]%5C.html(%23.*%3F)%3F&amp;link=1&amp;title=1">[[backlinks]]</a> .
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a class="visitor" accesskey="l" href="[[CGI]]/[[PAGE]]?login">[[login]]</a>
 <a class="user" accesskey="l" href="[[CGI]]/[[PAGE]]?logout">[[logout]]</a>
@@ -2135,7 +2135,7 @@ sub print_wiki_view{
 <nav id="wiki-menu">
 <span class="write-access"><a accesskey="e" href="[[CGI]]/[[PAGE]]?wiki_edit">[[edit]]</a> .</span>
 <a accesskey="d" href="[[CGI]]/[[PAGE]]?diff=-1">[[diff]]</a> .
-<a accesskey="l" href="[[CGI]]?search=[[PAGE]]%5C.html&amp;link=1&amp;title=1">[[backlinks]]</a> .
+<a accesskey="l" href="[[CGI]]?search=[[PAGE]]%5C.html(%23.*%3F)%3F&amp;link=1&amp;title=1">[[backlinks]]</a> .
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a class="visitor" accesskey="l" href="[[CGI]]/[[PAGE]]?login">[[login]]</a>
 <a class="user" accesskey="l" href="[[CGI]]/[[PAGE]]?logout">[[logout]]</a>
@@ -4392,7 +4392,7 @@ sub print_search_pages{
 					$word = "(?i)$word" if $icase;
 					if($line =~ m#\x02[aA][ \t][^\x03]*(?:href|HREF)[ \t]*=[ \t]*"(?:$word)"[^\x03]*\x03[^\x02]+\x02/[aA]\x03#){
 						$found = $line if $found eq "";
-						$found =~ s#\x02[aA][ \t][^\x03]*(?:href|HREF)[ \t]*=[ \t]*"(?:$word)"[^\x03]*\x03([^\x02]+)\x02/[aA]\x03#\x04$1\x05#g;
+						$found =~ s#\x02[aA][ \t][^\x03]*(?:href|HREF)[ \t]*=[ \t]*"(?:$word)"[^\x03]*\x03([^\x02]+)\x02/[aA]\x03#\x04$+\x05#g;
 						$found[$i] = 1;
 					}
 				}
