@@ -1,4 +1,9 @@
 #!/usr/bin/env perl
+# If you use a cPanel-based hosting service, change perl to perlml in the above
+# line (#!/usr/bin/env perlml) to allow Perl to find modules installed in the
+# user directory.  You can revert this change if you have "use
+# cPanelUserConfig;" in u.cfg.
+#
 ################################################################################
 # Uniqki:	Unique Wiki <https://uniqki.isnew.info>
 # Author:	Huidae Cho
@@ -1132,6 +1137,10 @@ sub process_cfg{
 	# $mode=1: write
 	my $mode = shift;
 	my $cfg = <<'EOT_UNIQKI';
+# If you use a cPanel-based hosting service, uncomment the following line to
+# allow Perl to find modules installed in the user directory.
+# use cPanelUserConfig;
+
 # Site information: HTML tags are allowed.
 $SITE_TITLE = 'Uniqki: A Personal Wiki Builder';
 $SITE_DESCRIPTION = 'A <a href="https://uniqki.isnew.info">Uniqki</a> site';
