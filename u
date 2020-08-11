@@ -1709,12 +1709,17 @@ sub process_tpl{
 }
 
 sub print_html{
-	# $main: processed [[MAIN]]
+	# $main: processed [[MAIN]] or the entire HTML starting with <!DOCTYPE
 	# $mode=undef: print
 	# $mode=1: string
 	my ($main, $mode) = @_;
-	my $base_tpl = print_base(2);
-	my $html = print_header($base_tpl, 1).$main.print_footer($base_tpl, 1);
+	my $html;
+	if($main =~ m/^<!DOCTYPE/i){
+		$html = $main;
+	}else{
+		my $base_tpl = print_base(2);
+		$html = print_header($base_tpl, 1).$main.print_footer($base_tpl, 1);
+	}
 	unless(defined $mode){
 		start_html();
 		print $html;
