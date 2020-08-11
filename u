@@ -784,6 +784,10 @@ sub die_text{
 	die;
 }
 
+sub start_html{
+	print "Content-Type: text/html\n\n";
+}
+
 sub convert_page_name{
 	my $page_name = shift;
 	my $forbidden_chars = q(`~!@#\$%^&*=+\\\\|;:'",\/?()\[\]{}<>);
@@ -1692,7 +1696,7 @@ sub process_tpl{
 
 	unless(defined $mode){
 		if($ext eq "tpl"){
-			print "Content-Type: text/html\n\n";
+			start_html();
 		}elsif($ext eq "css"){
 			print "Content-Type: text/css\n\n";
 		}elsif($ext eq "js"){
@@ -1717,6 +1721,7 @@ sub print_header{
 	# print only
 	local $_ = shift;
 	s/\[\[MAIN\]\].*$//s;
+	start_html();
 	print;
 }
 
@@ -7888,7 +7893,7 @@ if($nonwiki_read_access ne "open" || $wiki_read_access ne "open"){
 	die_message("page_not_found", $PAGE) unless -f "$PAGE.html";
 
 	local *FH;
-	print "Content-Type: text/html\n\n";
+	start_html();
 	open FH, "$PAGE.html";
 	print <FH>;
 	close FH;
