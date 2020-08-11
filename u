@@ -74,7 +74,7 @@ use vars qw(
 
 # Template variables
 use vars qw(
-	$TITLE $TEXT $START $COUNT $PREVIEW $VERSION $TIME
+	$MAIN $TITLE $TEXT $START $COUNT $PREVIEW $VERSION $TIME
 	$PASSWORD_RESET_TOKEN $MESSAGE $PARSING_TIME
 );
 
@@ -159,7 +159,6 @@ use vars qw(
 	$preprocess_text
 	$verify_input
 	$html_started
-	$header_printed $footer_printed
 );
 
 umask 022;
@@ -726,7 +725,8 @@ sub die_path{
 		my $parent = "$path/" if($path !~ s#/+$##);
 		my $title = get_msg("page_files", $path);
 		(local $TITLE = $title) =~ s/<[^>]*>//g;
-		print_header();
+		my $base_tpl = print_base(2);
+		print_header($base_tpl);
 		print qq(<div class="list">\n<h1>$title</h1>\n<ul>\n);
 		foreach(<$path/*>){
 			my $file = $_;
@@ -740,7 +740,7 @@ sub die_path{
 			print qq(<li><a href="$url">$name</a> <span class="list-time">$time</span></li>\n);
 		}
 		print qq(</ul></div>\n);
-		print_footer();
+		print_footer($base_tpl);
 		die;
 	}
 
@@ -761,7 +761,7 @@ EOT
 sub die_message{
 	local $MESSAGE = get_msg(@_);
 	(local $TITLE = $MESSAGE) =~ s/<[^>]*>//g;
-	print_message();
+	print_html(print_message(2));
 	die;
 }
 
@@ -1635,11 +1635,7 @@ sub process_tpl_tag{
 	my $txt = "";
 
 	open FH, ">", \$txt; my $fh = select FH;
-	if($tag eq "HEADER"){
-		print_header();
-	}elsif($tag eq "FOOTER"){
-		print_footer();
-	}elsif($tag eq "EDIT"){
+	if($tag eq "EDIT"){
 		print_edit();
 	}elsif($tag eq "WIKI_EDIT"){
 		print_wiki_edit();
@@ -1649,10 +1645,10 @@ sub process_tpl_tag{
 		print_wiki_edit_lines();
 	}elsif($tag =~ /^[A-Z_]+$/){
 		my @tags = qw(
-			SITE_TITLE SITE_DESCRIPTION SITE_URL INDEX_PAGE TITLE
-			LANG CHARSET PAGE VERSION TEXT START COUNT HTTP_BASE
-			DOC_BASE PREVIEW TIME CGI MESSAGE PASSWORD_RESET_TOKEN
-			NAME AUTHOR PARSING_TIME
+			MAIN SITE_TITLE SITE_DESCRIPTION SITE_URL INDEX_PAGE
+			TITLE LANG CHARSET PAGE VERSION TEXT START COUNT
+			HTTP_BASE DOC_BASE PREVIEW TIME CGI MESSAGE
+			PASSWORD_RESET_TOKEN NAME AUTHOR PARSING_TIME
 		);
 		my %hash;
 		@hash{@tags} = undef;
@@ -1680,37 +1676,70 @@ sub process_tpl_tag{
 sub process_tpl{
 	# $mode=undef: print
 	# $mode=1: write
-	# $mode=2: print for CSS and JavaScript only
+	# $mode=2: string
 	my ($file, $mode, $tpl) = @_;
-	my $path = "$TEMPLATE_DIRECTORY/$file";
+	my ($path, $ext);
 
-	start_html() unless defined $mode;
-	if($mode == 2){
-		if(".css" eq substr $file, -4){
-			print "Content-Type: text/css\n\n";
-		}elsif(".js" eq substr $file, -3){
-			print "Content-Type: text/javascript\n\n";
-		}
+	if(defined $file){
+		$path = "$TEMPLATE_DIRECTORY/$file";
+		($ext = $file) =~ s/^.*\.//;
+	}elsif($mode == 1){
+		# cannot write to an undefined file
+		return;
 	}
 
 	if($mode == 1){
 		write_file($path, $tpl) if -d $TEMPLATE_DIRECTORY && !-f $path;
 		return;
-	}elsif(-f $path){
-		$tpl = read_file($path);
 	}
+
+	if($ext eq "tpl"){
+		start_html();
+	}elsif($ext eq "css"){
+		print "Content-Type: text/css\n\n";
+	}elsif($ext eq "js"){
+		print "Content-Type: text/javascript\n\n";
+	}
+
+	$tpl = read_file($path) if(-f $path);
 
 	$tpl =~ s/\[\[([A-Za-z0-9_]*)\]\]/@{[process_tpl_tag($1)]}/g;
 	chomp $tpl;
+
+	return $tpl if($mode == 2);
 	print $tpl;
 }
 
-sub print_header{
-	my $mode = shift;
-	return if !defined $mode && $header_printed;
+sub print_html{
+	# $_[0]: processed [[MAIN]]
+	my $base_tpl = print_base(2);
+	print_header($base_tpl);
+	print shift;
+	print_footer($base_tpl);
+}
 
-	$header_printed = 1;
-	process_tpl("header.tpl", $mode, <<'EOT_UNIQKI');
+sub print_header{
+	# $_: processed base template
+	# print only
+	local $_ = shift;
+	s/\[\[MAIN\]\].*$//s;
+	print;
+}
+
+sub print_footer{
+	# $_: processed base template
+	# print only
+	local $_ = shift;
+	s/^.*\[\[MAIN\]\]//s;
+	print;
+}
+
+sub print_base{
+	# $_[0]=undef: print
+	# $_[0]=1: write
+	# $_[0]=2: string
+	local $MAIN = "[[MAIN]]";
+	return process_tpl("base.tpl", shift, <<'EOT_UNIQKI');
 <!DOCTYPE html>
 <html lang="[[LANG]]">
 <head>
@@ -1734,15 +1763,7 @@ windowOnLoad(function(){
 <div id="site-description">[[SITE_DESCRIPTION]]</div>
 </header>
 <main id="main">
-EOT_UNIQKI
-}
-
-sub print_footer{
-	my $mode = shift;
-	return if !defined $mode && $footer_printed;
-
-	$footer_printed = 1;
-	process_tpl("footer.tpl", $mode, <<'EOT_UNIQKI');
+[[MAIN]]
 </main>
 <footer id="bottom">
 <span id="validators">
@@ -1757,8 +1778,10 @@ EOT_UNIQKI
 }
 
 sub print_login{
-	process_tpl("login.tpl", shift, <<'EOT_UNIQKI');
-[[HEADER]]
+	# $_[0]=undef: print
+	# $_[0]=1: write
+	# $_[0]=2: string
+	return process_tpl("login.tpl", shift, <<'EOT_UNIQKI');
 <section id="login">
 <h1>[[login]]</h1>
 <form action="[[PAGE]]?login" method="post">
@@ -1776,13 +1799,14 @@ sub print_login{
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 </nav>
-[[FOOTER]]
 EOT_UNIQKI
 }
 
 sub print_manage_pages{
-	process_tpl("manage_pages.tpl", shift, <<'EOT_UNIQKI');
-[[HEADER]]
+	# $_[0]=undef: print
+	# $_[0]=1: write
+	# $_[0]=2: string
+	return process_tpl("manage_pages.tpl", shift, <<'EOT_UNIQKI');
 <section id="manage-pages">
 <h1>[[manage_pages]]</h1>
 <form action="?restore" method="post" enctype="multipart/form-data">
@@ -1801,13 +1825,14 @@ sub print_manage_pages{
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
 </nav>
-[[FOOTER]]
 EOT_UNIQKI
 }
 
 sub print_manage_users{
-	process_tpl("manage_users.tpl", shift, <<'EOT_UNIQKI');
-[[HEADER]]
+	# $_[0]=undef: print
+	# $_[0]=1: write
+	# $_[0]=2: string
+	return process_tpl("manage_users.tpl", shift, <<'EOT_UNIQKI');
 <section id="manage-users">
 <h1>[[manage_users]]</h1>
 <ul>
@@ -1888,13 +1913,14 @@ sub print_manage_users{
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
 </nav>
-[[FOOTER]]
 EOT_UNIQKI
 }
 
 sub print_manage_myself{
-	process_tpl("manage_myself.tpl", shift, <<'EOT_UNIQKI');
-[[HEADER]]
+	# $_[0]=undef: print
+	# $_[0]=1: write
+	# $_[0]=2: string
+	return process_tpl("manage_myself.tpl", shift, <<'EOT_UNIQKI');
 <section id="manage-myself">
 <h1>[[manage_myself]]</h1>
 
@@ -1929,13 +1955,14 @@ sub print_manage_myself{
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
 </nav>
-[[FOOTER]]
 EOT_UNIQKI
 }
 
 sub print_forgot_password{
-	process_tpl("forgot_password.tpl", shift, <<'EOT_UNIQKI');
-[[HEADER]]
+	# $_[0]=undef: print
+	# $_[0]=1: write
+	# $_[0]=2: string
+	return process_tpl("forgot_password.tpl", shift, <<'EOT_UNIQKI');
 <section id="forgot-password">
 <h1>[[forgot_password]]</h1>
 <form action="?forgot_password" method="post">
@@ -1952,13 +1979,14 @@ sub print_forgot_password{
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 </nav>
-[[FOOTER]]
 EOT_UNIQKI
 }
 
 sub print_reset_password{
-	process_tpl("reset_password.tpl", shift, <<'EOT_UNIQKI');
-[[HEADER]]
+	# $_[0]=undef: print
+	# $_[0]=1: write
+	# $_[0]=2: string
+	return process_tpl("reset_password.tpl", shift, <<'EOT_UNIQKI');
 <section id="reset-password">
 <h1>[[reset_password]]</h1>
 <ul>
@@ -1980,13 +2008,14 @@ sub print_reset_password{
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 </nav>
-[[FOOTER]]
 EOT_UNIQKI
 }
 
 sub print_message{
-	process_tpl("message.tpl", shift, <<'EOT_UNIQKI');
-[[HEADER]]
+	# $_[0]=undef: print
+	# $_[0]=1: write
+	# $_[0]=2: string
+	return process_tpl("message.tpl", shift, <<'EOT_UNIQKI');
 <section id="message">
 [[MESSAGE]]
 </section>
@@ -1998,16 +2027,17 @@ sub print_message{
 <a class="visitor" accesskey="l" href="[[PAGE]]?login">[[login]]</a>
 <a class="user" accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
 </nav>
-[[FOOTER]]
 EOT_UNIQKI
 }
 
 sub print_view{
+	# $_[0]=undef: print
+	# $_[0]=1: write
+	# $_[0]=2: string
 	# View templates are never served dynamically, so don't print a
 	# content-type header
 	$html_started = 1;
-	process_tpl("view.tpl", shift, <<'EOT_UNIQKI');
-[[HEADER]]
+	return process_tpl("view.tpl", shift, <<'EOT_UNIQKI');
 <article id="view">
 <!-- start text -->
 [[TEXT]]
@@ -2026,13 +2056,14 @@ sub print_view{
 <div id="last-modified">[[last_modified]]</div>
 <div id="parsing-time">[[parsing_time]]</div>
 </footer>
-[[FOOTER]]
 EOT_UNIQKI
 }
 
 sub print_edit{
-	process_tpl("edit.tpl", shift, <<'EOT_UNIQKI');
-[[HEADER]]
+	# $_[0]=undef: print
+	# $_[0]=1: write
+	# $_[0]=2: string
+	return process_tpl("edit.tpl", shift, <<'EOT_UNIQKI');
 <section id="edit">
 <h1>[[edit_page]]</h1>
 <form action="[[PAGE]]?edit" method="post" enctype="multipart/form-data">
@@ -2057,25 +2088,27 @@ listenToPasteImage('../[[CGI]]/[[PAGE]]?upload', [[VERSION]], '[[type_filename]]
 </div>
 </form>
 </section>
-[[FOOTER]]
 EOT_UNIQKI
 }
 
 sub print_preview{
-	process_tpl("preview.tpl", shift, <<'EOT_UNIQKI');
-[[HEADER]]
+	# $_[0]=undef: print
+	# $_[0]=1: write
+	# $_[0]=2: string
+	return process_tpl("preview.tpl", shift, <<'EOT_UNIQKI');
 <div id="preview-warning">[[preview_warning]]</div>
 <article id="preview-main">
 [[PREVIEW]]
 </article>
 [[EDIT]]
-[[FOOTER]]
 EOT_UNIQKI
 }
 
 sub print_edit_lines{
-	process_tpl("edit_lines.tpl", shift, <<'EOT_UNIQKI');
-[[HEADER]]
+	# $_[0]=undef: print
+	# $_[0]=1: write
+	# $_[0]=2: string
+	return process_tpl("edit_lines.tpl", shift, <<'EOT_UNIQKI');
 <section id="edit">
 <h1>[[edit_lines]]</h1>
 <form action="[[PAGE]]?edit_lines" method="post" enctype="multipart/form-data">
@@ -2102,41 +2135,44 @@ listenToPasteImage('../[[CGI]]/[[PAGE]]?upload', [[VERSION]], '[[type_filename]]
 </div>
 </form>
 </section>
-[[FOOTER]]
 EOT_UNIQKI
 }
 
 sub print_preview_lines{
-	process_tpl("preview_lines.tpl", shift, <<'EOT_UNIQKI');
-[[HEADER]]
+	# $_[0]=undef: print
+	# $_[0]=1: write
+	# $_[0]=2: string
+	return process_tpl("preview_lines.tpl", shift, <<'EOT_UNIQKI');
 <div id="preview-warning">[[preview_warning]]</div>
 <article id="preview-main">
 [[PREVIEW]]
 </article>
 [[EDIT_LINES]]
-[[FOOTER]]
 EOT_UNIQKI
 }
 
 sub print_updated{
-	process_tpl("updated.tpl", shift, <<'EOT_UNIQKI');
-[[HEADER]]
+	# $_[0]=undef: print
+	# $_[0]=1: write
+	# $_[0]=2: string
+	return process_tpl("updated.tpl", shift, <<'EOT_UNIQKI');
 <section id="updated">
 <h1>[[page_updated]]</h1>
 [[save_your_changes_and_read_latest_version]]
 <br />
 <textarea accesskey="t" id="text" name="text" rows="24" cols="80">[[TEXT]]</textarea>
 </section>
-[[FOOTER]]
 EOT_UNIQKI
 }
 
 sub print_wiki_view{
+	# $_[0]=undef: print
+	# $_[0]=1: write
+	# $_[0]=2: string
 	# View templates are never served dynamically, so don't print a
 	# content-type header
 	$html_started = 1;
-	process_tpl("wiki_view.tpl", shift, <<'EOT_UNIQKI');
-[[HEADER]]
+	return process_tpl("wiki_view.tpl", shift, <<'EOT_UNIQKI');
 <article id="wiki-view">
 <!-- start text -->
 [[TEXT]]
@@ -2154,13 +2190,14 @@ sub print_wiki_view{
 <div id="last-modified">[[last_modified]]</div>
 <div id="parsing-time">[[parsing_time]]</div>
 </footer>
-[[FOOTER]]
 EOT_UNIQKI
 }
 
 sub print_wiki_edit{
-	process_tpl("wiki_edit.tpl", shift, <<'EOT_UNIQKI');
-[[HEADER]]
+	# $_[0]=undef: print
+	# $_[0]=1: write
+	# $_[0]=2: string
+	return process_tpl("wiki_edit.tpl", shift, <<'EOT_UNIQKI');
 <section id="wiki-edit">
 <h1>[[wiki_edit_page]]</h1>
 <form action="[[PAGE]]?wiki_edit" method="post" enctype="multipart/form-data">
@@ -2187,25 +2224,27 @@ listenToPasteImage('../[[CGI]]/[[PAGE]]?upload', [[VERSION]], '[[type_filename]]
 </div>
 </form>
 </section>
-[[FOOTER]]
 EOT_UNIQKI
 }
 
 sub print_wiki_preview{
-	process_tpl("wiki_preview.tpl", shift, <<'EOT_UNIQKI');
-[[HEADER]]
+	# $_[0]=undef: print
+	# $_[0]=1: write
+	# $_[0]=2: string
+	return process_tpl("wiki_preview.tpl", shift, <<'EOT_UNIQKI');
 <div id="wiki-preview-warning">[[preview_warning]]</div>
 <article id="wiki-preview-main">
 [[PREVIEW]]
 </article>
 [[WIKI_EDIT]]
-[[FOOTER]]
 EOT_UNIQKI
 }
 
 sub print_wiki_edit_lines{
-	process_tpl("wiki_edit_lines.tpl", shift, <<'EOT_UNIQKI');
-[[HEADER]]
+	# $_[0]=undef: print
+	# $_[0]=1: write
+	# $_[0]=2: string
+	return process_tpl("wiki_edit_lines.tpl", shift, <<'EOT_UNIQKI');
 <section id="wiki-edit">
 <h1>[[wiki_edit_lines]]</h1>
 <form action="[[PAGE]]?wiki_edit_lines" method="post" enctype="multipart/form-data">
@@ -2234,24 +2273,27 @@ listenToPasteImage('../[[CGI]]/[[PAGE]]?upload', [[VERSION]], '[[type_filename]]
 </div>
 </form>
 </section>
-[[FOOTER]]
 EOT_UNIQKI
 }
 
 sub print_wiki_preview_lines{
-	process_tpl("wiki_preview_lines.tpl", shift, <<'EOT_UNIQKI');
-[[HEADER]]
+	# $_[0]=undef: print
+	# $_[0]=1: write
+	# $_[0]=2: string
+	return process_tpl("wiki_preview_lines.tpl", shift, <<'EOT_UNIQKI');
 <div id="wiki-preview-warning">[[preview_warning]]</div>
 <article id="wiki-preview-main">
 [[PREVIEW]]
 </article>
 [[WIKI_EDIT_LINES]]
-[[FOOTER]]
 EOT_UNIQKI
 }
 
 sub print_css{
-	process_tpl("u.css", shift, <<'EOT_UNIQKI');
+	# $_[0]=undef: print
+	# $_[0]=1: write
+	# $_[0]=2: string
+	return process_tpl("u.css", shift, <<'EOT_UNIQKI');
 body {
 	font-family:		Georgia, Batang, serif;
 	line-height:		1.3;
@@ -2568,7 +2610,10 @@ EOT_UNIQKI
 }
 
 sub print_js{
-	process_tpl("u.js", shift, <<'EOT_UNIQKI');
+	# $_[0]=undef: print
+	# $_[0]=1: write
+	# $_[0]=2: string
+	return process_tpl("u.js", shift, <<'EOT_UNIQKI');
 const reAbsoluteURL = /^(?:https?:\/\/|\/)/;
 let head = document.getElementsByTagName('head')[0];
 
@@ -3196,8 +3241,6 @@ sub preview{
 	# preview the entire document
 	local $is_preview = 1;
 	local $html_started = 0;
-	local $header_printed = 0;
-	local $footer_printed = 0;
 	local $TITLE;
 	local $PREVIEW;
 
@@ -3217,9 +3260,9 @@ sub preview{
 	$TEXT =~ s/&/&amp;/g; $TEXT =~ s/</&lt;/g; $TEXT =~ s/>/&gt;/g;
 
 	if($wiki_edit){
-		print_wiki_preview();
+		print_html(print_wiki_preview(2));
 	}else{
-		print_preview();
+		print_html(print_preview(2));
 	}
 }
 
@@ -3236,8 +3279,6 @@ sub preview_lines{
 	# start previewing partially, but not the current section yet
 	local $is_preview = 2;
 	local $html_started = 0;
-	local $header_printed = 0;
-	local $footer_printed = 0;
 	local $TITLE;
 	local $PREVIEW;
 
@@ -3257,9 +3298,9 @@ sub preview_lines{
 	$TEXT =~ s/&/&amp;/g; $TEXT =~ s/</&lt;/g; $TEXT =~ s/>/&gt;/g;
 
 	if($wiki_edit){
-		print_wiki_preview_lines();
+		print_html(print_wiki_preview_lines(2));
 	}else{
-		print_preview_lines();
+		print_html(print_preview_lines(2));
 	}
 }
 
@@ -3272,8 +3313,6 @@ sub make_html{
 	# main text
 	local $is_block = 0;
 	local $html_started = 0;
-	local $header_printed = 0;
-	local $footer_printed = 0;
 	local $AUTHOR = get_author($PAGE);
 	local $TIME = format_time((stat "$PAGE.txt")[9]);
 	local $TITLE;
@@ -3295,9 +3334,9 @@ sub make_html{
 	my $html;
 	open FH, ">", \$html; my $fh = select FH;
 	if($is_wiki){
-		print_wiki_view();
+		print_html(print_wiki_view(2));
 	}else{
-		print_view();
+		print_html(print_view(2));
 	}
 	close FH; select $fh;
 	$html =~ s/\r//g;
@@ -6155,7 +6194,7 @@ if($QUERY_STRING eq "login"){
 #-------------------------------------------------------------------------------
 # u/PAGE?login		GET login request: Login form
 		local $TITLE = $PAGE;
-		print_login();
+		print_html(print_login(2));
 		die;
 	}else{
 #-------------------------------------------------------------------------------
@@ -6200,12 +6239,12 @@ if($QUERY_STRING eq "login"){
 if($QUERY_STRING eq "css"){
 #-------------------------------------------------------------------------------
 # u?css			Print CSS
-	print_css(2);
+	print_css();
 	die;
 }elsif($QUERY_STRING eq "js"){
 #-------------------------------------------------------------------------------
 # u?js			Print JavaScript
-	print_js(2);
+	print_js();
 	die;
 }elsif($QUERY_STRING eq "user_info"){
 #-------------------------------------------------------------------------------
@@ -6221,9 +6260,10 @@ if($QUERY_STRING eq "css"){
 	my %var = get_var();
 	if($var{goto} eq ""){
 		local $TITLE = get_msg("goto_form");
-		print_header();
+		my $base_tpl = print_base(2);
+		print_header($base_tpl);
 		create_goto_form(1);
-		print_footer();
+		print_footer($base_tpl);
 		die;
 	}
 
@@ -6256,10 +6296,11 @@ if($QUERY_STRING eq "css"){
 		}
 
 		local $TITLE = get_msg("comment_form");
-		print_header();
+		my $base_tpl = print_base(2);
+		print_header($base_tpl);
 		create_comment_form($PAGE, $var{comment}, $var{direction},
 			$var{rows}, $var{cols}, 1);
-		print_footer();
+		print_footer($base_tpl);
 		die;
 	}
 	$PAGE = $var{page};
@@ -6305,7 +6346,7 @@ if($QUERY_STRING eq "css"){
 # u?forgot_password		Forgot password
 # u/PAGE?forgot_password	Forgot password
 	if($REQUEST_METHOD eq "GET"){
-		print_forgot_password();
+		print_html(print_forgot_password(2));
 		die;
 	}
 
@@ -6440,14 +6481,14 @@ if($QUERY_STRING eq "css"){
 	}
 
 	local $PASSWORD_RESET_TOKEN = $token;
-	print_reset_password();
+	print_html(print_reset_password(2));
 	die;
 }elsif($QUERY_STRING eq "manage_myself"){
 #-------------------------------------------------------------------------------
 # u?manage_myself	Manage myself
 # u/PAGE?manage_myself	Manage myself
 	die_message("user_actions_not_allowed") unless is_logged_in();
-	print_manage_myself();
+	print_html(print_manage_myself(2));
 	die;
 }elsif($QUERY_STRING eq "update_myself"){
 #-------------------------------------------------------------------------------
@@ -6628,7 +6669,8 @@ if($QUERY_STRING eq "css"){
 	}
 	close FH;
 
-	print_header();
+	my $base_tpl = print_base(2);
+	print_header($base_tpl);
 	print qq(<div id="diff">\n<h1>$title</h1>\n);
 
 	my @line0 = split /\n/, $text, -1; $#line0--;
@@ -6725,7 +6767,7 @@ if($QUERY_STRING eq "css"){
 	}
 
 	print qq(</div>\n);
-	print_footer();
+	print_footer($base_tpl);
 	die;
 }elsif($QUERY_STRING =~ /^list(?:[&=].+)?$/){
 #-------------------------------------------------------------------------------
@@ -6756,9 +6798,10 @@ if($QUERY_STRING eq "css"){
 		$TITLE = get_msg($msg_id, $var{glob});
 	}
 
-	print_header();
+	my $base_tpl = print_base(2);
+	print_header($base_tpl);
 	print_list_pages($var{list}, $var{n}, $var{title}, $var{glob}, $TITLE);
-	print_footer();
+	print_footer($base_tpl);
 	die;
 }elsif($QUERY_STRING =~ /^rss(?:[&=].+)?$/){
 #-------------------------------------------------------------------------------
@@ -6873,9 +6916,10 @@ EOT
 	my %var = get_var();
 	if($var{search} eq ""){
 		local $TITLE = get_msg("search_form");
-		print_header();
+		my $base_tpl = print_base(2);
+		print_header($base_tpl);
 		create_search_form(1);
-		print_footer();
+		print_footer($base_tpl);
 		die;
 	}
 
@@ -6889,10 +6933,11 @@ EOT
 		$TITLE = get_msg("search_matching", $var{glob}, $_);
 	}
 
-	print_header();
+	my $base_tpl = print_base(2);
+	print_header($base_tpl);
 	print_search_pages($var{search}, $var{simple}, $var{icase}, $var{link},
 		$var{title}, $var{nomatch}, $var{glob}, $TITLE);
-	print_footer();
+	print_footer($base_tpl);
 	die;
 }elsif($QUERY_STRING =~ /^wiki_/){
 #-------------------------------------------------------------------------------
@@ -6967,7 +7012,7 @@ EOT
 			chomp $TEXT;
 			$VERSION++;
 			preprocess_text();
-			print_wiki_edit();
+			print_html(print_wiki_edit(2));
 			die;
 		}else{
 			my %var = get_var();
@@ -6989,7 +7034,7 @@ EOT
 			local $VERSION = $var{version};
 			local $TEXT = $var{text};
 			if($VERSION != get_version($PAGE) + 1){
-				print_updated();
+				print_html(print_updated(2));
 				die;
 			}
 			my $file_links;
@@ -7045,7 +7090,7 @@ EOT
 			}
 			chomp $TEXT;
 			preprocess_text();
-			print_wiki_edit_lines();
+			print_html(print_wiki_edit_lines(2));
 			die;
 		}else{
 			my %var = get_var();
@@ -7069,7 +7114,7 @@ EOT
 			local $COUNT = $var{count};
 			local $TEXT = $var{text};
 			if($VERSION != get_version($PAGE) + 1){
-				print_updated();
+				print_html(print_updated(2));
 				die;
 			}
 			my $file_links;
@@ -7138,7 +7183,7 @@ EOT
 # u?manage_pages	Manage pages
 # u/PAGE?manage_pages	Manage pages
 	die_message("admin_actions_not_allowed") unless $admin;
-	print_manage_pages();
+	print_html(print_manage_pages(2));
 	die;
 }elsif($QUERY_STRING eq "backup"){
 #-------------------------------------------------------------------------------
@@ -7218,7 +7263,8 @@ EOT
 		get_msg("refresh_pages_matching", $glob);
 
 	local $TITLE = $title;
-	print_header();
+	my $base_tpl = print_base(2);
+	print_header($base_tpl);
 	print qq(<div class="list">\n<h1>$title</h1>\n<ul>\n);
 	foreach($glob eq "" ? (<.*.txt>, <*.txt>) : <$glob.txt>){
 		next if index($_, "/") >= 0 || !-f $_;
@@ -7231,23 +7277,24 @@ EOT
 		print qq(<li><a href="$PAGE.html">$PAGE</a></li>\n);
 	}
 	print qq(</ul>\n</div>\n);
-	print_footer();
+	print_footer($base_tpl);
 	die;
 }elsif($QUERY_STRING eq "list_users"){
 #-------------------------------------------------------------------------------
 # u?list_users		List users
 # u/PAGE?list_users	List users
 	die_message("admin_actions_not_allowed") unless $admin;
-	print_header();
+	my $base_tpl = print_base(2);
+	print_header($base_tpl);
 	print_list_users();
-	print_footer();
+	print_footer($base_tpl);
 	die;
 }elsif($QUERY_STRING eq "manage_users"){
 #-------------------------------------------------------------------------------
 # u?manage_users	Manage users
 # u/PAGE?manage_users	Manage users
 	die_message("admin_actions_not_allowed") unless $admin;
-	print_manage_users();
+	print_html(print_manage_users(2));
 	die;
 }elsif($QUERY_STRING eq "add_user" && $REQUEST_METHOD eq "POST"){
 #-------------------------------------------------------------------------------
@@ -7562,8 +7609,7 @@ EOT
 
 	if($TEMPLATE_DIRECTORY ne ""){
 		mkdir $TEMPLATE_DIRECTORY, 0755 unless -d $TEMPLATE_DIRECTORY;
-		print_header(1);
-		print_footer(1);
+		print_base(1);
 		print_login(1);
 		print_manage_pages(1);
 		print_manage_users(1);
@@ -7651,7 +7697,7 @@ EOT
 		chomp $TEXT;
 		$VERSION++;
 		preprocess_text();
-		print_edit();
+		print_html(print_edit(2));
 		die;
 	}
 
@@ -7661,7 +7707,7 @@ EOT
 	$VERSION = $var{version};
 	$TEXT = $var{text};
 	if($VERSION != get_version($PAGE) + 1){
-		print_updated();
+		print_html(print_updated(2));
 		die;
 	}
 	my $file_links;
@@ -7708,7 +7754,7 @@ EOT
 		}
 		chomp $TEXT;
 		preprocess_text();
-		print_edit_lines();
+		print_html(print_edit_lines(2));
 		die;
 	}
 
@@ -7720,7 +7766,7 @@ EOT
 	$COUNT = $var{count};
 	$TEXT = $var{text};
 	if($VERSION != get_version($PAGE) + 1){
-		print_updated();
+		print_html(print_updated(2));
 		die;
 	}
 	my $file_links;
@@ -7793,9 +7839,10 @@ EOT
 	my %var = get_var();
 	if($var{rename} eq ""){
 		local $TITLE = get_msg("rename_form");
-		print_header();
+		my $base_tpl = print_base(2);
+		print_header($base_tpl);
 		create_rename_form(1);
-		print_footer();
+		print_footer($base_tpl);
 		die;
 	}
 
