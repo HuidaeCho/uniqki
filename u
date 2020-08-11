@@ -1631,15 +1631,22 @@ sub process_tpl_tag{
 	local *FH;
 	my $txt = "";
 
-	open FH, ">", \$txt; my $fh = select FH;
 	if($tag eq "EDIT"){
-		print_edit();
+		$txt = print_edit(2);
+		$txt =~ s/^.*(?=<!-- EDIT -->)|(?<=<!-- END OF EDIT -->).*$//sig
+			if($txt =~ m/^<!DOCTYPE/i);
 	}elsif($tag eq "WIKI_EDIT"){
-		print_wiki_edit();
+		$txt = print_wiki_edit(2);
+		$txt =~ s/^.*(?=<!-- WIKI_EDIT -->)|(?<=<!-- END OF WIKI_EDIT -->).*$//sig
+			if($txt =~ m/^<!DOCTYPE/i);
 	}elsif($tag eq "EDIT_LINES"){
-		print_edit_lines();
+		$txt = print_edit_lines(2);
+		$txt =~ s/^.*(?=<!-- EDIT_LINES -->)|(?<=<!-- END OF EDIT_LINES -->).*$//sig
+			if($txt =~ m/^<!DOCTYPE/i);
 	}elsif($tag eq "WIKI_EDIT_LINES"){
-		print_wiki_edit_lines();
+		$txt = print_wiki_edit_lines(2);
+		$txt =~ s/^.*(?=<!-- WIKI_EDIT_LINES -->)|(?<=<!-- END OF WIKI_EDIT_LINES -->).*$//sig
+			if($txt =~ m/^<!DOCTYPE/i);
 	}elsif($tag =~ /^[A-Z_]+$/){
 		my @tags = qw(
 			MAIN SITE_TITLE SITE_DESCRIPTION SITE_URL INDEX_PAGE
@@ -1665,7 +1672,6 @@ sub process_tpl_tag{
 			$txt =~ s/\[\[$_\]\]/$$_/g;
 		}
 	}
-	close FH; select $fh;
 
 	return $txt;
 }
@@ -2084,6 +2090,7 @@ sub print_edit{
 	# $_[0]=1: write
 	# $_[0]=2: string
 	return process_tpl("edit.tpl", shift, <<'EOT_UNIQKI');
+<!-- EDIT -->
 <section id="edit">
 <h1>[[edit_page]]</h1>
 <form action="[[PAGE]]?edit" method="post" enctype="multipart/form-data">
@@ -2108,6 +2115,7 @@ listenToPasteImage('../[[CGI]]/[[PAGE]]?upload', [[VERSION]], '[[type_filename]]
 </div>
 </form>
 </section>
+<!-- END OF EDIT -->
 EOT_UNIQKI
 }
 
@@ -2129,6 +2137,7 @@ sub print_edit_lines{
 	# $_[0]=1: write
 	# $_[0]=2: string
 	return process_tpl("edit_lines.tpl", shift, <<'EOT_UNIQKI');
+<!-- EDIT_LINES -->
 <section id="edit">
 <h1>[[edit_lines]]</h1>
 <form action="[[PAGE]]?edit_lines" method="post" enctype="multipart/form-data">
@@ -2155,6 +2164,7 @@ listenToPasteImage('../[[CGI]]/[[PAGE]]?upload', [[VERSION]], '[[type_filename]]
 </div>
 </form>
 </section>
+<!-- END OF EDIT_LINES -->
 EOT_UNIQKI
 }
 
@@ -2217,6 +2227,7 @@ sub print_wiki_edit{
 	# $_[0]=1: write
 	# $_[0]=2: string
 	return process_tpl("wiki_edit.tpl", shift, <<'EOT_UNIQKI');
+<!-- WIKI_EDIT -->
 <section id="wiki-edit">
 <h1>[[wiki_edit_page]]</h1>
 <form action="[[PAGE]]?wiki_edit" method="post" enctype="multipart/form-data">
@@ -2243,6 +2254,7 @@ listenToPasteImage('../[[CGI]]/[[PAGE]]?upload', [[VERSION]], '[[type_filename]]
 </div>
 </form>
 </section>
+<!-- END OF WIKI_EDIT -->
 EOT_UNIQKI
 }
 
@@ -2264,6 +2276,7 @@ sub print_wiki_edit_lines{
 	# $_[0]=1: write
 	# $_[0]=2: string
 	return process_tpl("wiki_edit_lines.tpl", shift, <<'EOT_UNIQKI');
+<!-- WIKI_EDIT_LINES -->
 <section id="wiki-edit">
 <h1>[[wiki_edit_lines]]</h1>
 <form action="[[PAGE]]?wiki_edit_lines" method="post" enctype="multipart/form-data">
@@ -2292,6 +2305,7 @@ listenToPasteImage('../[[CGI]]/[[PAGE]]?upload', [[VERSION]], '[[type_filename]]
 </div>
 </form>
 </section>
+<!-- END OF WIKI_EDIT_LINES -->
 EOT_UNIQKI
 }
 
