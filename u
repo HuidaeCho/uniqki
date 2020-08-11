@@ -158,7 +158,6 @@ use vars qw(
 	$is_block
 	$preprocess_text
 	$verify_input
-	$html_started
 );
 
 umask 022;
@@ -783,12 +782,6 @@ sub die_text{
 	print "Content-Type: text/plain\n\n";
 	print shift;
 	die;
-}
-
-sub start_html{
-	return if $html_started;
-	$html_started = 1;
-	print "Content-Type: text/html\n\n";
 }
 
 sub convert_page_name{
@@ -1694,7 +1687,7 @@ sub process_tpl{
 	}
 
 	if($ext eq "tpl"){
-		start_html();
+		print "Content-Type: text/html\n\n";
 	}elsif($ext eq "css"){
 		print "Content-Type: text/css\n\n";
 	}elsif($ext eq "js"){
@@ -2036,7 +2029,6 @@ sub print_view{
 	# $_[0]=2: string
 	# View templates are never served dynamically, so don't print a
 	# content-type header
-	$html_started = 1;
 	return process_tpl("view.tpl", shift, <<'EOT_UNIQKI');
 <article id="view">
 <!-- start text -->
@@ -2171,7 +2163,6 @@ sub print_wiki_view{
 	# $_[0]=2: string
 	# View templates are never served dynamically, so don't print a
 	# content-type header
-	$html_started = 1;
 	return process_tpl("wiki_view.tpl", shift, <<'EOT_UNIQKI');
 <article id="wiki-view">
 <!-- start text -->
@@ -3240,7 +3231,6 @@ sub preview{
 	local $is_wiki;
 	# preview the entire document
 	local $is_preview = 1;
-	local $html_started = 0;
 	local $TITLE;
 	local $PREVIEW;
 
@@ -3278,7 +3268,6 @@ sub preview_lines{
 	local $is_wiki;
 	# start previewing partially, but not the current section yet
 	local $is_preview = 2;
-	local $html_started = 0;
 	local $TITLE;
 	local $PREVIEW;
 
@@ -3312,7 +3301,6 @@ sub make_html{
 	local $is_preview = 0;
 	# main text
 	local $is_block = 0;
-	local $html_started = 0;
 	local $AUTHOR = get_author($PAGE);
 	local $TIME = format_time((stat "$PAGE.txt")[9]);
 	local $TITLE;
@@ -7899,7 +7887,7 @@ if($nonwiki_read_access ne "open" || $wiki_read_access ne "open"){
 	die_message("page_not_found", $PAGE) unless -f "$PAGE.html";
 
 	local *FH;
-	start_html();
+	print "Content-Type: text/html\n\n";
 	open FH, "$PAGE.html";
 	print <FH>;
 	close FH;
