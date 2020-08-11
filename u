@@ -6642,8 +6642,13 @@ if($QUERY_STRING eq "css"){
 # u/PAGE		Show PAGE
 # u/PAGE/		List files belonging to PAGE
 # u/PAGE/FILE		Download PAGE/FILE
-# u/PAGE/DIR/...	Redirect to u/DIR/...
-	die_redirect("$HTTP_BASE$SCRIPT_NAME/$FILE") if $FILE =~ m#/#;
+# u/PAGE/DIR/...	Download PAGE/DIR/...
+
+	# XXX: Do we need this redirection?
+	# u/PAGE/DIR/...	Redirect to u/DIR/...
+	#			DIR becomes PAGE and ... becomes FILE
+	# die_redirect("$HTTP_BASE$SCRIPT_NAME/$FILE") if $FILE =~ m#/#;
+
 	die_path("$PAGE/$FILE") if($FILE ne "" ||
 		($PAGE ne "" && "/" eq substr $PATH_INFO, -1));
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE") if $PAGE eq "";
