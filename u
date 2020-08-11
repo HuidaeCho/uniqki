@@ -2093,6 +2093,8 @@ sub print_edit{
 <!-- EDIT -->
 <section id="edit">
 <h1>[[edit_page]]</h1>
+<div id="preview-warning" style="display:none;">[[preview_warning]]</div>
+<article id="preview-main"></article>
 <form action="[[PAGE]]?edit" method="post" enctype="multipart/form-data">
 <div>
 <input type="hidden" id="version" name="version" value="[[VERSION]]" />
@@ -2230,6 +2232,8 @@ sub print_wiki_edit{
 <!-- WIKI_EDIT -->
 <section id="wiki-edit">
 <h1>[[wiki_edit_page]]</h1>
+<div id="wiki-preview-warning" style="display:none;">[[preview_warning]]</div>
+<article id="wiki-preview-main"></article>
 <form action="[[PAGE]]?wiki_edit" method="post" enctype="multipart/form-data">
 <div>
 <input type="hidden" id="version" name="version" value="[[VERSION]]" />
