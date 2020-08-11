@@ -1709,28 +1709,45 @@ sub process_tpl{
 }
 
 sub print_html{
-	# $_[0]: processed [[MAIN]]
+	# $main: processed [[MAIN]]
+	# $mode=undef: print
+	# $mode=1: string
+	my ($main, $mode) = @_;
 	my $base_tpl = print_base(2);
-	print_header($base_tpl);
-	print shift;
-	print_footer($base_tpl);
+	my $html = print_header($base_tpl, 1).$main.print_footer($base_tpl, 1);
+	unless(defined $mode){
+		start_html();
+		print $html;
+	}else{
+		return $html;
+	}
 }
 
 sub print_header{
-	# $_: processed base template
-	# print only
-	local $_ = shift;
-	s/\[\[MAIN\]\].*$//s;
-	start_html();
-	print;
+	# $base_tpl: processed base template
+	# $mode=undef: print
+	# $mode=1: string
+	my ($base_tpl, $mode) = @_;
+	$base_tpl =~ s/\[\[MAIN\]\].*$//s;
+	unless(defined $mode){
+		start_html();
+		print $base_tpl;
+	}else{
+		return $base_tpl;
+	}
 }
 
 sub print_footer{
-	# $_: processed base template
-	# print only
-	local $_ = shift;
-	s/^.*\[\[MAIN\]\]//s;
-	print;
+	# $base_tpl: processed base template
+	# $mode=undef: print
+	# $mode=1: string
+	my ($base_tpl, $mode) = @_;
+	$base_tpl =~ s/^.*\[\[MAIN\]\]//s;
+	unless(defined $mode){
+		print $base_tpl;
+	}else{
+		return $base_tpl;
+	}
 }
 
 sub print_base{
@@ -3326,13 +3343,11 @@ sub make_html{
 	}
 
 	my $html;
-	open FH, ">", \$html; my $fh = select FH;
 	if($is_wiki){
-		print_html(print_wiki_view(2));
+		$html = print_html(print_wiki_view(2), 1);
 	}else{
-		print_html(print_view(2));
+		$html = print_html(print_view(2), 1);
 	}
-	close FH; select $fh;
 	$html =~ s/\r//g;
 
 	lock_file("$PAGE.html");
