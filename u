@@ -1686,21 +1686,22 @@ sub process_tpl{
 		return;
 	}
 
-	if($ext eq "tpl"){
-		print "Content-Type: text/html\n\n";
-	}elsif($ext eq "css"){
-		print "Content-Type: text/css\n\n";
-	}elsif($ext eq "js"){
-		print "Content-Type: text/javascript\n\n";
-	}
-
 	$tpl = read_file($path) if(-f $path);
-
 	$tpl =~ s/\[\[([A-Za-z0-9_]*)\]\]/@{[process_tpl_tag($1)]}/g;
 	chomp $tpl;
 
-	return $tpl if($mode == 2);
-	print $tpl;
+	unless(defined $mode){
+		if($ext eq "tpl"){
+			print "Content-Type: text/html\n\n";
+		}elsif($ext eq "css"){
+			print "Content-Type: text/css\n\n";
+		}elsif($ext eq "js"){
+			print "Content-Type: text/javascript\n\n";
+		}
+		print $tpl;
+	}else{
+		return $tpl;
+	}
 }
 
 sub print_html{
