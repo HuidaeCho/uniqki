@@ -2654,6 +2654,10 @@ sub print_js{
 const reAbsoluteURL = /^(?:https?:\/\/|\/)/;
 let head = document.getElementsByTagName('head')[0];
 
+function getPageName(){
+	return window.location.pathname.replace(/^.*\/|\.html$/g, '');
+}
+
 function getAbsoluteURL(url){
 	if(!url.match(reAbsoluteURL)){
 		if(window.location.pathname.match(/^.*?\/u(?:\/.*)?$/))
