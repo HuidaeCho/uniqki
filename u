@@ -4355,7 +4355,8 @@ sub print_list_pages{
 		if($tls || $title){
 			my $text = read_file("$page.html");
 			if($text ne ""){
-				$text =~ s#<!--.*?-->##sg;
+				$text =~ s/^.*<!-- start text -->|<!-- end text -->.*$//sgi;
+				$text =~ s/<!--.*?-->//sg;
 				$text =~ s#<(script|style).*?</\1>##sgi;
 				if($text =~ m#<h1[^>]*>(.+?)</h1>#si){
 					$_ = $1;
@@ -4446,7 +4447,7 @@ sub print_search_pages{
 
 		my $page_name = $page;
 		$text =~ s/^.*<!-- start text -->|<!-- end text -->.*$//sgi;
-		$text =~ s#<!--.*?-->##sg;
+		$text =~ s/<!--.*?-->//sg;
 		$text =~ s#<(script|style).*?</\1>##sgi;
 		$text =~ y/&/\x01/;
 		$text =~ y/</\x02/;
@@ -6913,7 +6914,7 @@ EOT
 		}else{
 			$title = $page;
 		}
-		$text =~ s#<!--.*?-->##sg;
+		$text =~ s/<!--.*?-->//sg;
 		$text =~ s#<(script|style).*?</\1>##sgi;
 		$text =~ s/<[^>]*>//g;
 		$text =~ s/&[^ ]*;/ /g;
