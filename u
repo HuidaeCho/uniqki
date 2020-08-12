@@ -1631,15 +1631,22 @@ sub process_tpl_tag{
 	local *FH;
 	my $txt = "";
 
-	open FH, ">", \$txt; my $fh = select FH;
 	if($tag eq "EDIT"){
-		print_edit();
+		$txt = print_edit(2);
+		$txt =~ s/^.*(?=<!-- EDIT -->)|(?<=<!-- END OF EDIT -->).*$//sig
+			if($txt =~ m/^<!DOCTYPE/i);
 	}elsif($tag eq "WIKI_EDIT"){
-		print_wiki_edit();
+		$txt = print_wiki_edit(2);
+		$txt =~ s/^.*(?=<!-- WIKI_EDIT -->)|(?<=<!-- END OF WIKI_EDIT -->).*$//sig
+			if($txt =~ m/^<!DOCTYPE/i);
 	}elsif($tag eq "EDIT_LINES"){
-		print_edit_lines();
+		$txt = print_edit_lines(2);
+		$txt =~ s/^.*(?=<!-- EDIT_LINES -->)|(?<=<!-- END OF EDIT_LINES -->).*$//sig
+			if($txt =~ m/^<!DOCTYPE/i);
 	}elsif($tag eq "WIKI_EDIT_LINES"){
-		print_wiki_edit_lines();
+		$txt = print_wiki_edit_lines(2);
+		$txt =~ s/^.*(?=<!-- WIKI_EDIT_LINES -->)|(?<=<!-- END OF WIKI_EDIT_LINES -->).*$//sig
+			if($txt =~ m/^<!DOCTYPE/i);
 	}elsif($tag =~ /^[A-Z_]+$/){
 		my @tags = qw(
 			MAIN SITE_TITLE SITE_DESCRIPTION SITE_URL INDEX_PAGE
@@ -1665,7 +1672,6 @@ sub process_tpl_tag{
 			$txt =~ s/\[\[$_\]\]/$$_/g;
 		}
 	}
-	close FH; select $fh;
 
 	return $txt;
 }
@@ -1709,12 +1715,17 @@ sub process_tpl{
 }
 
 sub print_html{
-	# $main: processed [[MAIN]]
+	# $main: processed [[MAIN]] or the entire HTML starting with <!DOCTYPE
 	# $mode=undef: print
 	# $mode=1: string
 	my ($main, $mode) = @_;
-	my $base_tpl = print_base(2);
-	my $html = print_header($base_tpl, 1).$main.print_footer($base_tpl, 1);
+	my $html;
+	if($main =~ m/^<!DOCTYPE/i){
+		$html = $main;
+	}else{
+		my $base_tpl = print_base(2);
+		$html = print_header($base_tpl, 1).$main.print_footer($base_tpl, 1);
+	}
 	unless(defined $mode){
 		start_html();
 		print $html;
@@ -2079,8 +2090,11 @@ sub print_edit{
 	# $_[0]=1: write
 	# $_[0]=2: string
 	return process_tpl("edit.tpl", shift, <<'EOT_UNIQKI');
+<!-- EDIT -->
 <section id="edit">
 <h1>[[edit_page]]</h1>
+<div id="preview-warning" style="display:none;">[[preview_warning]]</div>
+<article id="preview-main"></article>
 <form action="[[PAGE]]?edit" method="post" enctype="multipart/form-data">
 <div>
 <input type="hidden" id="version" name="version" value="[[VERSION]]" />
@@ -2103,6 +2117,7 @@ listenToPasteImage('../[[CGI]]/[[PAGE]]?upload', [[VERSION]], '[[type_filename]]
 </div>
 </form>
 </section>
+<!-- END OF EDIT -->
 EOT_UNIQKI
 }
 
@@ -2124,6 +2139,7 @@ sub print_edit_lines{
 	# $_[0]=1: write
 	# $_[0]=2: string
 	return process_tpl("edit_lines.tpl", shift, <<'EOT_UNIQKI');
+<!-- EDIT_LINES -->
 <section id="edit">
 <h1>[[edit_lines]]</h1>
 <form action="[[PAGE]]?edit_lines" method="post" enctype="multipart/form-data">
@@ -2150,6 +2166,7 @@ listenToPasteImage('../[[CGI]]/[[PAGE]]?upload', [[VERSION]], '[[type_filename]]
 </div>
 </form>
 </section>
+<!-- END OF EDIT_LINES -->
 EOT_UNIQKI
 }
 
@@ -2212,8 +2229,11 @@ sub print_wiki_edit{
 	# $_[0]=1: write
 	# $_[0]=2: string
 	return process_tpl("wiki_edit.tpl", shift, <<'EOT_UNIQKI');
+<!-- WIKI_EDIT -->
 <section id="wiki-edit">
 <h1>[[wiki_edit_page]]</h1>
+<div id="wiki-preview-warning" style="display:none;">[[preview_warning]]</div>
+<article id="wiki-preview-main"></article>
 <form action="[[PAGE]]?wiki_edit" method="post" enctype="multipart/form-data">
 <div>
 <input type="hidden" id="version" name="version" value="[[VERSION]]" />
@@ -2238,6 +2258,7 @@ listenToPasteImage('../[[CGI]]/[[PAGE]]?upload', [[VERSION]], '[[type_filename]]
 </div>
 </form>
 </section>
+<!-- END OF WIKI_EDIT -->
 EOT_UNIQKI
 }
 
@@ -2259,6 +2280,7 @@ sub print_wiki_edit_lines{
 	# $_[0]=1: write
 	# $_[0]=2: string
 	return process_tpl("wiki_edit_lines.tpl", shift, <<'EOT_UNIQKI');
+<!-- WIKI_EDIT_LINES -->
 <section id="wiki-edit">
 <h1>[[wiki_edit_lines]]</h1>
 <form action="[[PAGE]]?wiki_edit_lines" method="post" enctype="multipart/form-data">
@@ -2287,6 +2309,7 @@ listenToPasteImage('../[[CGI]]/[[PAGE]]?upload', [[VERSION]], '[[type_filename]]
 </div>
 </form>
 </section>
+<!-- END OF WIKI_EDIT_LINES -->
 EOT_UNIQKI
 }
 
@@ -6623,8 +6646,13 @@ if($QUERY_STRING eq "css"){
 # u/PAGE		Show PAGE
 # u/PAGE/		List files belonging to PAGE
 # u/PAGE/FILE		Download PAGE/FILE
-# u/PAGE/DIR/...	Redirect to u/DIR/...
-	die_redirect("$HTTP_BASE$SCRIPT_NAME/$FILE") if $FILE =~ m#/#;
+# u/PAGE/DIR/...	Download PAGE/DIR/...
+
+	# XXX: Do we need this redirection?
+	# u/PAGE/DIR/...	Redirect to u/DIR/...
+	#			DIR becomes PAGE and ... becomes FILE
+	# die_redirect("$HTTP_BASE$SCRIPT_NAME/$FILE") if $FILE =~ m#/#;
+
 	die_path("$PAGE/$FILE") if($FILE ne "" ||
 		($PAGE ne "" && "/" eq substr $PATH_INFO, -1));
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE") if $PAGE eq "";
