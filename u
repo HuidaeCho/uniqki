@@ -132,7 +132,7 @@ use vars qw(
 
 # parse_file() local variables
 use vars qw(
-	$lineno $text $url_char $url_punct $fresh_block $code_block
+	$lineno $text $url_chars $url_puncts $fresh_block $code_block
 	$syntax_block @parsed_blocks $re_block $re_start $re_n @re @re_sub $p
 	$asis $nosyntax $pre $pre_code $blockquote $list $table $figure
 	@h_lines %h_n $h_top $h_prev %h_secs %secs_no $toc $toc_dep $tab_no
@@ -4555,7 +4555,7 @@ sub parse_file{
 	$is_wiki = <UNIQKI_FH> eq "#!wiki\n" ? 1 : 0;
 	close UNIQKI_FH;
 
-	local ($text, $url_char, $url_punct, $fresh_block, $code_block,
+	local ($text, $url_chars, $url_puncts, $fresh_block, $code_block,
 		$syntax_block, @parsed_blocks, $re_block, $re_start, $re_n,
 		@re, @re_sub, $p, $asis, $nosyntax, $pre, $pre_code,
 		$blockquote, $list, $table, $figure, @h_lines, %h_n, $h_top,
@@ -4669,7 +4669,7 @@ sub parse_file{
 sub parse_fresh_block{
 	# parse a text block $_[0] in a fresh parsing environment
 	my $txt = shift;
-	local ($is_block, $text, $url_char, $url_punct, $fresh_block,
+	local ($is_block, $text, $url_chars, $url_puncts, $fresh_block,
 		$code_block, $syntax_block, @parsed_blocks, $re_block,
 		$re_start, $re_n, @re, @re_sub, $p, $asis, $nosyntax, $pre,
 		$pre_code, $blockquote, $list, $table, $figure, @h_lines, %h_n,
@@ -4690,7 +4690,7 @@ sub parse_fresh_block{
 sub parse_syntax_block{
 	# parse a text block $_[0] in the parent's parsing environment
 	my $txt = shift;
-	local ($is_block, $text, $url_char, $url_punct, $fresh_block,
+	local ($is_block, $text, $url_chars, $url_puncts, $fresh_block,
 		$code_block, $syntax_block, @parsed_blocks, $p, $asis,
 		$nosyntax, $pre, $pre_code, $blockquote, $list, $table,
 		$figure);
@@ -5733,9 +5733,9 @@ sub process_inline_syntax{
 	# Protect protocols outside tags
 	s#(<a [^>]*>)([^<]*(?:[a-z]+://)[^<]*)(</a\x00?>)#$1@{[protect_urls($2)]}$3#gi;
 	# Translate non-protected protocols to links
-	s#(?<![a-zA-Z\x00])((?:[a-z]+://)[\x01$url_char]+\x01[a-z]+;)(?=(?:[ \t]|$))#<a class="auto-title" href="\x00$1">\x00$1</a>#ogi;
-	s#(?<![a-zA-Z\x00])((?:[a-z]+://)[\x01$url_char]+)(?=[$url_punct](?:[ \t]|$))#<a class="auto-title" href="\x00$1">\x00$1</a>#ogi;
-	s#(?<![a-zA-Z\x00])((?:[a-z]+://)[\x01$url_char]+)#<a class="auto-title" href="\x00$1">\x00$1</a>#ogi;
+	s#(?<![a-zA-Z\x00])((?:[a-z]+://)[\x01$url_chars]+\x01[a-z]+;)(?=(?:[ \t]|$))#<a class="auto-title" href="\x00$1">\x00$1</a>#ogi;
+	s#(?<![a-zA-Z\x00])((?:[a-z]+://)[\x01$url_chars]+)(?=[$url_puncts](?:[ \t]|$))#<a class="auto-title" href="\x00$1">\x00$1</a>#ogi;
+	s#(?<![a-zA-Z\x00])((?:[a-z]+://)[\x01$url_chars]+)#<a class="auto-title" href="\x00$1">\x00$1</a>#ogi;
 	s/\x01/&amp;/g; s/\x02/&lt;/g; s/\x03/&gt;/g;
 
 	return $_;
@@ -5982,8 +5982,8 @@ sub verify_input{
 }
 
 sub begin_parsing{
-	$url_char = 'a-zA-Z0-9:@/~%.,_$?=&;#+-';
-	$url_punct = '.,;:!?';
+	$url_chars = 'a-zA-Z0-9:@/~%.,_$?=&;#+-';
+	$url_puncts = '.,;:!?';
 
 	$text = "";
 
