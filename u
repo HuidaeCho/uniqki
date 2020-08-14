@@ -279,6 +279,29 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 		print "Location: $url\n\n";
 	}
 
+	sub run_file_mime_type{
+		my $file = shift;
+		return "" if $MIME_TYPE_COMMAND eq "" || !-f $file;
+		(my $mime_type = `$MIME_TYPE_COMMAND $file`) =~ y/\r\n//d;
+		return $mime_type;
+	}
+
+	sub get_mime_type{
+		my $file = shift;
+		return "" unless -f $file;
+		my $mime_type;
+		eval "use MIME::Types;";
+		if($@){
+			$mime_type = run_file_mime_type($file);
+		}else{
+			$mime_type = MIME::Types->new(only_iana=>1)->mimeTypeOf($file);
+			$mime_type = run_file_mime_type($file)
+				if $mime_type eq "";
+		}
+		$mime_type = "application/octet-stream" if $mime_type eq "";
+		return $mime_type;
+	}
+
 	sub respond_file{
 		my ($client, $file) = @_;
 		logger "Sending $file...\n\n";
@@ -694,66 +717,31 @@ sub config_access{
 	return ($nonwiki_access, $wiki_access);
 }
 
-sub run_file_mime_type{
-	my $file = shift;
-	return "" if $MIME_TYPE_COMMAND eq "" || !-f $file;
-	(my $mime_type = `$MIME_TYPE_COMMAND $file`) =~ y/\r\n//d;
-	return $mime_type;
-}
-
-sub get_mime_type{
-	my $file = shift;
-	return "" unless -f $file;
-	my $mime_type;
-	eval "use MIME::Types;";
-	if($@){
-		$mime_type = run_file_mime_type($file);
-	}else{
-		$mime_type = MIME::Types->new(only_iana=>1)->mimeTypeOf($file);
-		$mime_type = run_file_mime_type($file) if $mime_type eq "";
-	}
-	$mime_type = "application/octet-stream" if $mime_type eq "";
-	return $mime_type;
-}
-
 sub die_path{
 	my $path = shift;
 	die_message("path_not_found", $path) unless -e $path;
+	die_redirect("$DOC_BASE/$path") unless -d $path;
 
-	if(-d $path){
-		my $parent = "$path/" if($path !~ s#/+$##);
-		my $title = get_msg("page_files", $path);
-		(local $TITLE = $title) =~ s/<[^>]*>//g;
-		my $base_tpl = print_base(2);
-		print_header($base_tpl);
-		print qq(<div class="list">\n<h1>$title</h1>\n<ul>\n);
-		foreach(<$path/*>){
-			my $file = $_;
-			s#^[^/]*/##;
-			my $url = $parent.encode_url_safe($_);
-			s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
-			my $name = $_;
-			my @t = localtime((stat $file)[9]);
-			my $time = sprintf "%d-%02d-%02d %02d:%02d:%02d",
-				$t[5]+1900, $t[4]+1, $t[3], $t[2], $t[1], $t[0];
-			print qq(<li><a href="$url">$name</a> <span class="list-time">$time</span></li>\n);
-		}
-		print qq(</ul></div>\n);
-		print_footer($base_tpl);
-		die;
+	my $parent = "$path/" if($path !~ s#/+$##);
+	my $title = get_msg("page_files", $path);
+	(local $TITLE = $title) =~ s/<[^>]*>//g;
+	my $base_tpl = print_base(2);
+	print_header($base_tpl);
+	print qq(<div class="list">\n<h1>$title</h1>\n<ul>\n);
+	foreach(<$path/*>){
+		my $is_dir = -d $_;
+		my $item = $_;
+		s#^.*/##;
+		my $url = encode_url_safe($_).($is_dir ? "/" : "");
+		s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
+		my $name = $_.($is_dir ? "/" : "");
+		my @t = localtime((stat $item)[9]);
+		my $time = sprintf "%d-%02d-%02d %02d:%02d:%02d",
+			$t[5]+1900, $t[4]+1, $t[3], $t[2], $t[1], $t[0];
+		print qq(<li><a href="$url">$name</a> <span class="list-time">$time</span></li>\n);
 	}
-
-	my $mime_type = get_mime_type($path);
-	(my $file = $path) =~ s#^.*/##;
-	print <<EOT;
-Content-Type: $mime_type
-Content-Disposition: inline; filename="$file"
-
-EOT
-	local *FH;
-	open FH, $path;
-	print <FH>;
-	close FH;
+	print qq(</ul></div>\n);
+	print_footer($base_tpl);
 	die;
 }
 
