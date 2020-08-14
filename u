@@ -718,11 +718,34 @@ sub config_access{
 }
 
 sub die_path{
-	my $path = shift;
-	die_message("path_not_found", $path) unless -e $path;
-	die_redirect("$DOC_BASE/$path") unless -d $path;
+	(my $path = shift) =~ s#/+$##;
+	unless(-e $path){
+		# inside a file listing (u/page/)? strip out the page name;
+		# its main purpose is to be able to use relative paths in the
+		# template
+		# e.g., "u.tpl/..." inside u/page/?
+		# page/u.tpl/... does not exist; try to find u.tpl/... instead
+		if($path =~ m#^([^/]*)/(.*)$# && $1 eq $PAGE){
+			# handle a deep path
+			# e.g., "u.tpl/..." inside u/page/dir/?
+			# page/dir/u.tpl/... => u.tpl/...
+			do{
+				$path = $2;
+			}while(!-e $path && $path =~ m#^([^/]*)/(.*)$#);
+		}
+		die_message("path_not_found", $path) unless -e $path;
+	}
 
-	my $parent = "$path/" if($path !~ s#/+$##);
+	# don't handle a file or a deep $path (page/dir); just pass it to the
+	# web server for security reasons; remember Uniqki does not support a
+	# hierarchical page structure; it's always page/ or page/file, not
+	# page/dir/...; the only exception is for template files (see the deep
+	# path code in the above unless block
+	die_redirect("$DOC_BASE/$path") if !-d $path || $path =~ m#/#;
+
+	# don't allow arbitrary directories to be listed; no page, no listing
+	die_message("page_not_found", $PAGE) unless page_exists();
+
 	my $title = get_msg("page_files", $path);
 	(local $TITLE = $title) =~ s/<[^>]*>//g;
 	my $base_tpl = print_base(2);
