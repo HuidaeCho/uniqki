@@ -2666,7 +2666,7 @@ const reAbsoluteURL = /^(?:https?:\/\/|\/)/;
 let head = document.getElementsByTagName('head')[0];
 
 function getPageName(){
-	return window.location.pathname.replace(/^.*\/|\.html$/g, '');
+	return window.location.pathname.replace(/^.*\/|\.html$/g, '') || 'index';
 }
 
 function getAbsoluteURL(url){
