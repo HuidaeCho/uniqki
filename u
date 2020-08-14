@@ -733,7 +733,7 @@ sub die_path{
 				$path = $2;
 			}while(!-e $path && $path =~ m#^([^/]*)/(.*)$#);
 		}
-		die_message("path_not_found", $path) unless -e $path;
+		die_redirect("$DOC_BASE/$CGI/$path") unless -e $path;
 	}
 
 	# don't handle a file or a deep $path (page/dir); just pass it to the
@@ -1530,7 +1530,6 @@ not_allowed_to_create_nonwiki_page => q(%s: You are not allowed to create this n
 not_allowed_to_comment_in_nonwiki_page => q(%s: You are not allowed to comment in this non-wiki page.),
 not_allowed_to_create_wiki_page => q(%s: You are not allowed to create this wiki page.),
 not_allowed_to_edit_wiki_page => q(%s: You are not allowed to edit this wiki page.),
-path_not_found => q(%s: Path not found.),
 
 recent_changes => q(Recent changes),
 recent_changes_matching => q(Recent changes matching %s pattern),
