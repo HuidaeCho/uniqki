@@ -744,7 +744,7 @@ sub die_path{
 	die_redirect("$DOC_BASE/$path") if !-d $path || $path =~ m#/#;
 
 	# don't allow arbitrary directories to be listed; no page, no listing
-	die_message("page_not_found", $PAGE) unless page_exists();
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE") unless page_exists();
 
 	my $title = get_msg("page_files", $path);
 	(local $TITLE = $title) =~ s/<[^>]*>//g;
