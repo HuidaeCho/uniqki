@@ -4354,9 +4354,8 @@ sub print_list_pages{
 	foreach(<$glob.txt>){
 		next if substr($_,0,1) eq "." || index($_,"/") >= 0 || !-f $_;
 		s/\.txt$//;
-		if($PAGES_NOT_ALLOWED ne "" && /$PAGES_NOT_ALLOWED/o){
-			next;
-		}
+		next if $PAGES_NOT_ALLOWED ne "" && m/$PAGES_NOT_ALLOWED/o;
+
 		my $page = $_;
 		next unless -f "$page.html";
 		local $is_wiki = is_wiki($page);
@@ -4449,9 +4448,8 @@ sub print_search_pages{
 	foreach(<$glob.txt>){
 		next if substr($_,0,1) eq "." || index($_,"/") >= 0 || !-f $_;
 		s/\.txt$//;
-		if($PAGES_NOT_ALLOWED ne "" && /$PAGES_NOT_ALLOWED/o){
-			next;
-		}
+		next if $PAGES_NOT_ALLOWED ne "" && m/$PAGES_NOT_ALLOWED/o;
+
 		my $page = $_;
 		next unless -f "$page.html";
 		local $is_wiki = is_wiki($page);
@@ -6216,7 +6214,7 @@ if($PAGE eq $CGI && $FILE ne ""){
 
 $PAGE = convert_page_name($PAGE);
 die_message("page_not_allowed", $PAGE)
-	if $PAGES_NOT_ALLOWED ne "" && $PAGE =~ /$PAGES_NOT_ALLOWED/o;
+	if $PAGES_NOT_ALLOWED ne "" && $PAGE =~ m/$PAGES_NOT_ALLOWED/o;
 
 ################################################################################
 # Login, logout
@@ -6875,9 +6873,8 @@ if($QUERY_STRING eq "css"){
 	foreach(<$glob.txt>){
 		next if substr($_,0,1) eq "." || index($_,"/") >= 0 || !-f $_;
 		s/\.txt$//;
-		if($PAGES_NOT_ALLOWED ne "" && /$PAGES_NOT_ALLOWED/o){
-			next;
-		}
+		next if $PAGES_NOT_ALLOWED ne "" && m/$PAGES_NOT_ALLOWED/o;
+
 		my $page = $_;
 		next unless -f "$page.html";
 		local $is_wiki = is_wiki($page);
@@ -7321,9 +7318,8 @@ EOT
 	foreach($glob eq "" ? (<.*.txt>, <*.txt>) : <$glob.txt>){
 		next if index($_, "/") >= 0 || !-f $_;
 		s/\.txt$//;
-		if($PAGES_NOT_ALLOWED ne "" && /$PAGES_NOT_ALLOWED/o){
-			next;
-		}
+		next if $PAGES_NOT_ALLOWED ne "" && m/$PAGES_NOT_ALLOWED/o;
+
 		$PAGE = $_;
 		make_html($PAGE);
 		print qq(<li><a href="$PAGE.html">$PAGE</a></li>\n);
