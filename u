@@ -1644,19 +1644,19 @@ sub process_tpl_tag{
 	if($tag eq "EDIT"){
 		$txt = print_edit(2);
 		$txt =~ s/^.*(?=<!-- EDIT -->)|(?<=<!-- END OF EDIT -->).*$//sig
-			if($txt =~ m/^<!DOCTYPE/i);
+			if($txt =~ /^<!DOCTYPE/i);
 	}elsif($tag eq "WIKI_EDIT"){
 		$txt = print_wiki_edit(2);
 		$txt =~ s/^.*(?=<!-- WIKI_EDIT -->)|(?<=<!-- END OF WIKI_EDIT -->).*$//sig
-			if($txt =~ m/^<!DOCTYPE/i);
+			if($txt =~ /^<!DOCTYPE/i);
 	}elsif($tag eq "EDIT_LINES"){
 		$txt = print_edit_lines(2);
 		$txt =~ s/^.*(?=<!-- EDIT_LINES -->)|(?<=<!-- END OF EDIT_LINES -->).*$//sig
-			if($txt =~ m/^<!DOCTYPE/i);
+			if($txt =~ /^<!DOCTYPE/i);
 	}elsif($tag eq "WIKI_EDIT_LINES"){
 		$txt = print_wiki_edit_lines(2);
 		$txt =~ s/^.*(?=<!-- WIKI_EDIT_LINES -->)|(?<=<!-- END OF WIKI_EDIT_LINES -->).*$//sig
-			if($txt =~ m/^<!DOCTYPE/i);
+			if($txt =~ /^<!DOCTYPE/i);
 	}elsif($tag =~ /^[A-Z_]+$/){
 		my @tags = qw(
 			MAIN SITE_TITLE SITE_DESCRIPTION SITE_URL INDEX_PAGE
@@ -1730,7 +1730,7 @@ sub print_html{
 	# $mode=1: string
 	my ($main, $mode) = @_;
 	my $html;
-	if($main =~ m/^<!DOCTYPE/i){
+	if($main =~ /^<!DOCTYPE/i){
 		$html = $main;
 	}else{
 		my $base_tpl = print_base(2);
@@ -4354,7 +4354,7 @@ sub print_list_pages{
 	foreach(<$glob.txt>){
 		next if substr($_,0,1) eq "." || index($_,"/") >= 0 || !-f $_;
 		s/\.txt$//;
-		next if $PAGES_NOT_ALLOWED ne "" && m/$PAGES_NOT_ALLOWED/o;
+		next if $PAGES_NOT_ALLOWED ne "" && /$PAGES_NOT_ALLOWED/o;
 
 		my $page = $_;
 		next unless -f "$page.html";
@@ -4448,7 +4448,7 @@ sub print_search_pages{
 	foreach(<$glob.txt>){
 		next if substr($_,0,1) eq "." || index($_,"/") >= 0 || !-f $_;
 		s/\.txt$//;
-		next if $PAGES_NOT_ALLOWED ne "" && m/$PAGES_NOT_ALLOWED/o;
+		next if $PAGES_NOT_ALLOWED ne "" && /$PAGES_NOT_ALLOWED/o;
 
 		my $page = $_;
 		next unless -f "$page.html";
@@ -5380,9 +5380,8 @@ sub preprocess_line{
 	   $code_block eq "" && $syntax_block eq "" && $re_block eq ""){
 		for(my $i = $re_start; $i < $re_n; $i++){
 			# Need it again to avoid regexing regexed output
-			if(/^(?!#(?:no)?regex)/){
-				eval "s\x1e$re[$i]\x1e$re_sub[$i]\x1eg;";
-			}
+			eval "s\x1e$re[$i]\x1e$re_sub[$i]\x1eg;"
+				if /^(?!#(?:no)?regex)/;
 		}
 		if(/\n/){
 			local $re_start = $re_n;
@@ -5511,9 +5510,9 @@ sub process_wiki_command{
 	# Register regular expressions
 	if(/^#regex (.)(.+)(?<!\\)\1(.*)(?<!\\)\1$/){
 		# Don't allow code embedding in a wiki page
-		return if($is_wiki && (index($2, '(?{') != -1 ||
+		return if $is_wiki && (index($2, '(?{') != -1 ||
 				       index($2, '(??{') != -1 ||
-				       index($3, '@{[') != -1));
+				       index($3, '@{[') != -1);
 
 		my $i;
 		for($i = 0; $i < $re_n; $i++){
@@ -5531,8 +5530,8 @@ sub process_wiki_command{
 	# Register multi-line regular expressions
 	if(/^#regex (.)(.+)(?<!\\)\1$/){
 		# Don't allow code embedding in a wiki page
-		return if($is_wiki && (index($2, '(?{') != -1 ||
-				       index($2, '(??{') != -1));
+		return if $is_wiki && (index($2, '(?{') != -1 ||
+				       index($2, '(??{') != -1);
 
 		$re_block = "$1$2\n";
 		return;
@@ -6214,7 +6213,7 @@ if($PAGE eq $CGI && $FILE ne ""){
 
 $PAGE = convert_page_name($PAGE);
 die_message("page_not_allowed", $PAGE)
-	if $PAGES_NOT_ALLOWED ne "" && $PAGE =~ m/$PAGES_NOT_ALLOWED/o;
+	if $PAGES_NOT_ALLOWED ne "" && $PAGE =~ /$PAGES_NOT_ALLOWED/o;
 
 ################################################################################
 # Login, logout
@@ -6873,7 +6872,7 @@ if($QUERY_STRING eq "css"){
 	foreach(<$glob.txt>){
 		next if substr($_,0,1) eq "." || index($_,"/") >= 0 || !-f $_;
 		s/\.txt$//;
-		next if $PAGES_NOT_ALLOWED ne "" && m/$PAGES_NOT_ALLOWED/o;
+		next if $PAGES_NOT_ALLOWED ne "" && /$PAGES_NOT_ALLOWED/o;
 
 		my $page = $_;
 		next unless -f "$page.html";
@@ -7318,7 +7317,7 @@ EOT
 	foreach($glob eq "" ? (<.*.txt>, <*.txt>) : <$glob.txt>){
 		next if index($_, "/") >= 0 || !-f $_;
 		s/\.txt$//;
-		next if $PAGES_NOT_ALLOWED ne "" && m/$PAGES_NOT_ALLOWED/o;
+		next if $PAGES_NOT_ALLOWED ne "" && /$PAGES_NOT_ALLOWED/o;
 
 		$PAGE = $_;
 		make_html($PAGE);
