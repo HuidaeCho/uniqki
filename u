@@ -5879,7 +5879,7 @@ sub process_line_syntax{
 
 		my $i = $h_n{$id}++;
 		if($i > 0){
-			$id .= $i + 1;
+			$id = convert_page_name("$id ".++$i);
 			$h_n{$id}++;
 		}
 
