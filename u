@@ -872,7 +872,7 @@ sub link_page{
 	$title =~ s/^[ \t]+|[ \t]+$//g;
 
 	my $enc_page = encode_url_safe(convert_page_name($page));
-	my $enc_section = encode_url_safe(convert_page_name($section));
+	my $enc_section = "-".encode_url_safe(convert_page_name($section));
 
 	if($enc_page eq ""){
 		return "" if $enc_section eq "";
@@ -5084,7 +5084,7 @@ sub create_table{
 				$line =~ s/[`~!@#\$%^&*_=+\\|;:,.\/?-]+$//
 					if $del_punct_from_title;
 				if($line ne ""){
-					$id = "--".convert_page_name("table $line");
+					$id = "-".convert_page_name("table $line");
 					my $j = $tabs_n{$id}++;
 					if($j > 0){
 						$id .= "--".++$j;
@@ -5259,7 +5259,7 @@ sub create_figure{
 				$line =~ s/[`~!@#\$%^&*_=+\\|;:,.\/?-]+$//
 					if $del_punct_from_title;
 				if($line ne ""){
-					$id = "--".convert_page_name("figure $line");
+					$id = "-".convert_page_name("figure $line");
 					my $j = $figs_n{$id}++;
 					if($j > 0){
 						$id .= "--".++$j;
