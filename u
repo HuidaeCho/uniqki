@@ -5084,10 +5084,10 @@ sub create_table{
 				$line =~ s/[`~!@#\$%^&*_=+\\|;:,.\/?-]+$//
 					if $del_punct_from_title;
 				if($line ne ""){
-					$id = convert_page_name("table $line");
+					$id = "--".convert_page_name("table $line");
 					my $j = $tabs_n{$id}++;
 					if($j > 0){
-						$id .= $j + 1;
+						$id .= "--".++$j;
 						$tabs_n{$id}++;
 					}
 					$title = $line;
@@ -5259,10 +5259,10 @@ sub create_figure{
 				$line =~ s/[`~!@#\$%^&*_=+\\|;:,.\/?-]+$//
 					if $del_punct_from_title;
 				if($line ne ""){
-					$id = convert_page_name("figure $line");
+					$id = "--".convert_page_name("figure $line");
 					my $j = $figs_n{$id}++;
 					if($j > 0){
-						$id .= $j + 1;
+						$id .= "--".++$j;
 						$figs_n{$id}++;
 					}
 					$title = $line;
@@ -5874,12 +5874,12 @@ sub process_line_syntax{
 		$id =~ s/&amp;/&/g;
 		$id =~ s/&lt;/</g;
 		$id =~ s/&gt;/>/g;
-		$id = convert_page_name($id);
+		$id = "-".convert_page_name($id);
 		my $sec = "";
 
 		my $i = $h_n{$id}++;
 		if($i > 0){
-			$id = convert_page_name("$id ".++$i);
+			$id .= "--".++$i;
 			$h_n{$id}++;
 		}
 
