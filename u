@@ -1324,10 +1324,11 @@ $MIME_TYPE_COMMAND = '/usr/bin/file --brief --mime-type';
 # are required to secure *.html files:
 # RewriteEngine On
 # RewriteBase /
-# RewriteRule ^$ u [R,L]
+# RewriteCond %{REQUEST_URI} !^/u$
+# RewriteRule ^([^/]*)$ u/$1 [R,L]
 # RewriteRule ^([^/]*)\.html$ u/$1 [R,L]
 # RewriteRule ^(u/[^/]*)\.html$ $1 [R,L]
-# RewriteCond %{REQUEST_URI} !^/u($|[/?])
+# RewriteCond %{REQUEST_URI} !^/u($|[/?]|\.tpl/)
 # RewriteRule .* "-" [F]
 $READ_ACCESS = 'open';
 
