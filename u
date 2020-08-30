@@ -1708,9 +1708,8 @@ sub process_tpl{
 		return;
 	}
 
-	$tpl = read_file($path) if(-f $path);
+	$tpl = read_file($path) if -f $path;
 	$tpl =~ s/\[\[([A-Za-z0-9_]*)\]\]/@{[process_tpl_tag($1)]}/g;
-	chomp $tpl;
 
 	unless(defined $mode){
 		if($ext eq "tpl"){
@@ -1735,6 +1734,7 @@ sub print_html{
 	if($main =~ /^<!DOCTYPE/i){
 		$html = $main;
 	}else{
+		chomp $main;
 		my $base_tpl = print_base(2);
 		$html = print_header($base_tpl, 1).$main.print_footer($base_tpl, 1);
 	}
@@ -4394,8 +4394,8 @@ sub print_list_pages{
 		}
 	}
 	@list = sort @list;
-	@list = reverse @list if($list eq "rc" || $list eq "za" ||
-				 $list eq "tza");
+	@list = reverse @list if $list eq "rc" || $list eq "za" ||
+				 $list eq "tza";
 	$n = $i if $n > $i || !$n;
 	$i = 0;
 	foreach(@list){
@@ -5115,8 +5115,8 @@ sub create_table{
 	}
 
 	my $table = "";
-	return $table if($caption eq "" && $thead eq "" && $tbodies eq "" &&
-			 $tfoot eq "");
+	return $table if $caption eq "" && $thead eq "" && $tbodies eq "" &&
+			 $tfoot eq "";
 
 	$thead = update_table_rowspan($thead);
 	$tfoot = update_table_rowspan($tfoot);
@@ -6008,8 +6008,8 @@ sub verify_input{
 	# return 0 otherwise
 	my ($query, $var) = @_;
 	if($query eq "comment"){
-		return 0 if($$var{website} ne "" ||
-			    $$var{id} >= time - $MINIMUM_COMMENT_TIME);
+		return 0 if $$var{website} ne "" ||
+			    $$var{id} >= time - $MINIMUM_COMMENT_TIME;
 		(my $text = $$var{text}) =~ s/[`~!@#\$%^&*_=+\\|;:'",.\/?()\[\]{}<>0-9-]//g;
 		$text =~ s/[ \t\n]+/ /g;
 		$text =~ s/^ | $//g;
@@ -6674,8 +6674,8 @@ if($QUERY_STRING eq "css"){
 	#			DIR becomes PAGE and ... becomes FILE
 	# die_redirect("$HTTP_BASE$SCRIPT_NAME/$FILE") if $FILE =~ m#/#;
 
-	die_path("$PAGE/$FILE") if($FILE ne "" ||
-		($PAGE ne "" && "/" eq substr $PATH_INFO, -1));
+	die_path("$PAGE/$FILE") if $FILE ne "" ||
+		($PAGE ne "" && "/" eq substr $PATH_INFO, -1);
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$INDEX_PAGE") if $PAGE eq "";
 	unless(-f "$PAGE.txt"){
 		my $msg_id = has_write_access() ?
