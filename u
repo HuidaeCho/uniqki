@@ -2077,9 +2077,9 @@ sub print_view{
 	# content-type header
 	return process_tpl("view.tpl", shift, <<'EOT_UNIQKI');
 <article id="view">
-<!-- start text -->
+<!-- TEXT -->
 [[TEXT]]
-<!-- end text -->
+<!-- END OF TEXT -->
 </article>
 <nav id="menu">
 <hr />
@@ -2217,9 +2217,9 @@ sub print_wiki_view{
 	# content-type header
 	return process_tpl("wiki_view.tpl", shift, <<'EOT_UNIQKI');
 <article id="wiki-view">
-<!-- start text -->
+<!-- TEXT -->
 [[TEXT]]
-<!-- end text -->
+<!-- END OF TEXT -->
 </article>
 <nav id="wiki-menu">
 <span class="write-access"><a accesskey="e" href="[[CGI]]/[[PAGE]]?wiki_edit">[[edit]]</a> .</span>
@@ -4370,7 +4370,7 @@ sub print_list_pages{
 		if($tls || $title){
 			my $text = read_file("$page.html");
 			if($text ne ""){
-				$text =~ s/^.*<!-- start text -->|<!-- end text -->.*$//sgi;
+				$text =~ s/^.*<!-- TEXT -->|<!-- END OF TEXT -->.*$//sg;
 				$text =~ s/<!--.*?-->//sg;
 				$text =~ s#<(script|style).*?</\1>##sgi;
 				if($text =~ m#<h1[^>]*>(.+?)</h1>#si){
@@ -4460,7 +4460,7 @@ sub print_search_pages{
 		next if $text eq "";
 
 		my $page_name = $page;
-		$text =~ s/^.*<!-- start text -->|<!-- end text -->.*$//sgi;
+		$text =~ s/^.*<!-- TEXT -->|<!-- END OF TEXT -->.*$//sg;
 		$text =~ s/<!--.*?-->//sg;
 		$text =~ s#<(script|style).*?</\1>##sgi;
 		$text =~ y/&/\x01/;
@@ -6918,9 +6918,9 @@ EOT
 		close FH;
 
 		$text =~ s/\r//g;
-		$text =~ s/^.*<!-- start text -->|<!-- end text -->.*$//sgi;
+		$text =~ s/^.*<!-- TEXT -->|<!-- END OF TEXT -->.*$//sg;
 
-		my $has_more = ($text =~ s/<!-- more -->.*$//s);
+		my $has_more = ($text =~ s/<!-- MORE -->.*$//s);
 		my $title;
 		if($text =~ m#<h1[^>]*>(.+?)</h1>(.*)$#si){
 			$title = $1;
