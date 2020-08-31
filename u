@@ -5336,10 +5336,13 @@ sub process_raw_block{
 			$block =~ s/^ {$block_indent}//mg;
 			$_ = create_fresh_block($block);
 		}else{
-			/^( *)/;
-			my $i = length $1;
-			$block_indent = $i if $fresh_block =~ /^[^\n]*\n$/ ||
-					      $i < $block_indent;
+			unless(/^$/){
+				/^( *)/;
+				my $i = length $1;
+				$block_indent = $i
+					if $fresh_block =~ /^[^\n]*\n$/ ||
+					   $i < $block_indent;
+			}
 			$fresh_block .= "$_\n";
 			return;
 		}
@@ -5434,10 +5437,13 @@ sub process_block{
 			$block =~ s/^ {$block_indent}//mg;
 			$_ = create_syntax_block($block);
 		}else{
-			/^( *)/;
-			my $i = length $1;
-			$block_indent = $i if $syntax_block =~ /^[^\n]*\n$/ ||
-					      $i < $block_indent;
+			unless(/^$/){
+				/^( *)/;
+				my $i = length $1;
+				$block_indent = $i
+					if $syntax_block =~ /^[^\n]*\n$/ ||
+					   $i < $block_indent;
+			}
 			$syntax_block .= "$_\n";
 			return;
 		}
