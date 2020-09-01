@@ -758,10 +758,13 @@ sub die_path{
 		my $url = encode_url_safe($_).($is_dir ? "/" : "");
 		s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
 		my $name = $_.($is_dir ? "/" : "");
-		my @t = localtime((stat $item)[9]);
+		my @stat = stat $item;
+		my $size = $stat[7];
+		while($size =~ s/([0-9]+)([0-9]{3})/\1,\2/){};
+		my @t = localtime($stat[9]);
 		my $time = sprintf "%d-%02d-%02d %02d:%02d:%02d",
 			$t[5]+1900, $t[4]+1, $t[3], $t[2], $t[1], $t[0];
-		print qq(<li><a href="$url">$name</a> <span class="list-time">$time</span></li>\n);
+		print qq(<li><a href="$url">$name</a> <span class="list-size">$size</span> <span class="list-time">$time</span></li>\n);
 	}
 	print qq(</ul></div>\n);
 	print_footer($base_tpl);
@@ -2622,6 +2625,15 @@ ol ol ol {
 
 /******************************************************************************/
 .list {
+}
+.list-size {
+	font-size:		70%;
+}
+.list-size::before {
+	content:		'(';
+}
+.list-size::after {
+	content:		' bytes)';
 }
 .list-time {
 	font-size:		70%;
