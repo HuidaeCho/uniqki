@@ -6713,8 +6713,8 @@ if($QUERY_STRING eq "css"){
 	}
 	$strip_query_string = 0 if $QUERY_STRING eq "";
 }elsif($QUERY_STRING eq "files"){
-# u/PAGE?files		List files belonging to PAGE
-	die_path($PAGE);
+# u/PAGE?files		Redirect to u/PAGE/
+	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE/");
 }elsif($QUERY_STRING ne "delete" && $FILE ne ""){
 #-------------------------------------------------------------------------------
 # u/PAGE/FILE?query	Redirect to u/PAGE?query
