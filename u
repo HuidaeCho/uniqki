@@ -1203,9 +1203,9 @@ $SHARE_COOKIES = '';
 
 # WARNING: Make sure to protect these files and directories from the user using
 # the following directives in .htaccess:
-# <Files ~ "(^u\.(cfg|pw|msg)|^\.sessions|\.(tpl|txt|txt\.v))$">
+# <FilesMatch "(^u\.(cfg|pw|msg)|^\.sessions|\.(tpl|txt|txt\.v))$">
 #	Deny from all
-# </Files>
+# </FilesMatch>
 
 # Password file: The admin password can be embedded in the script as $adminpw.
 $PASSWORD_FILE = 'u.pw';
