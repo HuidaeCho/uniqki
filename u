@@ -5409,8 +5409,7 @@ sub preprocess_line{
 		}
 		if(/\n/){
 			local $re_start = $re_n;
-			$text .= parse($_, @parse_line)
-				foreach split /\n/, $_, -1;
+			$text .= parse_lines($_);
 			return;
 		}
 	}
