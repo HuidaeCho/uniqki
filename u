@@ -279,29 +279,6 @@ if(!defined $ENV{GATEWAY_INTERFACE}){
 		print "Location: $url\n\n";
 	}
 
-	sub run_file_mime_type{
-		my $file = shift;
-		return "" if $MIME_TYPE_COMMAND eq "" || !-f $file;
-		(my $mime_type = `$MIME_TYPE_COMMAND $file`) =~ y/\r\n//d;
-		return $mime_type;
-	}
-
-	sub get_mime_type{
-		my $file = shift;
-		return "" unless -f $file;
-		my $mime_type;
-		eval "use MIME::Types;";
-		if($@){
-			$mime_type = run_file_mime_type($file);
-		}else{
-			$mime_type = MIME::Types->new(only_iana=>1)->mimeTypeOf($file);
-			$mime_type = run_file_mime_type($file)
-				if $mime_type eq "";
-		}
-		$mime_type = "application/octet-stream" if $mime_type eq "";
-		return $mime_type;
-	}
-
 	sub respond_file{
 		my ($client, $file) = @_;
 		logger "Sending $file...\n\n";
@@ -717,6 +694,29 @@ sub config_access{
 	return ($nonwiki_access, $wiki_access);
 }
 
+sub run_file_mime_type{
+	my $file = shift;
+	return "" if $MIME_TYPE_COMMAND eq "" || !-f $file;
+	(my $mime_type = `$MIME_TYPE_COMMAND $file`) =~ y/\r\n//d;
+	return $mime_type;
+}
+
+sub get_mime_type{
+	my $file = shift;
+	return "" unless -f $file;
+	my $mime_type;
+	eval "use MIME::Types;";
+	if($@){
+		$mime_type = run_file_mime_type($file);
+	}else{
+		$mime_type = MIME::Types->new(only_iana=>1)->mimeTypeOf($file);
+		$mime_type = run_file_mime_type($file)
+			if $mime_type eq "";
+	}
+	$mime_type = "application/octet-stream" if $mime_type eq "";
+	return $mime_type;
+}
+
 sub die_path{
 	(my $path = shift) =~ s#/+$##;
 	unless(-e $path){
@@ -736,12 +736,22 @@ sub die_path{
 		die_redirect("$DOC_BASE/$CGI/$path") unless -e $path;
 	}
 
-	# don't handle a file or a deep $path (page/dir); just pass it to the
-	# web server for security reasons; remember Uniqki does not support a
-	# hierarchical page structure; it's always page/ or page/file, not
-	# page/dir/...; the only exception is for template files (see the deep
-	# path code in the above unless block
-	die_redirect("$DOC_BASE/$path") if !-d $path || $path =~ m#/#;
+	if($nonwiki_read_access eq "open" && $wiki_read_access eq "open"){
+		# don't handle a file or a deep $path (page/dir); just pass it to the
+		# web server for security reasons; remember Uniqki does not support a
+		# hierarchical page structure; it's always page/ or page/file, not
+		# page/dir/...; the only exception is for template files (see the deep
+		# path code in the above unless block
+		die_redirect("$DOC_BASE/$path") if !-d $path || $path =~ m#/#;
+	}else{
+		# closed site, so we cannot redirect to the file URL; handle
+		# file downloads
+		my $mime_type = get_mime_type($path);
+		(my $file = $path) =~ s#^.*/##;
+		my $content = read_file($path);
+		print qq(Content-Type: $mime_type\nContent-Disposition: inline; filename="$file"\n\n$content);
+		die;
+	}
 
 	# don't allow arbitrary directories to be listed; no page, no listing
 	die_redirect("$HTTP_BASE$SCRIPT_NAME/$PAGE") unless page_exists();
@@ -4286,18 +4296,18 @@ EOT
 
 sub read_file{
 	my $file = shift;
-	my $text = "";
+	my $content = "";
 	local *FH;
 
 	# "<" is required for the in-memory file
 	if(open FH, "<", $file){
 		# sysread is faster, but it doesn't work with in-memory files
 		local $/ = undef;
-		$text = <FH>;
+		$content = <FH>;
 		close FH;
 	}
 
-	return $text;
+	return $content;
 }
 
 sub write_file{
