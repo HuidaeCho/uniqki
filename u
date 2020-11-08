@@ -93,7 +93,7 @@ use vars qw(
 	$FIGURE_REFERENCE_PREFIX $FIGURE_REFERENCE_SUFFIX
 	$INACTIVE_TIMEOUT $SET_PASSWORD_TIMEOUT $RESET_PASSWORD_TIMEOUT
 	$EMAIL_ADDRESS $SMTP $MIME_TYPE_COMMAND
-	$READ_ACCESS $WRITE_ACCESS
+	$READ_ACCESS $WRITE_ACCESS $HIDE_SOURCE
 	$PAGES_NOT_ALLOWED
 	$USER_PARSERS_FILE
 	$HEADER_FILE $FOOTER_FILE
@@ -1359,6 +1359,9 @@ $READ_ACCESS = 'open';
 # by admin users and this variable cannot affect that behavior.
 $WRITE_ACCESS = 'open';
 
+# Set it to 1 to hide page source
+$HIDE_SOURCE = 0;
+
 # Regular expression for page names that are not allowed
 $PAGES_NOT_ALLOWED = q();
 
@@ -1504,6 +1507,7 @@ login_not_allowed => q(Login is not allowed.),
 login_failed => q(Login failed.),
 user_actions_not_allowed => q(User actions are not allowed. Please <a href="?login">login</a> first.),
 admin_actions_not_allowed => q(Admin actions are not allowed. Please <a href="?login">login</a> first.),
+source_hidden => q(Page source is hidden. Please <a href="?login">login</a> first.),
 
 cannot_add_yourself => q(You cannot add yourself.),
 cannot_block_yourself => q(You cannot block yourself.),
@@ -4478,6 +4482,7 @@ sub print_search_pages{
 		next unless -f "$page.html";
 		local $is_wiki = is_wiki($page);
 		next unless has_read_access();
+
 		my $text = read_file("$page.html");
 		next if $text eq "";
 
@@ -6738,133 +6743,6 @@ if($QUERY_STRING eq "css"){
 			"create_page" : "page_not_found";
 		die_message($msg_id, $PAGE);
 	}
-}elsif($QUERY_STRING =~ /^diff(?:=(-?[0-9]+))?$/){
-#-------------------------------------------------------------------------------
-# u/PAGE?diff		Diff current and previous version
-# u/PAGE?diff=([0-9]+)	Diff current and \1 version
-# u/PAGE?diff=-([0-9]+)	Diff current and current-\1 version
-	die_message("page_not_found", $PAGE) unless page_exists();
-
-	my $current_version = get_version($PAGE);
-	my $version = $1 > 0 ? $1 : $current_version + ($1 < 0 ? $1 : -1);
-
-	die_message("current_version", $PAGE, $current_version)
-		if $version >= $current_version || $version <= 0;
-
-	my $title = get_msg("differences", $PAGE, $version, $current_version);
-	(local $TITLE = $title) =~ s/<[^>]*>//g;
-
-	my $current_text = read_file("$PAGE.txt");
-
-	my $text = $current_text;
-	open FH, "$PAGE.txt.v"; local $/ = "\x00\n";
-	while(<FH>){
-		/^([0-9]+):.*?\n(.*)\x00\n$/s;
-		$text = patch($text, $2);
-		last if $version == $1 - 1;
-	}
-	close FH;
-
-	my $base_tpl = print_base(2);
-	print_header($base_tpl);
-	print qq(<div id="diff">\n<h1>$title</h1>\n);
-
-	my @line0 = split /\n/, $text, -1; $#line0--;
-	my @line1 = split /\n/, $current_text, -1; $#line1--;
-	my ($s, @delta) = lcs(\@line0, \@line1);
-	my $m = $s;
-	my $n;
-	for($n = 0; $n < $s; $n++){
-		$_ = $line1[$n];
-		s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
-		print qq(<div class="diff-unchanged">= $_</div>\n);
-	}
-	eval "use Encode qw(decode);";
-	my $encode = $@ ? 0 : 1;
-	for(my $i = 0; $i <= $#delta; $i++, $m++, $n++){
-		my ($x, $y) = split /,/, $delta[$i];
-		if($x > $m && $y > $n){
-			for(; $m < $x && $n < $y; $m++, $n++){
-				print qq(<div class="diff-modified">* );
-				my $l0 = $line0[$m];
-				my $l1 = $line1[$n];
-				if($encode){
-					$l0 = decode($CHARSET, $l0);
-					$l1 = decode($CHARSET, $l1);
-				}
-				my @l0 = split //, $l0, -1; $#l0--;
-				my @l1 = split //, $l1, -1; $#l1--;
-				my ($is, @idelta) = lcs(\@l0, \@l1);
-				my $im = $is;
-				my $in;
-				for($in = 0; $in < $is; $in++){
-					$_ = $l1[$in];
-					s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
-					print;
-				}
-				for(my $ii=0; $ii<=$#idelta; $ii++,$im++,$in++){
-					my ($ix, $iy) = split /,/, $idelta[$ii];
-					if($ix > $im){
-						print qq(<span class="diff-modified-deleted">);
-						$_ = "";
-						for(; $im < $ix; $im++){
-							$_ .= $l0[$im];
-						}
-						s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
-						print qq($_</span>);
-					}
-					if($iy > $in){
-						print qq(<span class="diff-modified-added">);
-						$_ = "";
-						for(; $in < $iy; $in++){
-							$_ .= $l1[$in];
-						}
-						s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
-						print qq($_</span>);
-					}
-					if($in <= $#l1){
-						$_ = $l1[$in];
-						s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
-						print;
-					}
-				}
-				for(; $in <= $#l1; $in++){
-					$_ = $l1[$in];
-					s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
-					print;
-				}
-				print qq(</div>\n);
-			}
-		}
-		if($x > $m){
-			for(; $m < $x; $m++){
-				$_ = $line0[$m];
-				s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
-				print qq(<div class="diff-deleted">- $_</div>\n);
-			}
-		}
-		if($y > $n){
-			for(; $n < $y; $n++){
-				$_ = $line1[$n];
-				s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
-				print qq(<div class="diff-added">+ $_</div>\n);
-			}
-		}
-		if($n <= $#line1){
-			$_ = $line1[$n];
-			s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
-			print qq(<div class="diff-unchanged">= $_</div>\n);
-		}
-	}
-	for(; $n <= $#line1; $n++){
-		$_ = $line1[$n];
-		s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
-		print qq(<div class="diff-unchanged">= $_</div>\n);
-	}
-
-	print qq(</div>\n);
-	print_footer($base_tpl);
-	die;
 }elsif($QUERY_STRING =~ /^list(?:[&=].+)?$/){
 #-------------------------------------------------------------------------------
 # u?list		List all pages in alphabetical order
@@ -7266,6 +7144,134 @@ EOT
 		die_message("wiki_files_uploaded",
 			"{{$t.$var{file}|$var{file}}}");
 	}
+}elsif($QUERY_STRING =~ /^diff(?:=(-?[0-9]+))?$/){
+#-------------------------------------------------------------------------------
+# u/PAGE?diff		Diff current and previous version
+# u/PAGE?diff=([0-9]+)	Diff current and \1 version
+# u/PAGE?diff=-([0-9]+)	Diff current and current-\1 version
+	die_message("source_hidden") if $HIDE_SOURCE && !has_write_access();
+	die_message("page_not_found", $PAGE) unless page_exists();
+
+	my $current_version = get_version($PAGE);
+	my $version = $1 > 0 ? $1 : $current_version + ($1 < 0 ? $1 : -1);
+
+	die_message("current_version", $PAGE, $current_version)
+		if $version >= $current_version || $version <= 0;
+
+	my $title = get_msg("differences", $PAGE, $version, $current_version);
+	(local $TITLE = $title) =~ s/<[^>]*>//g;
+
+	my $current_text = read_file("$PAGE.txt");
+
+	my $text = $current_text;
+	open FH, "$PAGE.txt.v"; local $/ = "\x00\n";
+	while(<FH>){
+		/^([0-9]+):.*?\n(.*)\x00\n$/s;
+		$text = patch($text, $2);
+		last if $version == $1 - 1;
+	}
+	close FH;
+
+	my $base_tpl = print_base(2);
+	print_header($base_tpl);
+	print qq(<div id="diff">\n<h1>$title</h1>\n);
+
+	my @line0 = split /\n/, $text, -1; $#line0--;
+	my @line1 = split /\n/, $current_text, -1; $#line1--;
+	my ($s, @delta) = lcs(\@line0, \@line1);
+	my $m = $s;
+	my $n;
+	for($n = 0; $n < $s; $n++){
+		$_ = $line1[$n];
+		s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
+		print qq(<div class="diff-unchanged">= $_</div>\n);
+	}
+	eval "use Encode qw(decode);";
+	my $encode = $@ ? 0 : 1;
+	for(my $i = 0; $i <= $#delta; $i++, $m++, $n++){
+		my ($x, $y) = split /,/, $delta[$i];
+		if($x > $m && $y > $n){
+			for(; $m < $x && $n < $y; $m++, $n++){
+				print qq(<div class="diff-modified">* );
+				my $l0 = $line0[$m];
+				my $l1 = $line1[$n];
+				if($encode){
+					$l0 = decode($CHARSET, $l0);
+					$l1 = decode($CHARSET, $l1);
+				}
+				my @l0 = split //, $l0, -1; $#l0--;
+				my @l1 = split //, $l1, -1; $#l1--;
+				my ($is, @idelta) = lcs(\@l0, \@l1);
+				my $im = $is;
+				my $in;
+				for($in = 0; $in < $is; $in++){
+					$_ = $l1[$in];
+					s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
+					print;
+				}
+				for(my $ii=0; $ii<=$#idelta; $ii++,$im++,$in++){
+					my ($ix, $iy) = split /,/, $idelta[$ii];
+					if($ix > $im){
+						print qq(<span class="diff-modified-deleted">);
+						$_ = "";
+						for(; $im < $ix; $im++){
+							$_ .= $l0[$im];
+						}
+						s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
+						print qq($_</span>);
+					}
+					if($iy > $in){
+						print qq(<span class="diff-modified-added">);
+						$_ = "";
+						for(; $in < $iy; $in++){
+							$_ .= $l1[$in];
+						}
+						s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
+						print qq($_</span>);
+					}
+					if($in <= $#l1){
+						$_ = $l1[$in];
+						s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
+						print;
+					}
+				}
+				for(; $in <= $#l1; $in++){
+					$_ = $l1[$in];
+					s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
+					print;
+				}
+				print qq(</div>\n);
+			}
+		}
+		if($x > $m){
+			for(; $m < $x; $m++){
+				$_ = $line0[$m];
+				s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
+				print qq(<div class="diff-deleted">- $_</div>\n);
+			}
+		}
+		if($y > $n){
+			for(; $n < $y; $n++){
+				$_ = $line1[$n];
+				s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
+				print qq(<div class="diff-added">+ $_</div>\n);
+			}
+		}
+		if($n <= $#line1){
+			$_ = $line1[$n];
+			s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
+			print qq(<div class="diff-unchanged">= $_</div>\n);
+		}
+	}
+	for(; $n <= $#line1; $n++){
+		$_ = $line1[$n];
+		s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
+		print qq(<div class="diff-unchanged">= $_</div>\n);
+	}
+
+	print qq(</div>\n);
+	print_footer($base_tpl);
+	die;
 ################################################################################
 # Admin actions
 }elsif($admin && $insecure_pw){
