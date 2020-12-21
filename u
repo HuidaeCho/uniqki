@@ -2693,7 +2693,7 @@ const reAbsoluteURL = /^(?:https?:\/\/|\/)/;
 let head = document.getElementsByTagName('head')[0];
 
 function getPageName(){
-	return window.location.pathname.replace(/^.*\/|\.html$/g, '') || ('indexPage' in window ? indexPage : 'index');
+	return window.location.pathname.replace(/^.*\/|\.html$/g, '') || (typeof indexPage != 'undefined' ? indexPage : 'index');
 }
 
 function getAbsoluteURL(url){
@@ -3016,7 +3016,7 @@ let livePreview;
 let uPath = window.location.href.match(/^(.+)\/([^\/]*)\?.*$/);
 let uQuery = window.location.search.match(/^\?u-(([^=]+).*)$/);
 if(uPath && uQuery && uQuery[2].indexOf('delete') == -1)
-	window.location.href = uPath[1] + '/u/' + (uPath[2] || ('indexPage' in window ? indexPage : 'index')) + '?' + uQuery[1];
+	window.location.href = uPath[1] + '/u/' + (uPath[2] || (typeof indexPage != 'undefined' ? indexPage : 'index')) + '?' + uQuery[1];
 else if(window.location.search.match(/^\?(wiki_)?edit(_lines)?(=|$)/)){
 	windowOnLoad(function(){
 		let textEl = document.getElementById('text');
