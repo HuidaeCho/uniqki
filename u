@@ -5416,12 +5416,12 @@ sub preprocess_line{
 	local $_ = shift;
 
 	# Apply regular expressions if not asis
-	if(!$asis && /^(?!#(?:no)?regex)/ && /^(?!##(?:sub |{))/ &&
+	if(!$asis && !/^%/ && !/^#(?:no)?regex/ && !/^##(?:sub |{)/ &&
 	   $code_block eq "" && $syntax_block eq "" && $re_block eq ""){
 		for(my $i = $re_start; $i < $re_n; $i++){
 			# Need it again to avoid regexing regexed output
 			eval "s\x1e$re[$i]\x1e$re_sub[$i]\x1eg;"
-				if /^(?!#(?:no)?regex)/;
+				unless /^#(?:no)?regex/;
 		}
 		if(/\n/){
 			local $re_start = $re_n;
