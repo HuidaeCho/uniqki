@@ -6182,7 +6182,7 @@ sub end_parsing{
 		foreach(keys %h_secs){
 			my $enc_id = encode_url_safe($_);
 			my $sec = $h_secs{$_};
-			$text =~ s/(<a class="auto-title" href="#$enc_id">)[^<]*(<\/a>)/\1$SECTION_REFERENCE_PREFIX$sec$SECTION_REFERENCE_SUFFIX\2/g;
+			$text =~ s/(<a class="auto-title" href="#$enc_id">).*?(<\/a>)/\1$SECTION_REFERENCE_PREFIX$sec$SECTION_REFERENCE_SUFFIX\2/g;
 		}
 		if(!$nolot && $lot ne ""){
 			my $heading = get_msg("list_of_tables");
@@ -6194,7 +6194,7 @@ sub end_parsing{
 		foreach(keys %tabs){
 			my $enc_id = encode_url_safe($_);
 			my $tab = $tabs{$_};
-			$text =~ s/(<a class="auto-title" href="#$enc_id">)[^<]*(<\/a>)/\1$TABLE_REFERENCE_PREFIX$tab$TABLE_REFERENCE_SUFFIX\2/g;
+			$text =~ s/(<a class="auto-title" href="#$enc_id">).*?(<\/a>)/\1$TABLE_REFERENCE_PREFIX$tab$TABLE_REFERENCE_SUFFIX\2/g;
 		}
 		if(!$nolof && $lof ne ""){
 			my $heading = get_msg("list_of_figures");
@@ -6206,7 +6206,7 @@ sub end_parsing{
 		foreach(keys %figs){
 			my $enc_id = encode_url_safe($_);
 			my $fig = $figs{$_};
-			$text =~ s/(<a class="auto-title" href="#$enc_id">)[^<]*(<\/a>)/\1$FIGURE_REFERENCE_PREFIX$fig$FIGURE_REFERENCE_SUFFIX\2/g;
+			$text =~ s/(<a class="auto-title" href="#$enc_id">).*?(<\/a>)/\1$FIGURE_REFERENCE_PREFIX$fig$FIGURE_REFERENCE_SUFFIX\2/g;
 		}
 
 		$re_block = "";
