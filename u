@@ -1814,14 +1814,14 @@ windowOnLoad(function(){
 </script>
 </head>
 <body>
-<header id="top">
+<header id="header">
 <div id="site-title"><a href="[[SITE_URL]]">[[SITE_TITLE]]</a></div>
 <div id="site-description">[[SITE_DESCRIPTION]]</div>
 </header>
 <main id="main">
 [[MAIN]]
 </main>
-<footer id="bottom">
+<footer id="footer">
 <span id="validators">
 <a href="https://validator.w3.org/check?uri=referer">[[html5]]</a> .
 <a href="https://jigsaw.w3.org/css-validator/check/referer">[[css]]</a>
@@ -2444,7 +2444,7 @@ ol ol ol {
 		background-color:	#eeeeee;
 		margin:			auto;
 	}
-	#top {
+	#header {
 	}
 	#site-title {
 		font-weight:		bold;
@@ -2487,7 +2487,7 @@ ol ol ol {
 	}
 	#parsing-time {
 	}
-	#bottom {
+	#footer {
 		margin-top:		5px;
 		text-align:		right;
 		font-size:		smaller;
@@ -2563,7 +2563,7 @@ ol ol ol {
 	#parsing-time {
 		display:		none;
 	}
-	#bottom {
+	#footer {
 		display:		none;
 	}
 	.edit-section a {
