@@ -2550,7 +2550,7 @@ ol ol ol {
 	}
 }
 @media print {
-	#top {
+	#header {
 		display:		none;
 	}
 	#menu {
