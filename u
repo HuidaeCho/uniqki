@@ -2757,8 +2757,6 @@ function ajaxRequest(url, data, func, mimeType){
 	xhr.onreadystatechange = function(){
 		if(xhr.readyState != 4)
 			return;
-		if(xhr.status != 200)
-			return;
 		if(func)
 			func(xhr);
 	}
@@ -2807,7 +2805,7 @@ function ajaxResponseXML(xhr){
 
 function removeElementsByClassName(className){
 	[...document.getElementsByClassName(className)].reverse().forEach(function(element){
-		element.parentNode.removeChild(element);
+		element.remove();
 	});
 }
 
@@ -2818,11 +2816,22 @@ function setElementsDisplayByClassName(className, display){
 }
 
 function processMenu(xhr){
-	let items = xhr.responseText.split(':');
-	let user = items[0];
-	let admin = items[1];
-	let hasReadAccess = items[2];
-	let hasWriteAccess = items[3];
+	let user = '';
+	let admin = 0;
+	let hasReadAccess = 0;
+	let hasWriteAccess = 0;
+
+	if(xhr.status == 200){
+		let items = xhr.responseText.split(':');
+		user = items[0];
+		admin = items[1];
+		hasReadAccess = items[2];
+		hasWriteAccess = items[3];
+	}else{
+		let menu = document.getElementById('menu');
+		if(menu)
+			menu.remove();
+	}
 
 	removeElementsByClassName(user == '' ? 'user' : 'visitor');
 	if(admin == 0)
