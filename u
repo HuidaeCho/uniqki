@@ -2470,7 +2470,7 @@ ol ol ol {
 	#message {
 	}
 	#menu {
-		border-top:		1px solid black;
+		border-top:		1px solid #999999;
 		margin-top:		10px;
 		padding-top:		10px;
 	}
