@@ -1851,7 +1851,6 @@ sub print_login{
 </form>
 </section>
 <nav id="menu">
-<hr />
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 </nav>
@@ -1876,7 +1875,6 @@ sub print_manage_pages{
 </form>
 </section>
 <nav id="menu">
-<hr />
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
@@ -1964,7 +1962,6 @@ sub print_manage_users{
 </form>
 </section>
 <nav id="menu">
-<hr />
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
@@ -2006,7 +2003,6 @@ sub print_manage_myself{
 </form>
 </section>
 <nav id="menu">
-<hr />
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a accesskey="l" href="[[PAGE]]?logout">[[logout]]</a>
@@ -2031,7 +2027,6 @@ sub print_forgot_password{
 </form>
 </section>
 <nav id="menu">
-<hr />
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 </nav>
@@ -2060,7 +2055,6 @@ sub print_reset_password{
 </form>
 </section>
 <nav id="menu">
-<hr />
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a>
 </nav>
@@ -2076,7 +2070,6 @@ sub print_message{
 [[MESSAGE]]
 </section>
 <nav id="menu">
-<hr />
 <span class="read-access"><a accesskey="v" href="[[PAGE]].html">[[view]]</a> .</span>
 <span class="write-access"><a accesskey="v" href="[[PAGE]]?edit">[[edit]]</a> .</span>
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
@@ -2099,7 +2092,6 @@ sub print_view{
 <!-- END OF TEXT -->
 </article>
 <nav id="menu">
-<hr />
 <span class="write-access"><a accesskey="r" href="[[CGI]]/[[PAGE]]?refresh">[[refresh]]</a> .</span>
 <span class="write-access"><a accesskey="e" href="[[CGI]]/[[PAGE]]?edit">[[edit]]</a> .</span>
 <a accesskey="l" href="[[CGI]]?search=[[PAGE]]%5C.html(%23.*%3F)%3F&amp;link=1&amp;title=1">[[backlinks]]</a> .
@@ -2478,6 +2470,9 @@ ol ol ol {
 	#message {
 	}
 	#menu {
+		border-top:		1px solid black;
+		margin-top:		10px;
+		padding-top:		10px;
 	}
 	#metadata {
 		padding-top:		2px;
