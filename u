@@ -6176,6 +6176,7 @@ sub end_parsing{
 				$toc =~ s#</ul></li>(\n.*)$#\1#;
 			}
 			$toc =~ s#</li>\n<li>(<ul>)#\n\1#g;
+			$toc =~ s#\n<ul>\n</ul>##g;
 			$toc =~ s#\n+#\n#g;
 			my $heading = get_msg("table_of_contents");
 			$toc = "<div id=\"toc\">\n".
