@@ -5,12 +5,12 @@
 # cPanelUserConfig;" in u.cfg.
 #
 ################################################################################
-# Uniqki:	Unique Wiki <https://uniqki.isnew.info>
+# Uniqki:	Unique Wiki <https://uniqki.isnew.info/>
 # Author:	Huidae Cho
 # Since:	May 23, 2007
 #
 # Copyright (C) 2007-2008, 2010-2011, 2016-2020, Huidae Cho
-# <https://idea.isnew.info>
+# <https://idea.isnew.info/>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -2719,18 +2719,18 @@ function loadCSS(css, media){
 	head.appendChild(link);
 }
 
-/* http://developer.mozilla.org/en/docs/AJAX:Getting_Started */
+// http://developer.mozilla.org/en/docs/AJAX:Getting_Started
 function ajaxRequest(url, data, func, mimeType){
 	let xhr = null;
 
-	/* Create an XMLHTTP instance */
-	if(window.XMLHttpRequest){ /* Mozilla, Safari, ... */
+	// create an XMLHTTP instance
+	if(window.XMLHttpRequest){ // Mozilla, Safari, ...
 		xhr = new XMLHttpRequest();
 		if(xhr.overrideMimeType)
-			/* Some web servers return a non-standard mime type. */
+			// some web servers return a non-standard mime type
 			xhr.overrideMimeType(mimeType || 'text/html');
 	}else
-	if(window.ActiveXObject){ /* IE */
+	if(window.ActiveXObject){ // IE
 		try{
 			xhr = new ActiveXObject('Msxml2.XMLHTTP');
 		}
@@ -2746,7 +2746,7 @@ function ajaxRequest(url, data, func, mimeType){
 		return;
 	}
 
-	/* This function has no arguments. */
+	// this function has no arguments
 	xhr.onreadystatechange = function(){
 		if(xhr.readyState != 4)
 			return;
@@ -2756,15 +2756,15 @@ function ajaxRequest(url, data, func, mimeType){
 
 	let method = data == null ? 'GET' : 'POST';
 
-	/* xhr.open(method, url, asynchronous) */
+	// xhr.open(method, url, asynchronous)
 	xhr.open(method, url, true);
 
-	/* xhr.send(POST data) */
-	/* required even if the method is not POST. */
+	// xhr.send(POST data)
+	// required even if the method is not POST
 	xhr.send(data);
 }
 
-/* http://forum.java.sun.com/thread.jspa?threadID=696590&tstart=105 */
+// http://forum.java.sun.com/thread.jspa?threadID=696590&tstart=105
 function ajaxResponseXML(xhr){
 	let xml = null;
 
@@ -2775,7 +2775,7 @@ function ajaxResponseXML(xhr){
 		xml = document.createElement('div');
 		xml.innerHTML = xhr.responseText;
 
-		/* Huidae Cho <https://idea.isnew.info> */
+		// Huidae Cho <https://idea.isnew.info/>
 		xml.getElementByIdRecursively = function(childNodes, id){
 			let element = null;
 			for(let i = 0; i < childNodes.length; i++){
@@ -2908,11 +2908,12 @@ function listenToPasteImage(requestURL, version, typeFilename, charactersNotAllo
 }
 
 function processPreview(callback){
-	/* comment forms share the same "text" ID with the edit form; in real use
-	 * cases without a live preview feature, they would not be displayed in the
-	 * same page; however, this preview feature has to retrieve the rendered
-	 * HTML which may contain comment forms; since the edit form should be the
-	 * last form with the "text" ID, let's grab it */
+	/* comment forms share the same "text" ID with the edit form; in real
+	   use cases without a live preview feature, they would not be
+	   displayed in the same page; however, this preview feature has to
+	   retrieve the rendered HTML which may contain comment forms; since
+	   the edit form should be the last form with the "text" ID, let's grab
+	   it */
 	let textEls = document.querySelectorAll('#text');
 	let textEl = textEls[textEls.length - 1];
 	let version = document.getElementById('version').value;
