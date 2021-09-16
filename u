@@ -4458,7 +4458,8 @@ sub print_list_pages{
 }
 
 sub print_search_pages{
-	my ($search, $simple, $icase, $link, $title, $nomatch, $glob, $TITLE) = @_;
+	my ($search, $simple, $icase, $link, $title, $nomatch, $glob, $list,
+		$n, $TITLE) = @_;
 
 	$_ = $search;
 	if($simple){
@@ -4476,6 +4477,10 @@ sub print_search_pages{
 	print qq(<h1>$TITLE</h1>\n) if $TITLE ne "";
 	print qq(<ul>\n);
 
+	my $tls = $list eq "taz" || $list eq "tza" ? 1 : 0;
+	my $roc = $list eq "rc" || $list eq "oc" ? 1 : 0;
+	my $i = 0;
+	my @list;
 	foreach(<$glob.txt>){
 		next if substr($_,0,1) eq "." || index($_,"/") >= 0 || !-f $_;
 		s/\.txt$//;
@@ -4486,10 +4491,14 @@ sub print_search_pages{
 		local $is_wiki = is_wiki($page);
 		next unless has_read_access();
 
+		my $page_title = $page;
+		my @t = localtime((stat "$page.txt")[9]);
+		my $time = sprintf "%d-%02d-%02d %02d:%02d:%02d",
+			$t[5]+1900, $t[4]+1, $t[3], $t[2], $t[1], $t[0];
+
 		my $text = read_file("$page.html");
 		next if $text eq "";
 
-		my $page_name = $page;
 		$text =~ s/^.*<!-- TEXT -->|<!-- END OF TEXT -->.*$//sg;
 		$text =~ s/<!--.*?-->//sg;
 		$text =~ s#<(script|style).*?</\1>##sgi;
@@ -4500,26 +4509,27 @@ sub print_search_pages{
 		$text =~ s/\x01lt;/</gi;
 		$text =~ s/\x01gt;/>/gi;
 
-		if($title && $text =~ m#\x02h1[^\x03]*\x03(.+?)\x02/h1\x03#si){
+		if(($tls || $title) &&
+		   $text =~ m#\x02h1[^\x03]*\x03(.+?)\x02/h1\x03#si){
 			$_ = $1;
 			s/\x02[^\x03]*\x03//g; s/^.*\x03|\x02.*$//mg;
 			s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g;
 			y/\x01/&/;
-			$page_name = $_;
+			$page_title = $_;
 		}
-		my ($i, $line, $word, $found, @found, @result);
+		my ($j, $line, $word, $found, @found, @result);
 		if($link){
 			foreach(split /\n/, $text){
 				$line = $_;
 				$found = "";
-				for($i = 0; $i <= $#search; $i++){
-					$word = encode_url_utf8($search[$i]);
+				for($j = 0; $j <= $#search; $j++){
+					$word = encode_url_utf8($search[$j]);
 					next if $word eq "";
 					$word = "(?i)$word" if $icase;
 					if($line =~ m#\x02[aA][ \t][^\x03]*(?:href|HREF)[ \t]*=[ \t]*"(?:$word)"[^\x03]*\x03[^\x02]+\x02/[aA]\x03#){
 						$found = $line if $found eq "";
 						$found =~ s#\x02[aA][ \t][^\x03]*(?:href|HREF)[ \t]*=[ \t]*"(?:$word)"[^\x03]*\x03([^\x02]+)\x02/[aA]\x03#\x04$+\x05#g;
-						$found[$i] = 1;
+						$found[$j] = 1;
 					}
 				}
 				if($found ne ""){
@@ -4537,14 +4547,14 @@ sub print_search_pages{
 			foreach(split /\n/, $text){
 				$line = $_;
 				$found = "";
-				for($i = 0; $i <= $#search; $i++){
-					$word = $search[$i];
+				for($j = 0; $j <= $#search; $j++){
+					$word = $search[$j];
 					next if $word eq "";
 					$word = "(?i)$word" if $icase;
 					if($line =~ m#$word#){
 						$found = $line if $found eq "";
 						$found =~ s#($word)#\x04$1\x05#g;
-						$found[$i] = 1;
+						$found[$j] = 1;
 					}
 				}
 				if($found ne ""){
@@ -4555,21 +4565,64 @@ sub print_search_pages{
 				}
 			}
 		}
-		for($i = 0; $i <= $#search; $i++){
-			last if !$found[$i];
+		for($j = 0; $j <= $#search; $j++){
+			last if !$found[$j];
 		}
-		next if $i <= $#search;
-		if($nomatch){
-			print qq(<li><a href="$page.html">$page_name</a></li>\n);
-			next;
+		next if $j <= $#search;
+
+		my $match = "";
+		if(!$nomatch){
+			$match = qq(\n<ul>\n);
+			foreach(@result){
+				s#\x04#<span class="search-highlight">#g;
+				s#\x05#</span>#g;
+				$match .= qq(<li>$_</li>\n);
+			}
+			$match .= qq(</ul>\n);
 		}
-		print qq(<li><a href="$page.html">$page_name</a>\n<ul>\n);
-		foreach(@result){
-			s#\x04#<span class="search-highlight">#g;
-			s#\x05#</span>#g;
-			print qq(<li>$_</li>\n);
+
+		if($roc){
+			if($title){
+				$list[$i++] = "$time\x00$page_title\x00$page\x00$match";
+			}else{
+				$list[$i++] = "$time\x00$page\x00$page_title\x00$match";
+			}
+		}elsif($tls){
+			$list[$i++] = "$page_title\x00$page\x00$time\x00$match";
+		}else{
+			$list[$i++] = "$page\x00$page_title\x00$time\x00$match";
 		}
-		print qq(</ul>\n</li>\n);
+	}
+	@list = sort @list;
+	@list = reverse @list if $list eq "rc" || $list eq "za" ||
+				 $list eq "tza";
+	$n = $i if $n > $i || !$n;
+	$i = 0;
+	foreach(@list){
+		my ($page, $page_title, $time, $match);
+		/^(.*)\x00(.*)\x00(.*)\x00(.*)$/;
+		$match = $4;
+		if($roc){
+			if($title){
+				$page = $3;
+				$page_title = $2;
+			}else{
+				$page = $2;
+				$page_title = $3;
+			}
+			$time = $1;
+		}else{
+			if($tls){
+				$page = $2;
+				$page_title = $title ? $1 : $page;
+			}else{
+				$page = $1;
+				$page_title = $2;
+			}
+			$time = $3;
+		}
+		print qq(<li><a href="$page.html">$page_title</a>$match</li>\n);
+		last if ++$i == $n;
 	}
 
 	print qq(</ul>\n</div>\n);
@@ -6754,11 +6807,11 @@ if($QUERY_STRING eq "css"){
 # u?list=za		List all pages in reverse order
 # u?list=taz		List all pages in alphabetical order of titles
 # u?list=tza		List all pages in reverse order of titles
-# u?list=rc		Recent changes
-# u?list=oc		Old changes
-# u?list&n=([0-9]+)	List only \1 pages in alphabetical order
+# u?list=rc		List recent changes first
+# u?list=oc		List old changes first
+# u?list&n=([0-9]+)	List only \1 pages
 # u?list&title=1	Print page titles instead of page names
-# u?list&glob=GLOB	List all GLOB pages in alphabetical order
+# u?list&glob=GLOB	List all GLOB pages
 	my %var = get_var();
 	my $msg_id;
 	local $TITLE;
@@ -6890,6 +6943,13 @@ EOT
 # u?search=(.*)&title=1		Print page titles instead of page names
 # u?search=(.*)&nomatch=1	Don't print matches
 # u?search=(.*)&glob=GLOB	Search GLOB pages
+# u?search=(.*)&list=az		List results in alphabetical order
+# u?search=(.*)&list=za		List results in reverse order
+# u?search=(.*)&list=taz	List results in alphabetical order of titles
+# u?search=(.*)&list=tza	List results in reverse order of titles
+# u?search=(.*)&list=rc		List recent changes first
+# u?search=(.*)&list=oc		List old changes first
+# u?search=(.*)&n=([0-9]+)	List only \1 pages
 	my %var = get_var();
 	if($var{search} eq ""){
 		local $TITLE = get_msg("search_form");
@@ -6913,7 +6973,8 @@ EOT
 	my $base_tpl = print_base(2);
 	print_header($base_tpl);
 	print_search_pages($var{search}, $var{simple}, $var{icase}, $var{link},
-		$var{title}, $var{nomatch}, $var{glob}, $TITLE);
+		$var{title}, $var{nomatch}, $var{glob}, $var{list}, $var{n},
+		$TITLE);
 	print_footer($base_tpl);
 	die;
 }elsif($QUERY_STRING =~ /^wiki_/){
