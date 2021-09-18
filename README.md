@@ -1,6 +1,6 @@
 # Uniqki
 
-A Personal Wiki Builder <<https://uniqki.isnew.info>>
+A Personal Wiki Builder <<https://uniqki.isnew.info/>>
 
 Uniqki is a simple yet powerful Perl script that can build a website with
 static HTML files. Its name originated from Unique Wiki. There are two types of
@@ -16,7 +16,7 @@ directly served by the web server, it's the server's responsibility to secure
 those files and redirect requests to the script.
 
 In a portable Perl environment like [the Strawberry Perl Portable
-edition](http://strawberryperl.com), Uniqki can be self-served by itself using
+edition](http://strawberryperl.com/), Uniqki can be self-served by itself using
 an embedded web server.
 
 It works with [the Uniqki Presenter](https://github.com/HuidaeCho/uniqki-presenter)
@@ -24,7 +24,7 @@ to make presentation slides and posters.
 
 ## License
 
-Copyright (C) 2007-2008, 2010-2011, 2016-2020, Huidae Cho <<https://idea.isnew.info>>  
+Copyright (C) 2007-2008, 2010-2011, 2016-2020, Huidae Cho <<https://idea.isnew.info/>>  
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
