@@ -4600,7 +4600,7 @@ sub print_search_pages{
 	$i = 0;
 	foreach(@list){
 		my ($page, $page_title, $time, $match);
-		/^(.*)\x00(.*)\x00(.*)\x00(.*)$/;
+		/^(.*)\x00(.*)\x00(.*)\x00(.*)$/s;
 		$match = $4;
 		if($roc){
 			if($title){
