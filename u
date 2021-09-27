@@ -2094,7 +2094,7 @@ sub print_view{
 <nav id="menu">
 <span class="write-access"><a accesskey="r" href="[[CGI]]/[[PAGE]]?refresh">[[refresh]]</a> .</span>
 <span class="write-access"><a accesskey="e" href="[[CGI]]/[[PAGE]]?edit">[[edit]]</a> .</span>
-<a accesskey="l" href="[[CGI]]?search=[[PAGE]]%5C.html(%23.*%3F)%3F&amp;link=1&amp;title=1">[[backlinks]]</a> .
+<a accesskey="b" href="[[CGI]]?search=[[PAGE]]%5C.html(%23.*%3F)%3F&amp;link=1&amp;title=1">[[backlinks]]</a> .
 <a accesskey="i" href="[[INDEX_PAGE]].html">[[index]]</a> .
 <a class="visitor" accesskey="l" href="[[CGI]]/[[PAGE]]?login">[[login]]</a>
 <a class="user" accesskey="l" href="[[CGI]]/[[PAGE]]?logout">[[logout]]</a>
