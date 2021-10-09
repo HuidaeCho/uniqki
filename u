@@ -134,9 +134,10 @@ use vars qw(
 use vars qw(
 	$lineno $text $url_chars $url_puncts $fresh_block $code_block
 	$syntax_block $block_indent @parsed_blocks $re_block $re_start $re_n
-	@re @re_sub $p $asis $nosyntax $pre $pre_code $blockquote $list $table
-	$figure @h_lines %h_n $h_top $h_prev %h_secs %secs_no $toc $toc_dep
-	$tab_no %tabs_n %tabs $lot $nolot $fig_no %figs_n %figs $lof $nolof
+	@re_opts @re @re_sub $p $asis $nosyntax $pre $pre_code $blockquote
+	$list $table $figure @h_lines %h_n $h_top $h_prev %h_secs %secs_no $toc
+	$toc_dep $tab_no %tabs_n %tabs $lot $nolot $fig_no %figs_n %figs $lof
+	$nolof
 );
 
 # Other global variables
@@ -4678,11 +4679,11 @@ sub parse_file{
 
 	local ($text, $url_chars, $url_puncts, $fresh_block, $code_block,
 		$syntax_block, $block_indent, @parsed_blocks, $re_block,
-		$re_start, $re_n, @re, @re_sub, $p, $asis, $nosyntax, $pre,
-		$pre_code, $blockquote, $list, $table, $figure, @h_lines, %h_n,
-		$h_top, $h_prev, %h_secs, %secs_no, $toc, $toc_dep, $tab_no,
-		%tabs_n, %tabs, $lot, $nolot, $fig_no, %figs_n, %figs, $lof,
-		$nolof);
+		$re_start, $re_n, @re_opts, @re, @re_sub, $p, $asis, $nosyntax,
+		$pre, $pre_code, $blockquote, $list, $table, $figure, @h_lines,
+		%h_n, $h_top, $h_prev, %h_secs, %secs_no, $toc, $toc_dep,
+		$tab_no, %tabs_n, %tabs, $lot, $nolot, $fig_no, %figs_n, %figs,
+		$lof, $nolof);
 
 	my @header_files = ();
 	push @header_files, $HEADER_FILE;
@@ -4793,7 +4794,7 @@ sub parse_fresh_block{
 	my $txt = shift;
 	local ($is_block, $text, $url_chars, $url_puncts, $fresh_block,
 		$code_block, $syntax_block, $block_indent, @parsed_blocks,
-		$re_block, $re_start, $re_n, @re, @re_sub, $p, $asis,
+		$re_block, $re_start, $re_n, @re_opts, @re, @re_sub, $p, $asis,
 		$nosyntax, $pre, $pre_code, $blockquote, $list, $table,
 		$figure, @h_lines, %h_n, $h_top, $h_prev, %h_secs, %secs_no,
 		$toc, $toc_dep, $tab_no, %tabs_n, %tabs, $lot, $nolot, $fig_no,
@@ -5433,7 +5434,7 @@ sub process_raw_block{
 	if($re_block ne ""){
 		if(substr($re_block, 0, 1) eq $_){
 			chomp $re_block;
-			$re_block =~ s/^.(.*)\n//;
+			$re_block =~ s/^.(.*)\n(.*)\n//;
 
 			# Don't allow code embedding in a wiki page
 			if($is_wiki && index($re_block, '@{[') != -1){
@@ -5443,9 +5444,13 @@ sub process_raw_block{
 
 			my $i;
 			for($i = 0; $i < $re_n; $i++){
-				last if $re[$i] eq $1;
+				last if $re[$i] eq $2;
 			}
-			$re[$re_n++] = $1 if $i == $re_n;
+			$re[$re_n++] = $2 if $i == $re_n;
+			$re_opts[$i] = {
+				"a" => index($1, "a") != -1,
+				"i" => index($1, "i") != -1
+			};
 			$_ = $re_block;
 			# Treat a single backslash as an escape character
 			s/(?<!\\)\\(?![\\a-zA-Z0-9])/\x00/g;
@@ -5470,12 +5475,14 @@ sub preprocess_line{
 	# return the current line for further processing
 	local $_ = shift;
 
-	# Apply regular expressions if not asis
-	if(!$asis && !/^%/ && !/^#(?:no)?regex/ && !/^##(?:sub |{)/ &&
+	# Apply regular expressions
+	if(!/^%/ && !/^#(?:no)?regex/ && !/^##(?:sub |{)/ &&
 	   $code_block eq "" && $syntax_block eq "" && $re_block eq ""){
 		for(my $i = $re_start; $i < $re_n; $i++){
+			next if($asis && !$re_opts[$i]{a});
+			my $opts = $re_opts[$i]{i} ? "i" : "";
 			# Need it again to avoid regexing regexed output
-			eval "s\x1e$re[$i]\x1e$re_sub[$i]\x1eg;"
+			eval "s\x1e$re[$i]\x1e$re_sub[$i]\x1eg$opts;"
 				unless /^#(?:no)?regex/;
 		}
 		if(/\n/){
@@ -5610,18 +5617,22 @@ sub process_wiki_command{
 	local $_ = shift;
 
 	# Register regular expressions
-	if(/^#regex (.)(.+)(?<!\\)\1(.*)(?<!\\)\1$/){
+	if(/^#regex(-[ai]*)? (.)(.+)(?<!\\)\2(.*)(?<!\\)\2$/){
 		# Don't allow code embedding in a wiki page
-		return if $is_wiki && (index($2, '(?{') != -1 ||
-				       index($2, '(??{') != -1 ||
-				       index($3, '@{[') != -1);
+		return if $is_wiki && (index($3, '(?{') != -1 ||
+				       index($3, '(??{') != -1 ||
+				       index($4, '@{[') != -1);
 
 		my $i;
 		for($i = 0; $i < $re_n; $i++){
-			last if $re[$i] eq $2;
+			last if $re[$i] eq $3;
 		}
-		$re[$re_n++] = $2 if $i == $re_n;
-		$_ = $3;
+		$re[$re_n++] = $3 if $i == $re_n;
+		$re_opts[$i] = {
+			"a" => index($1, "a") != -1,
+			"i" => index($1, "i") != -1
+		};
+		$_ = $4;
 		# Treat a single backslash as an escape character
 		s/(?<!\\)\\(?![\\a-zA-Z0-9])/\x00/g;
 		# Don't allow access to variables
@@ -5631,12 +5642,12 @@ sub process_wiki_command{
 		return;
 	}
 	# Register multi-line regular expressions
-	if(/^#regex (.)(.+)(?<!\\)\1$/){
+	if(/^#regex(-[ai]*)? (.)(.+)(?<!\\)\2$/){
 		# Don't allow code embedding in a wiki page
-		return if $is_wiki && (index($2, '(?{') != -1 ||
-				       index($2, '(??{') != -1);
+		return if $is_wiki && (index($3, '(?{') != -1 ||
+				       index($3, '(??{') != -1);
 
-		$re_block = "$1$2\n";
+		$re_block = "$2$1\n$3\n";
 		return;
 	}
 	# Clear regular expressions
@@ -6145,6 +6156,7 @@ sub begin_parsing{
 		$re_block = "";
 		$re_start = 0;
 		$re_n = 0;
+		@re_opts = ();
 		@re = ();
 		@re_sub = ();
 		@h_lines = ();
@@ -6268,6 +6280,7 @@ sub end_parsing{
 		$re_block = "";
 		$re_start = 0;
 		$re_n = 0;
+		@re_opts = ();
 		@re = ();
 		@re_sub = ();
 		@h_lines = ();
