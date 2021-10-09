@@ -5417,7 +5417,10 @@ sub process_raw_block{
 		if("))" eq substr($_, 0, 2) && "_" ne substr($_, 2, 1)){
 			my $block = $fresh_block.substr($_, 2);
 			$fresh_block = "";
-			$block =~ s/^ {$block_indent}//mg;
+			$block =~ /^([^\n]*)(\n.*)/s;
+			my $first = $1;
+			(my $body = $2) =~ s/^ {$block_indent}//mg;
+			$block = $first.$body;
 			$_ = create_fresh_block($block);
 		}else{
 			unless(/^$/){
@@ -5523,7 +5526,10 @@ sub process_block{
 		if(")" eq substr($_, 0, 1) && "_" ne substr($_, 1, 1)){
 			my $block = $syntax_block.substr($_, 1);
 			$syntax_block = "";
-			$block =~ s/^ {$block_indent}//mg;
+			$block =~ /^([^\n]*)(\n.*)/s;
+			my $first = $1;
+			(my $body = $2) =~ s/^ {$block_indent}//mg;
+			$block = $first.$body;
 			$_ = create_syntax_block($block);
 		}else{
 			unless(/^$/){
