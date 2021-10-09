@@ -5450,10 +5450,10 @@ sub process_raw_block{
 				last if $re[$i] eq $2;
 			}
 			$re[$re_n++] = $2 if $i == $re_n;
-			$re_opts[$i] = {
-				"a" => index($1, "a") != -1,
-				"i" => index($1, "i") != -1
-			};
+			$re_opts[$i] = ();
+			foreach (split //, $1){
+				$re_opts[$i]{$_} = 1;
+			}
 			$_ = $re_block;
 			# Treat a single backslash as an escape character
 			s/(?<!\\)\\(?![\\a-zA-Z0-9])/\x00/g;
@@ -5479,10 +5479,17 @@ sub preprocess_line{
 	local $_ = shift;
 
 	# Apply regular expressions
-	if(!/^%/ && !/^#(?:no)?regex/ && !/^##(?:sub |{)/ &&
-	   $code_block eq "" && $syntax_block eq "" && $re_block eq ""){
+	if(!/^%/ && !/^#(?:no)?regex/ && !/^##(?:sub |{)/ && $re_block eq ""){
 		for(my $i = $re_start; $i < $re_n; $i++){
-			next if($asis && !$re_opts[$i]{a});
+			next if(($asis && !$re_opts[$i]{a} &&
+					  !$re_opts[$i]{A}) ||
+				(!$asis && $re_opts[$i]{A}) ||
+				($syntax_block ne "" && !$re_opts[$i]{s} &&
+							!$re_opts[$i]{S}) ||
+				($syntax_block eq "" && $re_opts[$i]{S}) ||
+				($code_block ne "" && !$re_opts[$i]{c} &&
+						      !$re_opts[$i]{C}) ||
+				($code_block eq "" && $re_opts[$i]{C}));
 			my $opts = $re_opts[$i]{i} ? "i" : "";
 			# Need it again to avoid regexing regexed output
 			eval "s\x1e$re[$i]\x1e$re_sub[$i]\x1eg$opts;"
@@ -5623,7 +5630,7 @@ sub process_wiki_command{
 	local $_ = shift;
 
 	# Register regular expressions
-	if(/^#regex(-[ai]*)? (.)(.+)(?<!\\)\2(.*)(?<!\\)\2$/){
+	if(/^#regex(-[iascASC]*)? (.)(.+)(?<!\\)\2(.*)(?<!\\)\2$/){
 		# Don't allow code embedding in a wiki page
 		return if $is_wiki && (index($3, '(?{') != -1 ||
 				       index($3, '(??{') != -1 ||
@@ -5634,10 +5641,10 @@ sub process_wiki_command{
 			last if $re[$i] eq $3;
 		}
 		$re[$re_n++] = $3 if $i == $re_n;
-		$re_opts[$i] = {
-			"a" => index($1, "a") != -1,
-			"i" => index($1, "i") != -1
-		};
+		$re_opts[$i] = ();
+		foreach (split //, $1){
+			$re_opts[$i]{$_} = 1;
+		}
 		$_ = $4;
 		# Treat a single backslash as an escape character
 		s/(?<!\\)\\(?![\\a-zA-Z0-9])/\x00/g;
@@ -5648,7 +5655,7 @@ sub process_wiki_command{
 		return;
 	}
 	# Register multi-line regular expressions
-	if(/^#regex(-[ai]*)? (.)(.+)(?<!\\)\2$/){
+	if(/^#regex(-[iascASC]*)? (.)(.+)(?<!\\)\2$/){
 		# Don't allow code embedding in a wiki page
 		return if $is_wiki && (index($3, '(?{') != -1 ||
 				       index($3, '(??{') != -1);
