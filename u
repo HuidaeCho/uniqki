@@ -5261,8 +5261,9 @@ sub update_table_rowspan{
 	my $rows = shift;
 
 	(my $rowspan = $rows) =~ s#</?tr>##g;
-	$rowspan =~ s#<(t[hd]) [^>]+>\.</\1>#+#g;
-	$rowspan =~ s#<(t[hd]) [^>]+>.*?</\1>#1#g;
+	$rowspan =~ s#<(t[hd]) colspan="([0-9]+)"[^>]*>#@{["<$1></$1>"x($2-1)."<$1>"]}#g;
+	$rowspan =~ s#<(t[hd])[^>]*>\.</\1>#+#g;
+	$rowspan =~ s#<(t[hd])[^>]*>.*?</\1>#1#g;
 	# $rowspan example:
 	# 111
 	# 1++
@@ -5302,7 +5303,10 @@ sub update_table_rowspan{
 	my @rows = split /\n/, $rows;
 	for my $i (0..$#rows){
 		my $c = 0;
-		$cells[$i][$c++] = $_ foreach split /\x03/, $rows[$i];
+		foreach(split /\x03/, $rows[$i]){
+			$c += $1 - 1 if /<t[hd] colspan="([0-9]+)"[^>]*>/;
+			$cells[$i][$c++] = $_;
+		}
 	}
 
 	for my $i (0..$#rs){
@@ -5451,7 +5455,7 @@ sub process_raw_block{
 			}
 			$re[$re_n++] = $2 if $i == $re_n;
 			$re_opts[$i] = ();
-			foreach (split //, $1){
+			foreach(split //, $1){
 				$re_opts[$i]{$_} = 1;
 			}
 			$_ = $re_block;
@@ -5642,7 +5646,7 @@ sub process_wiki_command{
 		}
 		$re[$re_n++] = $3 if $i == $re_n;
 		$re_opts[$i] = ();
-		foreach (split //, $1){
+		foreach(split //, $1){
 			$re_opts[$i]{$_} = 1;
 		}
 		$_ = $4;
