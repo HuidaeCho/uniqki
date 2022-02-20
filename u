@@ -1488,11 +1488,11 @@ preview_warning => q(This document is preview. Please make sure to save your cha
 page_updated => q([[PAGE]] updated!),
 save_your_changes_and_read_latest_version => q(Please save your changes and read <a href="[[PAGE]].html">the latest version</a>!),
 
-edit_page => q(Edit [[PAGE]]),
-wiki_edit_page => q(WikiEdit [[PAGE]]),
+edit_page => q(Edit [[PAGE]] v[[VERSION]]),
+wiki_edit_page => q(WikiEdit [[PAGE]] v[[VERSION]]),
 
-edit_lines => q(Edit [[PAGE]] (lines [[START]]+[[COUNT]])),
-wiki_edit_lines => q(WikiEdit [[PAGE]] (lines [[START]]+[[COUNT]])),
+edit_lines => q(Edit [[PAGE]] v[[VERSION]] (lines [[START]]+[[COUNT]])),
+wiki_edit_lines => q(WikiEdit [[PAGE]] v[[VERSION]] (lines [[START]]+[[COUNT]])),
 
 ################################################################################
 # Non-template messages: These messages support printf format specifiers such
@@ -1563,7 +1563,7 @@ refresh_pages => q(Refresh pages),
 refresh_pages_matching => q(Refresh pages matching %s pattern),
 search => q(Search for %s),
 search_matching => q(Search %s for %s),
-differences => q(Differences of <a href="%s">%1$s</a> between versions %d and %d),
+differences => q(Differences of <a href="%s">%1$s</a> between v%d and v%d),
 
 goto_form => q(Goto form),
 goto_form_goto => q(Go to),
@@ -1694,7 +1694,7 @@ sub process_tpl_tag{
 	}elsif($tag =~ /^[a-z0-9_]+$/){
 		$txt = get_msg($tag);
 		my @tags = qw(
-			PAGE START COUNT TIME AUTHOR PARSING_TIME
+			PAGE VERSION START COUNT TIME AUTHOR PARSING_TIME
 		);
 
 		no strict;
