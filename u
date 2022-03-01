@@ -1488,11 +1488,11 @@ preview_warning => q(This document is preview. Please make sure to save your cha
 page_updated => q([[PAGE]] updated!),
 save_your_changes_and_read_latest_version => q(Please save your changes and read <a href="[[PAGE]].html">the latest version</a>!),
 
-edit_page => q(Edit [[PAGE]] v[[VERSION]]),
-wiki_edit_page => q(WikiEdit [[PAGE]] v[[VERSION]]),
+edit_page => q(Edit [[PAGE]] v<span class="version">[[VERSION]]</span>),
+wiki_edit_page => q(WikiEdit [[PAGE]] v<span class="version">[[VERSION]]</span>),
 
-edit_lines => q(Edit [[PAGE]] v[[VERSION]] (lines [[START]]+[[COUNT]])),
-wiki_edit_lines => q(WikiEdit [[PAGE]] v[[VERSION]] (lines [[START]]+[[COUNT]])),
+edit_lines => q(Edit [[PAGE]] v<span class="version">[[VERSION]]</span> (lines [[START]]+[[COUNT]])),
+wiki_edit_lines => q(WikiEdit [[PAGE]] v<span class="version">[[VERSION]]</span> (lines [[START]]+[[COUNT]])),
 
 ################################################################################
 # Non-template messages: These messages support printf format specifiers such
@@ -2973,6 +2973,7 @@ function saveEdit(){
 	let countEl = document.getElementById('count');
 	let save = document.getElementById('save').value;
 	let fileEl = document.getElementById('file');
+	let versionEls = document.getElementsByClassName('version');
 
 	let requestURL = textEl.form.action;
 	let formData = new FormData();
@@ -2995,8 +2996,12 @@ function saveEdit(){
 			saveEditEl.disabled = false;
 			saveEditEl.value = saveEdit;
 			if(saveEditedText != text){
-				versionEl.value = version + 1;
+				version++;
+				versionEl.value = version;
 				saveEditedText = text;
+				[...versionEls].forEach(function(verEl){
+					verEl.innerHTML = version;
+				});
 			}
 		}else{
 			saveEditEl.value = '!!!';
