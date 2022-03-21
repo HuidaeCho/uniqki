@@ -2545,6 +2545,9 @@ ol ol ol {
 	}
 }
 @media print {
+	body {
+		font-size:		small;
+	}
 	#header {
 		display:		none;
 	}
