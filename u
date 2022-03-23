@@ -134,7 +134,7 @@ use vars qw(
 use vars qw(
 	$lineno $text $url_chars $url_puncts $fresh_block $code_block
 	$syntax_block $block_indent @parsed_blocks $re_block $re_start $re_n
-	@re_opts @re @re_sub $p $asis $nosyntax $pre $pre_code $blockquote
+	@re_pat @re_rep @re_opts $p $asis $nosyntax $pre $pre_code $blockquote
 	$list $table $figure @h_lines %h_n $h_top $h_prev %h_secs %secs_no $toc
 	$toc_dep $tab_no %tabs_n %tabs $lot $nolot $fig_no %figs_n %figs $lof
 	$nolof
@@ -4688,11 +4688,11 @@ sub parse_file{
 
 	local ($text, $url_chars, $url_puncts, $fresh_block, $code_block,
 		$syntax_block, $block_indent, @parsed_blocks, $re_block,
-		$re_start, $re_n, @re_opts, @re, @re_sub, $p, $asis, $nosyntax,
-		$pre, $pre_code, $blockquote, $list, $table, $figure, @h_lines,
-		%h_n, $h_top, $h_prev, %h_secs, %secs_no, $toc, $toc_dep,
-		$tab_no, %tabs_n, %tabs, $lot, $nolot, $fig_no, %figs_n, %figs,
-		$lof, $nolof);
+		$re_start, $re_n, @re_pat, @re_rep, @re_opts, $p, $asis,
+		$nosyntax, $pre, $pre_code, $blockquote, $list, $table,
+		$figure, @h_lines, %h_n, $h_top, $h_prev, %h_secs, %secs_no,
+		$toc, $toc_dep, $tab_no, %tabs_n, %tabs, $lot, $nolot, $fig_no,
+		%figs_n, %figs, $lof, $nolof);
 
 	my @header_files = ();
 	push @header_files, $HEADER_FILE;
@@ -4803,8 +4803,8 @@ sub parse_fresh_block{
 	my $txt = shift;
 	local ($is_block, $text, $url_chars, $url_puncts, $fresh_block,
 		$code_block, $syntax_block, $block_indent, @parsed_blocks,
-		$re_block, $re_start, $re_n, @re_opts, @re, @re_sub, $p, $asis,
-		$nosyntax, $pre, $pre_code, $blockquote, $list, $table,
+		$re_block, $re_start, $re_n, @re_pat, @re_rep, @re_opts, $p,
+		$asis, $nosyntax, $pre, $pre_code, $blockquote, $list, $table,
 		$figure, @h_lines, %h_n, $h_top, $h_prev, %h_secs, %secs_no,
 		$toc, $toc_dep, $tab_no, %tabs_n, %tabs, $lot, $nolot, $fig_no,
 		%figs_n, %figs, $lof, $nolof);
@@ -5490,7 +5490,7 @@ sub preprocess_line{
 				($code_block eq "" && $re_opts[$i]{C}));
 			my $opts = $re_opts[$i]{i} ? "i" : "";
 			# Need it again to avoid regexing regexed output
-			eval "s\x1e$re[$i]\x1e$re_sub[$i]\x1eg$opts;"
+			eval "s\x1e$re_pat[$i]\x1e$re_rep[$i]\x1eg$opts;"
 				unless /^#(?:no)?regex/;
 		}
 		if(/\n/){
@@ -5622,15 +5622,15 @@ sub skip_comment{
 	return $_;
 }
 
-sub save_regex{
-	my ($opt, $pat, $rep) = @_;
+sub find_regex{
+	my ($opt, $pat) = @_;
 
 	my %opts = ();
 	$opts{$_} = 1 foreach split //, $opt;
 
 	my $i;
 	for($i = 0; $i < $re_n; $i++){
-		if($re[$i] eq $pat && keys %{$re_opts[$i]} == keys %opts){
+		if($re_pat[$i] eq $pat && keys %{$re_opts[$i]} == keys %opts){
 			my $diff = 0;
 			foreach(keys $re_opts[$i]){
 				if($re_opts[$i]{$_} != $opts{$_}){
@@ -5641,8 +5641,16 @@ sub save_regex{
 			last unless $diff;
 		}
 	}
-	$re[$re_n++] = $pat if $i == $re_n;
-	%{$re_opts[$i]} = %opts;
+
+	return $i, \%opts;
+}
+
+sub save_regex{
+	my ($opt, $pat, $rep) = @_;
+
+	my ($i, $opts) = find_regex($opt, $pat);
+	$re_pat[$re_n++] = $pat if $i == $re_n;
+	$re_opts[$i] = $opts;
 
 	$_ = $rep;
 	# Treat a single backslash as an escape character
@@ -5650,7 +5658,7 @@ sub save_regex{
 	# Don't allow access to variables
 	# @{[code]} won't work even in a non-wiki page
 	s/([\$@%\[\]])/\\\1/g;
-	$re_sub[$i] = $_;
+	$re_rep[$i] = $_;
 }
 
 sub process_wiki_command{
@@ -5686,22 +5694,20 @@ sub process_wiki_command{
 		return;
 	}
 	# Clear regular expressions
-	if(/^#noregex(?:| (.)(.+)(?<!\\)\1)$/){
-		if($2 eq ""){
+	if(/^#noregex(?:|(-[iascASC]*)? (.)(.+)(?<!\\)\2)$/){
+		if($3 eq ""){
 			$re_n = 0;
-			$#re = $#re_opts = $#re_sub = -1;
+			$#re_pat = $#re_rep = $#re_opts = -1;
 		}else{
-			for(my $i = 0; $i < $re_n; $i++){
-				if($re[$i] eq $2){
-					$re_n--;
-					for(; $i < $re_n; $i++){
-						$re[$i] = $re[$i+1];
-						$re_opts[$i] = $re_opts[$i+1];
-						$re_sub[$i] = $re_sub[$i+1];
-					}
-					$#re = $#re_opts = $#re_sub = $re_n - 1;
-					last;
+			my ($i, $opts) = find_regex($1, $3);
+			if($i < $re_n){
+				$re_n--;
+				for(; $i < $re_n; $i++){
+					$re_pat[$i] = $re_pat[$i+1];
+					$re_opts[$i] = $re_opts[$i+1];
+					$re_rep[$i] = $re_rep[$i+1];
 				}
+				$#re_pat = $#re_rep = $#re_opts = $re_n - 1;
 			}
 		}
 		return;
@@ -6192,9 +6198,9 @@ sub begin_parsing{
 		$re_block = "";
 		$re_start = 0;
 		$re_n = 0;
+		@re_pat = ();
+		@re_rep = ();
 		@re_opts = ();
-		@re = ();
-		@re_sub = ();
 		@h_lines = ();
 		%h_n = ();
 		$h_top = 0;
@@ -6316,9 +6322,9 @@ sub end_parsing{
 		$re_block = "";
 		$re_start = 0;
 		$re_n = 0;
+		@re_pat = ();
+		@re_rep = ();
 		@re_opts = ();
-		@re = ();
-		@re_sub = ();
 		@h_lines = ();
 		%h_n = ();
 		$h_top = 0;
