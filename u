@@ -4328,8 +4328,8 @@ sub read_file{
 }
 
 sub write_file{
-	# return 1 if successful
-	# return 0 otherwise
+	# Return 1 if successful
+	# Return 0 otherwise
 	my ($file, $text, $binary) = @_;
 	local *FH;
 
@@ -5415,8 +5415,8 @@ sub close_all_sections{
 }
 
 sub process_raw_block{
-	# return undef to skip to the next line
-	# return the current line for further processing
+	# Return undef to skip to the next line
+	# Return the current line for further processing
 	local $_ = shift;
 
 	# Fresh block
@@ -5487,8 +5487,8 @@ sub process_raw_block{
 }
 
 sub preprocess_line{
-	# return undef to skip to the next line
-	# return the current line for further processing
+	# Return undef to skip to the next line
+	# Return the current line for further processing
 	local $_ = shift;
 
 	# Apply regular expressions
@@ -5537,8 +5537,8 @@ sub preprocess_line{
 }
 
 sub process_block{
-	# return undef to skip to the next line
-	# return the current line for further processing
+	# Return undef to skip to the next line
+	# Return the current line for further processing
 	local $_ = shift;
 
 	# Process syntax block
@@ -5568,8 +5568,8 @@ sub process_block{
 }
 
 sub process_asis_lines{
-	# return undef to skip to the next line
-	# return the current line for further processing
+	# Return undef to skip to the next line
+	# Return the current line for further processing
 	local $_ = shift;
 
 	# Start or close nosyntax
@@ -5627,8 +5627,8 @@ sub process_asis_lines{
 }
 
 sub skip_comment{
-	# return undef to skip to the next line
-	# return the current line for further processing
+	# Return undef to skip to the next line
+	# Return the current line for further processing
 	local $_ = shift;
 
 	# Skip comment
@@ -5638,12 +5638,12 @@ sub skip_comment{
 }
 
 sub process_wiki_command{
-	# return undef to skip to the next line
-	# return the current line for further processing
+	# Return undef to skip to the next line
+	# Return the current line for further processing
 	local $_ = shift;
 
 	# Register regular expressions
-	# options:
+	# Options:
 	# -i: ignore case
 	# -a: apply to asis as well
 	# -s: apply to syntax block as well
@@ -5735,8 +5735,8 @@ sub process_wiki_command{
 }
 
 sub process_nonwiki_command{
-	# return undef to skip to the next line
-	# return the current line for further processing
+	# Return undef to skip to the next line
+	# Return the current line for further processing
 	local $_ = shift;
 
 	# Include another Uniqki file
@@ -5777,8 +5777,8 @@ sub process_nonwiki_command{
 }
 
 sub skip_unknown_command{
-	# return undef to skip to the next line
-	# return the current line for further processing
+	# Return undef to skip to the next line
+	# Return the current line for further processing
 	local $_ = shift;
 
 	# Ignore other lines starting with #
@@ -5788,8 +5788,8 @@ sub skip_unknown_command{
 }
 
 sub start_block{
-	# return undef to skip to the next line
-	# return the current line for further processing
+	# Return undef to skip to the next line
+	# Return the current line for further processing
 	local $_ = shift;
 
 	# Syntax block
@@ -5803,8 +5803,8 @@ sub start_block{
 }
 
 sub process_collected_lines{
-	# return undef to skip to the next line
-	# return the current line for further processing
+	# Return undef to skip to the next line
+	# Return the current line for further processing
 	local $_ = shift;
 
 	# Close blockquote
@@ -5839,8 +5839,8 @@ sub process_collected_lines{
 }
 
 sub process_paragraph_break{
-	# return undef to skip to the next line
-	# return the current line for further processing
+	# Return undef to skip to the next line
+	# Return the current line for further processing
 	local $_ = shift;
 
 	if("" eq $_ || /^___+$/){
@@ -5855,16 +5855,16 @@ sub process_paragraph_break{
 }
 
 sub escape_inline_syntax{
-	# return undef to skip to the next line
-	# return the current line for further processing
+	# Return undef to skip to the next line
+	# Return the current line for further processing
 	local $_ = shift;
 	s#([`"/*'_!\[{<-]|[a-z]+://)#\x00$1#gi;
 	return $_;
 }
 
 sub process_inline_syntax{
-	# return undef to skip to the next line
-	# return the current line for further processing
+	# Return undef to skip to the next line
+	# Return the current line for further processing
 	# \x00: escape character
 	# \x01: &
 	# \x02: <
@@ -5926,8 +5926,8 @@ sub process_inline_syntax{
 }
 
 sub collect_lines{
-	# return undef to skip to the next line
-	# return the current line for further processing
+	# Return undef to skip to the next line
+	# Return the current line for further processing
 	local $_ = shift;
 
 	# Collect quote lines
@@ -5957,8 +5957,8 @@ sub collect_lines{
 }
 
 sub process_line_syntax{
-	# return undef to skip to the next line
-	# return the current line for further processing
+	# Return undef to skip to the next line
+	# Return the current line for further processing
 	local $_ = shift;
 
 	# Heading
@@ -6063,8 +6063,8 @@ sub process_line_syntax{
 }
 
 sub start_paragraph{
-	# return undef to skip to the next line
-	# return the current line for further processing
+	# Return undef to skip to the next line
+	# Return the current line for further processing
 	local $_ = shift;
 
 	# Start a new paragraph
@@ -6077,8 +6077,8 @@ sub start_paragraph{
 }
 
 sub postprocess_line{
-	# return undef to skip to the next line
-	# return the current line for further processing
+	# Return undef to skip to the next line
+	# Return the current line for further processing
 	local $_ = shift;
 
 	# Handle <p> tags around syntax blocks
@@ -6149,8 +6149,8 @@ sub preprocess_text{
 }
 
 sub verify_input{
-	# return 1 if OK
-	# return 0 otherwise
+	# Return 1 if OK
+	# Return 0 otherwise
 	my ($query, $var) = @_;
 	if($query eq "comment"){
 		return 0 if $$var{website} ne "" ||
