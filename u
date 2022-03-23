@@ -5632,7 +5632,7 @@ sub find_regex{
 	for($i = 0; $i < $re_n; $i++){
 		if($re_pat[$i] eq $pat && keys %{$re_opts[$i]} == keys %opts){
 			my $diff = 0;
-			foreach(keys $re_opts[$i]){
+			foreach(keys %{$re_opts[$i]}){
 				if($re_opts[$i]{$_} != $opts{$_}){
 					$diff = 1;
 					last;
