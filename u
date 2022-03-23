@@ -5642,6 +5642,14 @@ sub process_wiki_command{
 	local $_ = shift;
 
 	# Register regular expressions
+	# options:
+	# -i: ignore case
+	# -a: apply to asis as well
+	# -s: apply to syntax block as well
+	# -c: apply to code block as well
+	# -A: only apply to asis
+	# -S: only apply to syntax block
+	# -C: only apply to code block
 	if(/^#regex(-[iascASC]*)? (.)(.+)(?<!\\)\2(.*)(?<!\\)\2$/){
 		# Don't allow code embedding in a wiki page
 		return if $is_wiki && (index($3, '(?{') != -1 ||
@@ -5679,16 +5687,17 @@ sub process_wiki_command{
 	if(/^#noregex(?:| (.)(.+)(?<!\\)\1)$/){
 		if($2 eq ""){
 			$re_n = 0;
-			$#re = $#re_sub = -1;
+			$#re = $#re_opts = $#re_sub = -1;
 		}else{
 			for(my $i = 0; $i < $re_n; $i++){
 				if($re[$i] eq $2){
 					$re_n--;
 					for(; $i < $re_n; $i++){
 						$re[$i] = $re[$i+1];
+						$re_opts[$i] = $re_opts[$i+1];
 						$re_sub[$i] = $re_sub[$i+1];
 					}
-					$#re = $#re_sub = $re_n - 1;
+					$#re = $#re_opts = $#re_sub = $re_n - 1;
 					last;
 				}
 			}
