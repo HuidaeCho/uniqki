@@ -3151,7 +3151,7 @@ sub patch{
 	return $str;
 }
 
-sub save{
+sub save_page{
 	my ($PAGE, $TEXT) = @_;
 	my $version = 1;
 	my $txtv;
@@ -5458,22 +5458,7 @@ sub process_raw_block{
 				return;
 			}
 
-			my $i;
-			for($i = 0; $i < $re_n; $i++){
-				last if $re[$i] eq $2;
-			}
-			$re[$re_n++] = $2 if $i == $re_n;
-			$re_opts[$i] = ();
-			foreach(split //, $1){
-				$re_opts[$i]{$_} = 1;
-			}
-			$_ = $re_block;
-			# Treat a single backslash as an escape character
-			s/(?<!\\)\\(?![\\a-zA-Z0-9])/\x00/g;
-			# Don't allow access to variables
-			# @{[code]} won't work even in a non-wiki page
-			s/([\$@%\[\]])/\\\1/g;
-			$re_sub[$i] = $_;
+			save_regex($1, $2, $re_block);
 			$re_block = "";
 			return;
 
@@ -5637,6 +5622,37 @@ sub skip_comment{
 	return $_;
 }
 
+sub save_regex{
+	my ($opt, $pat, $rep) = @_;
+
+	my %opts = ();
+	$opts{$_} = 1 foreach split //, $opt;
+
+	my $i;
+	for($i = 0; $i < $re_n; $i++){
+		if($re[$i] eq $pat && keys %{$re_opts[$i]} == keys %opts){
+			my $diff = 0;
+			foreach(keys $re_opts[$i]){
+				if($re_opts[$i]{$_} != $opts{$_}){
+					$diff = 1;
+					last;
+				}
+			}
+			last unless $diff;
+		}
+	}
+	$re[$re_n++] = $pat if $i == $re_n;
+	%{$re_opts[$i]} = %opts;
+
+	$_ = $rep;
+	# Treat a single backslash as an escape character
+	s/(?<!\\)\\(?![\\a-zA-Z0-9])/\x00/g;
+	# Don't allow access to variables
+	# @{[code]} won't work even in a non-wiki page
+	s/([\$@%\[\]])/\\\1/g;
+	$re_sub[$i] = $_;
+}
+
 sub process_wiki_command{
 	# Return undef to skip to the next line
 	# Return the current line for further processing
@@ -5657,22 +5673,7 @@ sub process_wiki_command{
 				       index($3, '(??{') != -1 ||
 				       index($4, '@{[') != -1);
 
-		my $i;
-		for($i = 0; $i < $re_n; $i++){
-			last if $re[$i] eq $3;
-		}
-		$re[$re_n++] = $3 if $i == $re_n;
-		$re_opts[$i] = ();
-		foreach(split //, $1){
-			$re_opts[$i]{$_} = 1;
-		}
-		$_ = $4;
-		# Treat a single backslash as an escape character
-		s/(?<!\\)\\(?![\\a-zA-Z0-9])/\x00/g;
-		# Don't allow access to variables
-		# @{[code]} won't work even in a non-wiki page
-		s/([\$@%\[\]])/\\\1/g;
-		$re_sub[$i] = $_;
+		save_regex($1, $3, $4);
 		return;
 	}
 	# Register multi-line regular expressions
@@ -6540,7 +6541,7 @@ if($QUERY_STRING eq "css"){
 		close FH;
 	}
 	die_message("comment_tag_not_found", "#%$var{comment}") unless $added;
-	save($PAGE, $TEXT);
+	save_page($PAGE, $TEXT);
 	unlock_file("$PAGE.txt");
 }elsif($QUERY_STRING eq "forgot_password"){
 #-------------------------------------------------------------------------------
@@ -7145,7 +7146,7 @@ EOT
 				die;
 			}
 			lock_file("$PAGE.txt");
-			save($PAGE, "#!wiki\n$TEXT\n");
+			save_page($PAGE, "#!wiki\n$TEXT\n");
 			unlock_file("$PAGE.txt");
 		}
 	}elsif($QUERY_STRING =~ /^wiki_edit_lines(?:=([0-9]+)(?:,([0-9]+))?)?$/){
@@ -7941,7 +7942,7 @@ EOT
 		die;
 	}
 	lock_file("$PAGE.txt");
-	save($PAGE, "$TEXT\n");
+	save_page($PAGE, "$TEXT\n");
 	unlock_file("$PAGE.txt");
 }elsif($QUERY_STRING =~ /^edit_lines(?:=([0-9]+)(?:,([0-9]+))?)?$/){
 #-------------------------------------------------------------------------------
