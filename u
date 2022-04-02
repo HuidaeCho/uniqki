@@ -3006,6 +3006,7 @@ function saveEdit(){
 				[...versionEls].forEach(function(verEl){
 					verEl.innerHTML = version;
 				});
+				countEl.value = text.split('\n').length;
 			}
 		}else{
 			saveEditEl.value = '!!!';
