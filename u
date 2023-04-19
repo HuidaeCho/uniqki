@@ -5991,7 +5991,7 @@ sub process_line_syntax{
 			return;
 		}
 
-		$text .= "\x05" if $toc eq "";
+		$text .= "\x05" unless $text =~ m/\x05/;
 
 		if($h > $h_prev){
 			if($h_prev){
@@ -6010,13 +6010,13 @@ sub process_line_syntax{
 				$h_prev++;
 				$h_top = $h;
 			}
-			$toc .= "\n" if($toc ne "");
+			$toc .= "\n";
 		}elsif($h < $h_prev){
 			while(--$h_prev >= $h){
 				$toc .= "</ul></li>" if $h_prev < $toc_dep;
 				$text .= "</section>\n";
 			}
-			$toc .= "\n" if($toc ne "");
+			$toc .= "\n";
 			$text .= "</section>\n";
 			$h_prev++;
 			$h_top = $h if $h < $h_top;
@@ -6268,7 +6268,8 @@ sub end_parsing{
 	# for main text or fresh block only
 	if($is_block != 1){
 		create_edit_section() if $#h_lines >= 0;
-		my $clean_toc = $toc_dep > 0 && $toc ne "";
+		(my $toc_text = $toc) =~ s/<[^>]*>|\n//g;
+		my $clean_toc = $toc_dep > 0 && $toc_text ne "";
 		my $h = $h_prev;
 		$toc = "<ul class=\"toc-list\">\n$toc" if $clean_toc;
 		while(--$h_prev > 0){
