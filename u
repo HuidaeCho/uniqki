@@ -6010,13 +6010,13 @@ sub process_line_syntax{
 				$h_prev++;
 				$h_top = $h;
 			}
-			$toc .= "\n";
+			$toc .= "\n" if($toc ne "");
 		}elsif($h < $h_prev){
 			while(--$h_prev >= $h){
 				$toc .= "</ul></li>" if $h_prev < $toc_dep;
 				$text .= "</section>\n";
 			}
-			$toc .= "\n";
+			$toc .= "\n" if($toc ne "");
 			$text .= "</section>\n";
 			$h_prev++;
 			$h_top = $h if $h < $h_top;
