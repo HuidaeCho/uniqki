@@ -5764,6 +5764,13 @@ sub process_nonwiki_command{
 		}
 		return;
 	}
+	# Parse shell command output as Uniqki text
+	if(/^##parse (.+)$/){
+		my $txt = `$1`;
+		local $is_wiki = $txt =~ m/^#!wiki$/m;
+		$text .= parse_lines($txt);
+		return;
+	}
 	# Shell command
 	if(/^##shell (.+)$/){
 		$_->() foreach @close_all_open;
