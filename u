@@ -4814,7 +4814,7 @@ sub parse_fresh_block{
 	$is_block = 2;
 
 	$_->() foreach @begin_parsing;
-	$text .= parse_lines($txt);
+	append_lines($txt);
 	$_->() foreach @end_parsing;
 
 	return $text;
@@ -4832,7 +4832,7 @@ sub parse_syntax_block{
 	$is_block = 1;
 
 	$_->() foreach @begin_parsing;
-	$text .= parse_lines($txt);
+	append_lines($txt);
 	$_->() foreach @end_parsing;
 
 	return $text;
@@ -4841,9 +4841,17 @@ sub parse_syntax_block{
 sub parse_lines{
 	# parse multiple lines in $_[0]
 	my $txt = shift;
+	# Starting with a fresh $text can add a new TOC; Use append_lines to
+	# avoid it
 	local $text;
-	$text .= parse($_, @parse_line) foreach split /\n/, $txt, -1;
+	append_lines($txt);
 	return $text;
+}
+
+sub append_lines{
+	# parse and append multiple lines in $_[0]
+	my $txt = shift;
+	$text .= parse($_, @parse_line) foreach split /\n/, $txt, -1;
 }
 
 sub create_edit_section{
@@ -5496,7 +5504,7 @@ sub preprocess_line{
 		}
 		if(/\n/){
 			local $re_start = $re_n;
-			$text .= parse_lines($_);
+			append_lines($_);
 			return;
 		}
 	}
@@ -5768,7 +5776,7 @@ sub process_nonwiki_command{
 	if(/^##parse (.+)$/){
 		my $txt = `$1`;
 		local $is_wiki = $txt =~ m/^#!wiki$/m;
-		$text .= parse_lines($txt);
+		append_lines($txt);
 		return;
 	}
 	# Shell command
