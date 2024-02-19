@@ -1026,6 +1026,18 @@ sub is_url{
 	return $url =~ m#^(?:[a-z]+://)[%!\#\$&'()*+,/:;=?@\[\]a-z0-9_.~-]+$#i;
 }
 
+sub protect_url_chars{
+	my $url = shift;
+	$url =~ s#([/_-]){2}#$1\x00$1#g;
+	return $url;
+}
+
+sub unprotect_url_chars{
+	my $url = shift;
+	$url =~ s#\x00##g;
+	return $url;
+}
+
 sub protect_urls{
 	my $text = shift;
 	$text =~ s#([a-z]+://)#\x00$1#gi;
@@ -5926,15 +5938,14 @@ sub process_inline_syntax{
 	# URLs
 	s/\x02\x02(.*?)(?:\|(.*?))?\x03\x03/@{[link_url($1, $2)]}/g;
 	# Text styles
-	# Avoid conflicts with //italic//
-	s#([a-z]+:/)(/)(?=[$url_chars])#$1\x00$2\x00#gi;
+	s#([a-z]+://[$url_chars]+)#@{[protect_url_chars($1)]}#gi;
 	s#//(.*?)//#<i>$1</i>#g;
-	s#([a-z]+:/)\x00(/)\x00#$1$2#gi;
 	s#\*\*(.*?)\*\*#<b>$1</b>#g;
 	s#''(.*?)''(?:\[(.*?)\])?#@{[$2 eq "" ? "<code>$1</code>" : qq(<code class="language-$2">$1</code>)]}#g;
 	s#--(.*?)--#<s>$1</s>#g;
 	s#__(.*?)__#<u>$1</u>#g;
 	s#\!\!(.*?)\!\!#<mark>$1</mark>#g;
+	s#([a-z]+:/\x00/[\x00$url_chars]+)#@{[unprotect_url_chars($1)]}#gi;
 	# Protect protocols inside tags
 	s#<([^>]*(?:[a-z]+://)[^>]*)>#<@{[protect_urls($1)]}>#gi;
 	# Protect protocols outside tags
