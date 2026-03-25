@@ -5446,7 +5446,7 @@ sub process_raw_block{
 	}
 	# Process fresh block
 	if($fresh_block ne ""){
-		if("))" eq substr($_, 0, 2) && "_" ne substr($_, 2, 1)){
+		if("))" eq substr($_, 0, 2) && !--$fresh_block_dep){
 			my $block = $fresh_block.substr($_, 2);
 			$fresh_block = "";
 			$block =~ /^([^\n]*)(\n.*)/s;
