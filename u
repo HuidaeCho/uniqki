@@ -5461,7 +5461,11 @@ sub process_raw_block{
 				$block_indent = $i
 					if $fresh_block =~ /^[^\n]*\n$/ ||
 					   $i < $block_indent;
-				$fresh_block_dep++ if("((" eq substr $_, -2);
+				if("((" eq substr $_, -2){
+					$fresh_block_dep++;
+				}elsif(/^ +\)\)/){
+					$fresh_block_dep--;
+				}
 			}
 			$fresh_block .= "$_\n";
 			return;
@@ -5564,7 +5568,11 @@ sub process_block{
 				$block_indent = $i
 					if $syntax_block =~ /^[^\n]*\n$/ ||
 					   $i < $block_indent;
-				$syntax_block_dep++ if("(" eq substr $_, -1);
+				if("(" eq substr $_, -1){
+					$syntax_block_dep++;
+				}elsif(/^ +\)/){
+					$syntax_block_dep--;
+				}
 			}
 			$syntax_block .= "$_\n";
 			return;
