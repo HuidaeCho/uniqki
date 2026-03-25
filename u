@@ -157,6 +157,9 @@ use vars qw(
 	$is_wiki
 	$is_preview
 	$is_block
+	$syntax_block_dep
+	$fresh_block_dep
+	$code_block_dep
 	$preprocess_text
 	$verify_input
 );
@@ -4878,7 +4881,6 @@ sub create_edit_section{
 
 sub run_code_block{
 	my $block = shift;
-	$block =~ s/^(##[{}]_*)_$/$1/mg;
 	eval $block;
 	$text .= "<pre>$@</pre>" if $is_preview && $@;
 }
@@ -4890,8 +4892,6 @@ sub create_fresh_block{
 	my $begin = substr $block, 0, $i;
 	my $end = substr $block, $j + 1;
 	$block = substr $block, $i + 1, $j - $i - 1;
-	$block =~ s/(\(\(_*)_$/$1/mg;
-	$block =~ s/^(\)\)_*)_/$1/mg;
 	my $parsed_block = parse_fresh_block($block);
 	return if $is_preview == 2;
 	chomp $parsed_block;
@@ -4906,8 +4906,6 @@ sub create_syntax_block{
 	my $begin = substr $block, 0, $i;
 	my $end = substr $block, $j + 1;
 	$block = substr $block, $i + 1, $j - $i - 1;
-	$block =~ s/(?<!\()(\(_*)_$/$1/mg;
-	$block =~ s/^(\)_*)_/$1/mg;
 	my $parsed_block = parse_syntax_block($block);
 	return if $is_preview == 2;
 	chomp $parsed_block;
@@ -5463,6 +5461,7 @@ sub process_raw_block{
 				$block_indent = $i
 					if $fresh_block =~ /^[^\n]*\n$/ ||
 					   $i < $block_indent;
+				$fresh_block_dep++ if("((" eq substr $_, -2);
 			}
 			$fresh_block .= "$_\n";
 			return;
@@ -5529,11 +5528,12 @@ sub preprocess_line{
 	}
 	# Process code block
 	if($code_block ne ""){
-		if($_ eq "##}"){
+		if($_ eq "##}" && !--$code_block_dep){
 			my $block = "$code_block}";
 			$code_block = "";
 			run_code_block($block);
 		}else{
+			$code_block_dep++ if("##{" eq substr $_, 0, 3);
 			$code_block .= "$_\n";
 		}
 		return;
@@ -5549,7 +5549,7 @@ sub process_block{
 
 	# Process syntax block
 	if($syntax_block ne ""){
-		if(")" eq substr($_, 0, 1) && "_" ne substr($_, 1, 1)){
+		if(")" eq substr($_, 0, 1) && !--$syntax_block_dep){
 			my $block = $syntax_block.substr($_, 1);
 			$syntax_block = "";
 			$block =~ /^([^\n]*)(\n.*)/s;
@@ -5564,6 +5564,7 @@ sub process_block{
 				$block_indent = $i
 					if $syntax_block =~ /^[^\n]*\n$/ ||
 					   $i < $block_indent;
+				$syntax_block_dep++ if("(" eq substr $_, -1);
 			}
 			$syntax_block .= "$_\n";
 			return;
@@ -5829,6 +5830,7 @@ sub start_block{
 
 	# Syntax block
 	if("(" eq substr $_, -1){
+		$syntax_block_dep++;
 		# Process the first line later
 		$syntax_block = (substr $_, 0, length($_) - 1)."\n";
 		return;
