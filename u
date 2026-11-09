@@ -5438,12 +5438,6 @@ sub process_raw_block{
 	# Return the current line for further processing
 	local $_ = shift;
 
-	# Fresh block
-	if(!$asis && !/^[%#]/ && "((" eq substr $_, -2){
-		# Process the first line later
-		$fresh_block = (substr $_, 0, length($_) - 2)."\n";
-		return;
-	}
 	# Process fresh block
 	if($fresh_block ne ""){
 		if("))" eq substr($_, 0, 2) && !--$fresh_block_dep){
@@ -5461,15 +5455,19 @@ sub process_raw_block{
 				$block_indent = $i
 					if $fresh_block =~ /^[^\n]*\n$/ ||
 					   $i < $block_indent;
-				if("((" eq substr $_, -2){
-					$fresh_block_dep++;
-				}elsif(/^ +\)\)/){
-					$fresh_block_dep--;
-				}
+				$fresh_block_dep++ if("((" eq substr $_, -2);
+				$fresh_block_dep-- if(/^ +\)\)/);
 			}
 			$fresh_block .= "$_\n";
 			return;
 		}
+	}
+	# Fresh block
+	if(!$asis && !/^[%#]/ && "((" eq substr $_, -2){
+		# Process the first line later
+		$fresh_block = (substr $_, 0, length($_) - 2)."\n"
+			if ++$fresh_block_dep == 1;
+		return;
 	}
 	if($re_block ne ""){
 		if(substr($re_block, 0, 1) eq $_){
@@ -5568,11 +5566,8 @@ sub process_block{
 				$block_indent = $i
 					if $syntax_block =~ /^[^\n]*\n$/ ||
 					   $i < $block_indent;
-				if("(" eq substr $_, -1){
-					$syntax_block_dep++;
-				}elsif(/^ +\)/){
-					$syntax_block_dep--;
-				}
+				$syntax_block_dep++ if("(" eq substr $_, -1);
+				$syntax_block_dep-- if(/^ +\)/);
 			}
 			$syntax_block .= "$_\n";
 			return;
@@ -5838,9 +5833,9 @@ sub start_block{
 
 	# Syntax block
 	if("(" eq substr $_, -1){
-		$syntax_block_dep++;
 		# Process the first line later
-		$syntax_block = (substr $_, 0, length($_) - 1)."\n";
+		$syntax_block = (substr $_, 0, length($_) - 1)."\n"
+			if ++$syntax_block_dep == 1;
 		return;
 	}
 
